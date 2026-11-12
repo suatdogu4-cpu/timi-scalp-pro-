@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 LOG = logging.getLogger('timi')
 logging.basicConfig(level=logging.INFO)
 ROOT = Path(__file__).resolve().parent
-VERSION = '1.2.0'
+VERSION = '1.3.0'
 SYMBOLS = ('BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT','XRPUSDT','DOGEUSDT','ADAUSDT','AVAXUSDT')
 STREAM = 'wss://data-stream.binance.vision/stream?streams='
 REST = 'https://data-api.binance.vision/api/v3'
@@ -34,7 +34,7 @@ class Market:
         self.bids=[]; self.asks=[]; self.trades=deque(maxlen=100)
         self.tape=deque(maxlen=5000); self.buy_qty=0.; self.sell_qty=0.
         self.last_trade_ms=None; self.last_book_ms=None; self.last_ticker_ms=None
-        self.sequence=0; self.last_trade_id=None; self.source='Binance Spot'
+        self.book_history=deque(maxlen=360); self.sequence=0; self.last_trade_id=None; self.source='Binance Spot'
     def public(self):
         return dict(symbol=self.symbol,price=self.price,change=self.change,volume=self.volume,
                     high=self.high,low=self.low,bid=self.bid,ask=self.ask,bids=self.bids,asks=self.asks,
@@ -104,6 +104,8 @@ async def relay():
                         m.asks=[[float(p),float(q)] for p,q in v.get('asks',[])]
                         m.bid=m.bids[0][0] if m.bids else None;m.ask=m.asks[0][0] if m.asks else None
                         m.last_book_ms=now
+                        bn=sum(p*q for p,q in m.bids);an=sum(p*q for p,q in m.asks)
+                        if bn+an:m.book_history.append((now,(bn-an)/(bn+an)))
                         event={'type':'depth','symbol':symbol,'bids':m.bids,'asks':m.asks,'bid':m.bid,'ask':m.ask,'ts':now}
                     elif '@ticker' in stream:
                         m.change=float(v['P']);m.volume=float(v['q']);m.high=float(v['h']);m.low=float(v['l'])
@@ -201,6 +203,52 @@ def decision(m,flow,ind):
     return {'decision':decision,'score':score,'confidence':'heuristic_not_probability',
             'reasons':reasons,'note':'Analitik değerlendirme; başarı olasılığı veya yatırım tavsiyesi değildir'}
 
+# Multi-timeframe checks use CLOSED Binance candles only. No look-ahead.
+MTF=('1m','3m','5m','15m')
+async def mtf_analysis(symbol):
+    async def one(tf):
+        try:
+            candles=await get_candles(symbol,tf,120)
+            ind=indicators(candles)
+            if not ind:return {'tf':tf,'direction':'YETERSIZ','reason':'Kapanmış mum yetersiz'}
+            last=ind['last_closed_price'];e20=ind['ema20'];e50=ind['ema50'];r=ind['rsi14']
+            direction='LONG' if last>e20>e50 and r>=50 else 'SHORT' if last<e20<e50 and r<=50 else 'KARISIK'
+            return {'tf':tf,'direction':direction,'rsi14':round(r,2),'ema20':round(e20,8),
+                    'ema50':round(e50,8),'closed_t':ind['last_closed_t']}
+        except (HTTPException,ValueError,KeyError,TypeError) as exc:
+            return {'tf':tf,'direction':'YETERSIZ','reason':str(exc)[:100]}
+    return await asyncio.gather(*(one(t) for t in MTF))
+
+def flow_extras(m,flow):
+    now=now_ms();hist=m.book_history
+    recent=[v for ts,v in hist if now-ts<=5000]
+    previous=[v for ts,v in hist if 10000<=now-ts<=20000]
+    delta=(sum(recent)/len(recent)-sum(previous)/len(previous)) if recent and previous else None
+    bids=m.bids;asks=m.asks
+    # Relative wall sizes are descriptive only, not proof of executable support/resistance.
+    def walls(levels):
+        sizes=sorted([p*q for p,q in levels]);med=sizes[len(sizes)//2] if sizes else 0
+        return [{'price':p,'notional':round(p*q,2),'multiple':round(p*q/med,1)}
+                for p,q in levels if med>0 and p*q>=max(3*med,1000)][:5]
+    return {'imbalance_delta_10s':delta,'bid_walls':walls(bids),'ask_walls':walls(asks),
+            'wall_definition':'>=3x median level notional and >=1000 USDT; partial 20 levels'}
+
+def enhanced_decision(base,mtf,flow,extras):
+    reasons=list(base['reasons']); dirs=[x['direction'] for x in mtf]
+    if any(d=='YETERSIZ' for d in dirs):
+        return {'decision':'BEKLE','score':base['score'],'reasons':reasons+['MTF mum verisi eksik'],
+                'confidence':'veri_yetersiz','mtf_agreement':False}
+    if base['decision']=='BEKLE':
+        return {**base,'mtf_agreement':False}
+    direction=base['decision']; aligned=dirs[0]==direction and dirs[1]==direction and dirs[2]==direction
+    if not aligned:reasons.append('1m/3m/5m zaman dilimleri aynı yönde değil')
+    imbalance=flow['imbalance']; delta=extras['imbalance_delta_10s']
+    # Order book can change rapidly; avoid hard veto on noisy imbalance velocity.
+    if delta is not None and ((direction=='LONG' and delta < -0.35) or (direction=='SHORT' and delta > 0.35)):
+        aligned=False;reasons.append('Emir defteri baskısı ters yöne hızla değişiyor')
+    return {**base,'decision':direction if aligned else 'BEKLE','reasons':reasons,
+            'mtf_agreement':aligned,'confidence':'heuristic_not_probability'}
+
 @asynccontextmanager
 async def lifespan(app):
     await bootstrap();task=asyncio.create_task(relay())
@@ -246,6 +294,22 @@ async def analysis(symbol:str,interval:str='1m'):
     except HTTPException:ind=None
     return {'symbol':symbol,'interval':interval,'ts':now_ms(),'flow':flow,'indicators':ind,
             'signal':decision(m,flow,ind),'market_price':m.price}
+
+@app.get('/api/analysis-pro/{symbol}')
+async def analysis_pro(symbol:str):
+    symbol=symbol.upper()
+    if symbol not in markets:raise HTTPException(400,'Invalid symbol')
+    m=markets[symbol]
+    flow=orderflow(m)
+    frames=await mtf_analysis(symbol)
+    extras=flow_extras(m,flow)
+    try:ind=indicators(await get_candles(symbol,'1m',120))
+    except HTTPException:ind=None
+    base=decision(m,flow,ind)
+    signal=enhanced_decision(base,frames,flow,extras)
+    return {'symbol':symbol,'ts':now_ms(),'interval':'1m','flow':flow,'indicators':ind,
+            'signal':signal,'mtf':frames,'extras':extras,'market_price':m.price,
+            'disclaimer':'Kural tabanlı gözlem; test edilmiş başarı olasılığı değildir'}
 
 @app.websocket('/ws/{symbol}')
 async def live(ws:WebSocket,symbol:str):
