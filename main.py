@@ -1,10 +1,11 @@
-"""TiMi SCALP PRO v1.8.3 — read-only Binance Spot analytics.
+"""TiMi SCALP PRO v1.8.4 — read-only Binance Spot analytics.
 Developer: Suat DOĞU. No order endpoints or model training on request path.
 """
 import asyncio
 import json
 import logging
 import math
+import statistics
 import os
 import time
 from collections import deque
@@ -23,7 +24,7 @@ from fastapi.responses import FileResponse
 logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger('timi')
 ROOT = Path(__file__).resolve().parent
-VERSION = '1.8.3'
+VERSION = '1.8.4'
 SYMBOLS = ('BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT')
 TF = ('1m', '3m', '5m', '15m', '30m', '1h', '4h', '1d')
 MTF = ('1m', '3m', '5m', '15m')
@@ -164,6 +165,7 @@ async def relay():
                                  'ts': v.get('T', now), 'id': trade_id}
                         m.trades.appendleft(trade)
                         m.tape.append((now, side, qty, price))
+                        _audit_on_trade(symbol, price, now)
                         while m.tape and m.tape[0][0] < now - 60000:
                             m.tape.popleft()
                         event = {'type': 'trade', 'symbol': symbol, 'trade': trade,
@@ -570,20 +572,27 @@ def enhanced_decision(base, mtf, flow, extras):
 
 async def pro_result(symbol):
     m = markets[symbol]
-    flow = orderflow(m)
-    extras = flow_extras(m, flow)
+    # Fetch MTF and closed-candle features first. This section may await REST,
+    # so an order-flow sample taken before it could be stale by decision time.
     frames = await mtf_analysis(symbol)
     try:
         ind = await asyncio.to_thread(indicators, await get_candles(symbol, '1m', 250))
     except HTTPException:
         ind = None
+    # No awaits between reading order flow and calculating the final signal:
+    # trade/book ages are checked against the decision's actual evaluation time.
+    flow = orderflow(m)
+    extras = flow_extras(m, flow)
     base = decision(m, flow, ind)
     signal = enhanced_decision(base, frames, flow, extras)
-    return {'symbol': symbol, 'ts': now_ms(), 'interval': '1m',
+    evaluated_at = now_ms()
+    closed_at = ind['last_closed_t'] + 60000 if ind else None
+    return {'symbol': symbol, 'ts': evaluated_at, 'interval': '1m',
             'flow': flow, 'indicators': ind, 'signal': signal,
             'mtf': frames, 'extras': extras, 'market_price': m.price,
-            'analysis_candle_closed_at_ms': (ind['last_closed_t'] + 60000 if ind else None),
-            'analysis_candle_age_ms': (now_ms() - ind['last_closed_t'] - 60000 if ind else None),
+            'decision_evaluated_at_ms': evaluated_at,
+            'analysis_candle_closed_at_ms': closed_at,
+            'analysis_candle_age_ms': (evaluated_at - closed_at if closed_at else None),
             'ml': {'status': 'not_trained', 'probabilities': None},
             'disclaimer': 'Kural tabanlı gözlem; test edilmiş başarı olasılığı değildir'}
 
@@ -593,12 +602,15 @@ async def cached_pro(symbol):
         entry = analysis_cache.get(symbol)
         if entry and time.monotonic() - entry[0] < 2:
             result = dict(entry[1])
+            # Avoid mutating cached MTF frames when refreshing their age.
+            result['mtf'] = [dict(frame) for frame in result['mtf']]
             flow = orderflow(markets[symbol])
             extras = flow_extras(markets[symbol], flow)
             result['flow'] = flow
             result['extras'] = extras
             result['market_price'] = markets[symbol].price
             result['ts'] = now_ms()
+            result['decision_evaluated_at_ms'] = result['ts']
             if result.get('analysis_candle_closed_at_ms') is not None:
                 result['analysis_candle_age_ms'] = now_ms() - result['analysis_candle_closed_at_ms']
             for frame in result['mtf']:
@@ -616,17 +628,164 @@ async def cached_pro(symbol):
         analysis_cache[symbol] = (time.monotonic(), result)
         return result
 
+# ---------------------------------------------------------------------------
+# Read-only, forward-only SIGNAL OBSERVATION (not backtesting or paper trading)
+# ---------------------------------------------------------------------------
+# Render's default filesystem is ephemeral. The bounded in-memory observations
+# also disappear if the process restarts or scales to another worker. For a
+# durable study, an opt-in external database and timestamped raw feed are needed.
+AUDIT_SYMBOLS = tuple(dict.fromkeys(
+    symbol.strip().upper()
+    for symbol in os.getenv('TIMI_SIGNAL_AUDIT_SYMBOLS', 'BTCUSDT').split(',')
+    if symbol.strip().upper() in SYMBOLS))
+AUDIT_HORIZONS_MS = {'1m': 60000, '5m': 300000}
+AUDIT_EVAL_MAX_DELAY_MS = 10000
+AUDIT_LOG_MAX = 1200
+signal_audit_log = {symbol: deque(maxlen=AUDIT_LOG_MAX) for symbol in SYMBOLS}
+signal_audit_pending = {symbol: [] for symbol in SYMBOLS}
+signal_audit_errors = {symbol: None for symbol in SYMBOLS}
+
+
+def _audit_observe(symbol, pro, sampled_ms=None):
+    """Take one timestamped observation; never create an order or position.
+
+    Outcomes use last observed spot-trade price at the first trade near each
+    horizon. This is a directional price study; NOT tradable P&L, fills, or a
+    tested profitability claim. No fees, spread or slippage are deducted.
+    """
+    ts = now_ms() if sampled_ms is None else sampled_ms
+    signal = pro.get('signal') or {}
+    flow = pro.get('flow') or {}
+    direction = signal.get('decision', 'BEKLE')
+    if direction not in ('LONG', 'SHORT', 'BEKLE'):
+        direction = 'BEKLE'
+    price = finite(pro.get('market_price'))
+    if not flow.get('fresh') or price is None or price <= 0:
+        direction = 'BEKLE'
+    # An observation is valid for forward outcomes only if the market data
+    # snapshot remained fresh at the time the observation was recorded.
+    m = markets[symbol]
+    data_fresh = (m.last_trade_ms is not None and
+                  0 <= ts - m.last_trade_ms <= 5000 and
+                  m.last_book_ms is not None and m.book_valid and
+                  0 <= ts - m.last_book_ms <= 5000 and status['connected'])
+    if not data_fresh:
+        direction = 'BEKLE'
+    observation = {
+        'observed_at_ms': ts, 'symbol': symbol,
+        'direction': direction, 'score': signal.get('score'),
+        'entry_reference_price': price,
+        'last_trade_age_ms': (ts - m.last_trade_ms if m.last_trade_ms else None),
+        'last_book_age_ms': (ts - m.last_book_ms if m.last_book_ms else None),
+        'closed_candle_at_ms': pro.get('analysis_candle_closed_at_ms'),
+        'mtf': [{'tf': frame.get('tf'), 'direction': frame.get('direction'),
+                 'closed_at_ms': frame.get('closed_at_ms')}
+                for frame in pro.get('mtf', [])],
+        'outcomes': {name: {'status': 'pending', 'target_ms': ts + ms,
+                            'reference_exit_price': None,
+                            'signed_price_change_pct': None}
+                     for name, ms in AUDIT_HORIZONS_MS.items()} if
+                     direction in ('LONG', 'SHORT') else {},
+    }
+    signal_audit_log[symbol].append(observation)
+    if observation['outcomes']:
+        signal_audit_pending[symbol].append(observation)
+    return observation
+
+
+def _audit_on_trade(symbol, observed_price, received_ms):
+    """Finalize 1m/5m forward prices using first subsequent Binance trade."""
+    pending = signal_audit_pending[symbol]
+    if not pending:
+        return
+    for record in pending[:]:
+        for outcome in record['outcomes'].values():
+            if outcome['status'] != 'pending' or received_ms < outcome['target_ms']:
+                continue
+            lag = received_ms - outcome['target_ms']
+            if lag > AUDIT_EVAL_MAX_DELAY_MS or not math.isfinite(observed_price) or observed_price <= 0:
+                outcome['status'] = 'missing_data'
+                continue
+            signed = 1 if record['direction'] == 'LONG' else -1
+            move = signed * (observed_price / record['entry_reference_price'] - 1) * 100
+            outcome.update(status='measured', reference_exit_price=observed_price,
+                           signed_price_change_pct=round(move, 8),
+                           observed_at_ms=received_ms, delay_ms=lag)
+        if all(outcome['status'] != 'pending' for outcome in record['outcomes'].values()):
+            pending.remove(record)
+
+
+def _audit_summary(symbol):
+    rows = list(signal_audit_log[symbol])
+    summary = {'total_observations': len(rows),
+               'long': sum(r['direction'] == 'LONG' for r in rows),
+               'short': sum(r['direction'] == 'SHORT' for r in rows),
+               'wait': sum(r['direction'] == 'BEKLE' for r in rows),
+               'horizons': {}}
+    for label in AUDIT_HORIZONS_MS:
+        values = [r['outcomes'][label]['signed_price_change_pct']
+                  for r in rows if label in r['outcomes'] and
+                  r['outcomes'][label]['status'] == 'measured']
+        missing = sum(label in r['outcomes'] and
+                      r['outcomes'][label]['status'] == 'missing_data' for r in rows)
+        pending = sum(label in r['outcomes'] and
+                      r['outcomes'][label]['status'] == 'pending' for r in rows)
+        n = len(values)
+        summary['horizons'][label] = {
+            'measured': n, 'pending': pending, 'missing': missing,
+            'directional_hit_rate_pct': round(100 * sum(x > 0 for x in values) / n, 2) if n else None,
+            'mean_signed_price_change_pct': round(statistics.mean(values), 6) if n else None,
+            'median_signed_price_change_pct': round(statistics.median(values), 6) if n else None,
+            'insufficient_sample': n < 100,
+        }
+    return summary
+
+
+async def _signal_audit_monitor():
+    """Once per minute, independently sample signals for explicitly enabled symbols.
+
+    BTCUSDT alone is enabled by default to keep Render API load modest. A
+    background coroutine runs only while this server process is alive; nothing
+    runs in ChatGPT's background. Startup starts the sampler immediately.
+    """
+    while True:
+        try:
+            # Sample shortly after each UTC minute boundary so the 1m candle
+            # close has had a chance to arrive from Binance.
+            current = now_ms()
+            next_slot = (current // 60000 + 1) * 60000 + 5000
+            await asyncio.sleep(max(0.1, (next_slot - current) / 1000))
+            for symbol in AUDIT_SYMBOLS:
+                try:
+                    pro = await cached_pro(symbol)
+                    _audit_observe(symbol, pro)
+                    signal_audit_errors[symbol] = None
+                except asyncio.CancelledError:
+                    raise
+                except Exception as exc:
+                    signal_audit_errors[symbol] = type(exc).__name__
+                    LOG.warning('Signal audit %s: %s', symbol, exc)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            LOG.warning('Signal audit monitor: %s', exc)
+            await asyncio.sleep(10)
+
 @asynccontextmanager
 async def lifespan(app):
     global http_client
     http_client = httpx.AsyncClient(timeout=12)
     await bootstrap()
     task = asyncio.create_task(relay())
+    audit_task = asyncio.create_task(_signal_audit_monitor()) if AUDIT_SYMBOLS else None
     try:
         yield
     finally:
         task.cancel()
-        await asyncio.gather(task, return_exceptions=True)
+        if audit_task:
+            audit_task.cancel()
+        await asyncio.gather(*(t for t in (task, audit_task) if t is not None),
+                             return_exceptions=True)
         await http_client.aclose()
 
 app = FastAPI(title='TiMi SCALP PRO', version=VERSION, lifespan=lifespan)
@@ -648,7 +807,9 @@ async def health():
             'real_orders_enabled': False, 'paper_orders_enabled': False,
             'ml_model_loaded': False, 'book_validation_enabled': True,
             'live_kline_1m_enabled': True, 'depth_audit_enabled': True,
-            'depth_audit_matching_enabled': True}
+            'depth_audit_matching_enabled': True,
+            'signal_audit_forward_enabled': bool(AUDIT_SYMBOLS),
+            'signal_audit_symbols': AUDIT_SYMBOLS}
 
 def _book_capture(symbol):
     """Copy latest stream book for diagnostics when update-ID matching fails."""
@@ -830,6 +991,29 @@ async def depth_audit(symbol: str, samples: int = 3):
         'source': 'Binance Spot REST /api/v3/depth?limit=20 versus TiMi depth20 stream',
         'read_only': True,
     }
+
+@app.get('/api/signal-audit/{symbol}')
+async def signal_audit(symbol: str, limit: int = 30):
+    """Read-only forward signal observations; NOT historical strategy backtest."""
+    symbol = symbol.upper()
+    if symbol not in markets:
+        raise HTTPException(400, 'Invalid symbol')
+    if not 1 <= limit <= 100:
+        raise HTTPException(400, 'limit must be 1..100')
+    return {'symbol': symbol, 'version': VERSION,
+            'enabled': symbol in AUDIT_SYMBOLS,
+            'first_observation_ms': (signal_audit_log[symbol][0]['observed_at_ms']
+                                     if signal_audit_log[symbol] else None),
+            'summary': _audit_summary(symbol),
+            'observations': list(reversed(list(signal_audit_log[symbol])))[:limit],
+            'last_sampling_error': signal_audit_errors[symbol],
+            'method': ('Once-per-minute observations of actual rule-based signals. '
+                       'Compare the next observed Binance trade near 1m and 5m horizons. '
+                       'Price-direction study only; no orders, fills, fees, spread, '
+                       'slippage, or risk-adjusted P&L. Not a historical backtest.'),
+            'limitations': ('In-memory observations reset on process restart; '
+                            'Render scaling creates independent histories; '
+                            'samples under 100 are insufficient for claims.')}
 
 @app.get('/api/markets')
 async def market_list():
