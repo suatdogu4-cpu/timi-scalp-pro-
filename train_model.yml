@@ -1,0 +1,85 @@
+
+name: TiMi Machine Learning Training
+
+on:
+  workflow_dispatch:
+    inputs:
+      symbol:
+        description: "Kripto para"
+        required: true
+        type: choice
+        default: BTCUSDT
+        options:
+          - BTCUSDT
+          - ETHUSDT
+          - SOLUSDT
+
+      bars:
+        description: "1 dakikalik mum sayisi"
+        required: true
+        type: choice
+        default: "30000"
+        options:
+          - "12000"
+          - "30000"
+          - "60000"
+
+      cost_bps:
+        description: "Notr bolge esigi"
+        required: true
+        type: choice
+        default: "12"
+        options:
+          - "8"
+          - "12"
+          - "24"
+
+permissions:
+  contents: read
+
+jobs:
+  train:
+    name: TiMi LightGBM Training
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements_training.txt
+
+      - name: Check Python files
+        run: |
+          python -m py_compile train_model.py ml_features.py
+
+      - name: Train LightGBM models
+        env:
+          SYMBOL: ${{ inputs.symbol }}
+          BARS: ${{ inputs.bars }}
+          COST_BPS: ${{ inputs.cost_bps }}
+        run: |
+          python train_model.py \
+            --symbol "$SYMBOL" \
+            --interval 1m \
+            --bars "$BARS" \
+            --horizons 1 5 \
+            --cost-bps "$COST_BPS" \
+            --out models
+
+      - name: Save trained models and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TiMi-ML-Training-Results
+          path: models/
+          if-no-files-found: warn
+          retention-days: 14
