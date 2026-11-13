@@ -10,6 +10,21 @@
 .timi-ind-overall{margin:9px 0 9px;border-radius:12px;padding:10px 12px;background:#162940;border:1px solid #385a75;display:flex;align-items:center;justify-content:space-between;gap:10px}.timi-ind-overall small{color:#b8cde5}.timi-ind-overall strong{font-size:16px;text-align:right}.timi-ind-overall strong.sell{color:#ff8095}.timi-ind-overall strong.buy{color:#39e6ab}.timi-ind-overall strong.wait{color:#eacb82}.timi-ind-gauge{display:flex;align-items:center;gap:7px;font-size:11px;color:#a9bdd4}.timi-ind-gtrack{position:relative;flex:1;height:10px;border-radius:20px;background:linear-gradient(90deg,#ef4667 0%,#9b6687 37%,#627085 50%,#3e9b88 65%,#22d3a0 100%);box-shadow:inset 0 0 5px #061018}.timi-ind-gmarker{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);height:17px;width:17px;background:#fff;border:4px solid #f7c65c;border-radius:50%;box-shadow:0 0 8px #e8c46ca9;transition:left .25s}
 .timi-ind-footnote{font-size:10.5px;line-height:1.55;color:#aabdd4;margin:9px 0 12px}.timi-ind-grids{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}.timi-ind-box{min-width:0;background:linear-gradient(135deg,#152940,#102137);border:1px solid #3a5674;border-radius:13px;padding:10px}.timi-ind-box.wide{grid-column:1/-1}.timi-ind-box-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:7px;padding-bottom:8px;border-bottom:1px solid #375067}.timi-ind-box-head strong{font-size:13px;font-weight:800}.timi-ind-box-head strong:before{content:'▥';color:var(--gold);margin-right:5px}.timi-ind-box-head span{font-size:10px;color:#a8bfda}.timi-ind-colhead,.timi-ind-entry{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,.85fr) minmax(42px,.55fr);align-items:center;gap:5px;padding:7px 0;border-bottom:1px solid #31465a;font-size:11px;font-variant-numeric:tabular-nums}.timi-ind-entry:last-child{border-bottom:0}.timi-ind-colhead{padding:4px 0 7px;color:#91adc9;font-size:10px}.timi-ind-colhead>*:not(:first-child),.timi-ind-entry>*:not(:first-child){text-align:right}.timi-ind-entry .timi-ind-value{color:#deebfb;overflow-wrap:anywhere}.timi-ind-entry .timi-ind-name{color:#dfeafa;overflow-wrap:anywhere}.timi-ind-pill{display:inline-block;padding:4px 5px;min-width:42px;text-align:center;border-radius:18px;font-size:10px;font-weight:760;border:1px solid #425871;background:#33475d;color:#dce7f6}.timi-ind-pill.sell{background:#622b3d;border-color:#993e56;color:#ff91a1}.timi-ind-pill.buy{background:#104b3c;border-color:#229a77;color:#54f1bc}.timi-ind-pill.wait{background:#304458;border-color:#4b647d;color:#d5e1f0}
 .timi-ind-pivots{overflow-x:auto}.timi-ind-pivot-grid{display:grid;grid-template-columns:minmax(30px,.5fr) repeat(3,minmax(65px,1fr));gap:5px;align-items:center;padding:7px 0;font-size:11px;border-bottom:1px solid #31465a;font-variant-numeric:tabular-nums;min-width:290px}.timi-ind-pivot-grid>*:not(:first-child){text-align:right}.timi-ind-pivot-grid.heading{color:#9fb8d3;font-size:10px}.timi-ind-pivot-grid.pivot-current{background:#57482066;border-radius:7px;color:#ffe6a1}.timi-ind-pivot-grid:last-child{border:0}.timi-ind-error{color:#f5b5c0;font-size:12px;margin:8px 0 0}.timi-ind-hidden{display:none!important}
+
+/* TiMi panel-only REST health indicator — no changes to existing signal engine. */
+.timi-ind-health{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;
+ padding:9px 10px;margin:0 0 12px;border:1px solid #32536f;border-radius:12px;
+ background:#101f32;color:#b5cae0;font-variant-numeric:tabular-nums}
+.timi-ind-health-pill{display:inline-flex;align-items:center;white-space:nowrap;
+ padding:5px 9px;border:1px solid #52617a;border-radius:22px;
+ font-size:11px;font-weight:800;letter-spacing:.1px;background:#21364f;color:#d4e2f2}
+.timi-ind-health-pill.ok{border-color:#1c9877;background:#0f4138;color:#56e4b6}
+.timi-ind-health-pill.delayed{border-color:#bd8940;background:#45361f;color:#ffd083}
+.timi-ind-health-pill.offline{border-color:#c95572;background:#4b2435;color:#ff8ea1}
+.timi-ind-health-times{font-size:11px;line-height:1.55;color:#c0cde1}
+.timi-ind-health-times strong{color:#f6f8ff}
+.timi-ind-health-times span{color:#a2b8ce}
+.timi-ind-health-detail{width:100%;font-size:10.5px;color:#a7bbd3;line-height:1.4}
 @media(min-width:690px){.timi-ind-grids{grid-template-columns:repeat(2,minmax(0,1fr))}.timi-ind-summary{grid-template-columns:repeat(3,1fr)}.timi-ind-sum{padding:13px}.timi-ind-title{font-size:18px}.timi-ind-colhead,.timi-ind-entry{font-size:12px}}
 @media(max-width:390px){.timi-ind{padding:11px}.timi-ind-colhead,.timi-ind-entry{grid-template-columns:minmax(0,1.4fr) minmax(0,.7fr) 48px}.timi-ind-entry{font-size:11px}.timi-ind-summary{gap:5px}.timi-ind-tfs button{padding:8px}}
 
@@ -25,6 +40,12 @@
 <section id="chart" class="section"><div class="card"><h3>Mum grafiği · Binance Spot</h3><div id="timeframes" class="tabs"></div><div class="row" style="margin:8px 0 12px;flex-wrap:wrap"><span id="candleStatus" class="badge gold">Mum verisi bekleniyor</span><small id="candleStamp">Son mum: —</small></div><canvas id="canvas"></canvas><p class="note">1m grafiği Binance WebSocket mumlarıyla güncellenir; açık mum geçicidir. Analiz yalnızca kapanmış mumlara dayanır. 3m ve üzeri grafikler REST ile yenilenir. Bağlantı kesilirse CANLI göstergesi kapanır.</p></div>
 <div class="card timi-ind" id="timiIndicatorPanel" aria-label="Gelişmiş indikatör paneli">
  <div class="timi-ind-head"><div><div class="timi-ind-title">Gelişmiş İndikatörler</div><div class="timi-ind-sub">Kapanmış mumdan hesaplanan teknik yön ve ortak değerlendirme</div></div><span class="timi-ind-state" id="timiIndState">Veri bekleniyor</span></div>
+
+ <div class="timi-ind-health" aria-label="Göstergelerin veri sağlığı" aria-live="polite">
+  <span class="timi-ind-health-pill waiting" id="timiIndHealth">● KONTROL EDİLİYOR</span>
+  <span class="timi-ind-health-times">Son hesaplama: <strong id="timiIndLastCalc">—</strong> <span id="timiIndCalcElapsed">—</span></span>
+  <small class="timi-ind-health-detail" id="timiIndHealthDetail">Binance Spot kapanmış mum verisi kontrol ediliyor.</small>
+ </div>
  <div id="timiIndPeriods" class="timi-ind-tfs" aria-label="Gösterge zaman dilimi"></div>
  <div class="timi-ind-summary" aria-label="Al sat nötr sayıları">
   <div class="timi-ind-sum sell"><span>↘ SAT</span><strong id="timiIndSell">—</strong></div>
@@ -243,7 +264,7 @@ connect();loadCandles();loadAnalysis();setInterval(render,1500);setInterval(load
  const $i=id=>document.getElementById(id);
  const TF=['1m','3m','5m','15m','30m','1h','4h','1d'];
  const TF_MS={'1m':60000,'3m':180000,'5m':300000,'15m':900000,'30m':1800000,'1h':3600000,'4h':14400000,'1d':86400000};
- let indicatorTf='1m', request=0, completedAt=0, lastKey='', dailyData=null, dailyKey='', lastError='', latestScores=null;
+ let indicatorTf='1m', request=0, completedAt=0, lastKey='', dailyData=null, dailyKey='', lastError='', latestScores=null, lastGoodCalcAt=0;
  const finite=n=>typeof n==='number'&&Number.isFinite(n);
  const last=a=>a[a.length-1];
  const f=(n,d=2)=>finite(n)?n.toLocaleString('tr-TR',{maximumFractionDigits:d,minimumFractionDigits:d}):'—';
@@ -294,11 +315,51 @@ connect();loadCandles();loadAnalysis();setInterval(render,1500);setInterval(load
  function clearVisual(message){latestScores=null;$i('timiIndSell').textContent='—';$i('timiIndNeutral').textContent='—';$i('timiIndBuy').textContent='—';$i('timiIndTotal').textContent='BEKLE';$i('timiIndTotal').className='wait';$i('timiIndMarker').style.left='50%';for(const id of ['timiOscRows','timiMaRows','timiPivotRows'])$i(id).textContent=message;$i('timiOscCount').textContent='—';$i('timiMaCount').textContent='—';$i('timiIndState').textContent=message;$i('timiIndError').textContent=''}
  function render(score){latestScores=score;$i('timiIndSell').textContent=score.sell;$i('timiIndNeutral').textContent=score.neutral;$i('timiIndBuy').textContent=score.buy;$i('timiIndTotal').textContent=score.direction;$i('timiIndTotal').className=score.direction.includes('Sat')?'sell':score.direction.includes('Al')?'buy':'wait';$i('timiIndMarker').style.left=Math.max(0,Math.min(100,50+score.vote*50))+'%';$i('timiOscCount').textContent=score.ind.length+' gösterge';$i('timiMaCount').textContent=score.means.length+' gösterge';renderList('timiOscRows',score.ind);renderList('timiMaRows',score.means);$i('timiIndState').textContent=indicatorTf+' · Son kapanış '+new Date(score.closed+TF_MS[indicatorTf]).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});$i('timiIndError').textContent='';$i('timiIndNote').textContent=`${score.valid} geçerli teknik gösterge · ${indicatorTf} · Sinyaller yalnızca kapanmış mumla hesaplanır. Gösterge oyları ilişkili olduğundan başarı olasılığı veya emir tavsiyesi değildir. TradingView sonuçlarıyla birebir aynı algoritma kullanılmaz.`}
  function panelVisible(){return !!$i('chart')?.classList.contains('active')}
- function reset(message='Veri bekleniyor'){request++;lastKey='';completedAt=0;dailyKey='';dailyData=null;clearVisual(message)}
+
+ // This health badge describes the indicator REST candle source, not the trading engine.
+ // A stale or failed request never keeps the previous AL/SAT/NOTR scores on screen.
+ function refreshIndicatorHealth(){
+  if(!panelVisible())return;
+  const now=Date.now(),badge=$i('timiIndHealth');
+  const calcAt=$i('timiIndLastCalc'),elapsed=$i('timiIndCalcElapsed');
+  if(lastGoodCalcAt){
+   calcAt.textContent=new Date(lastGoodCalcAt).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+   const seconds=Math.floor(Math.max(0,now-lastGoodCalcAt)/1000);
+   elapsed.textContent=seconds<60?'('+seconds+' sn önce)': '('+Math.floor(seconds/60)+' dk '+seconds%60+' sn önce)';
+  }else{calcAt.textContent='—';elapsed.textContent='—'}
+  let status='waiting',detail='Binance Spot kapanmış mum verisi kontrol ediliyor.';
+  const deviceOffline=typeof navigator!=='undefined' && navigator.onLine===false;
+  if(deviceOffline||lastError==='offline'){
+   status='offline';detail='Binance mum verisine bağlantı kurulamadı; AL/SAT skorları gösterilmez.';
+  }else if(lastError==='delayed'){
+   status='delayed';detail='Kapanmış mum eksik, gecikmiş veya hesaplama başarısız; eski skor gösterilmez.';
+  }else if(latestScores&&completedAt>0){
+   const step=TF_MS[indicatorTf];
+   // For each period, wait up to 30 seconds after the boundary for REST to publish its closed bar.
+   const expectedLastClose=Math.floor(Math.max(0,now-30000)/step)*step;
+   const actualLastClose=latestScores.closed+step;
+   const calculationAge=now-completedAt;
+   if(actualLastClose<expectedLastClose || calculationAge>45000){
+    status='delayed';detail='Yeni kapanmış mum veya güncel hesaplama bekleniyor. Skor eski olabilir; işlem sinyali olarak kullanma.';
+   }else{
+    status='ok';detail='Kapanmış mumlar REST üzerinden doğrulandı. Bu, anlık tick tahmini veya başarı olasılığı değildir.';
+   }
+   if(ws?.readyState!==1)detail+=' WebSocket bağlı değil; gösterge kaynağı REST API.';
+  }
+  if(status==='delayed'&&latestScores){
+   // Never continue displaying actionable-looking values after their freshness has expired.
+   lastError='delayed';completedAt=0;lastKey='';clearVisual('Gecikmiş veri');
+  }
+  badge.className='timi-ind-health-pill '+status;
+  badge.textContent=status==='ok'?'● VERİ GÜNCEL':status==='delayed'?'● GECİKMELİ':status==='offline'?'● BAĞLANTI YOK':'● KONTROL EDİLİYOR';
+  $i('timiIndHealthDetail').textContent=detail;
+ }
+
+ function reset(message='Veri bekleniyor'){request++;lastKey='';completedAt=0;lastGoodCalcAt=0;lastError='';dailyKey='';dailyData=null;clearVisual(message);refreshIndicatorHealth()}
  async function loadPivots(s,g){const key=g+'|'+s;if(dailyKey===key&&dailyData&&Date.now()-dailyData.ts<120000)return renderPivots(dailyData.candle);dailyKey=key;dailyData=null;renderPivots(null);try{const d=await get('/api/klines/'+encodeURIComponent(s)+'?interval=1d&limit=5');if(s!==symbol||g!==gateway||key!==dailyKey)return;const today=Math.floor(Date.now()/86400000)*86400000;const list=(d.candles||[]).filter(x=>x.closed===true&&x.t<today).sort((a,b)=>a.t-b.t);let c=last(list);if(c){dailyData={ts:Date.now(),candle:{h:+c.h,l:+c.l,o:+c.o,close:+c.c}};renderPivots(dailyData.candle)}}catch(e){if(s===symbol&&g===gateway)$i('timiPivotRows').textContent='Günlük pivot verisi alınamadı'}}
- async function loadIndicator(force=false){if(!panelVisible())return;const s=symbol,g=gateway,t=indicatorTf,key=g+'|'+s+'|'+t;if(!force&&key===lastKey&&Date.now()-completedAt<16000)return;const seq=++request;lastKey=key;$i('timiIndState').textContent=t+' · Hesaplanıyor';
- try{const data=await get('/api/klines/'+encodeURIComponent(s)+'?interval='+t+'&limit=500');if(seq!==request||s!==symbol||g!==gateway||t!==indicatorTf)return;let candles=(data.candles||[]).filter(x=>x.closed===true&&[x.t,x.o,x.h,x.l,x.c,x.v].every(Number.isFinite)).sort((a,b)=>a.t-b.t);let dedup=new Map(candles.map(x=>[x.t,x]));candles=[...dedup.values()];for(let i=1;i<candles.length;i++)if(candles[i].t-candles[i-1].t!==TF_MS[t])throw Error('Mumlar arasında boşluk var; hesaplama durduruldu');if(!candles.length||Date.now()-(last(candles).t+TF_MS[t])>Math.max(120000,TF_MS[t]*2.5))throw Error('Kapanmış mum verisi güncel değil');const x=compute(candles);render(x);completedAt=Date.now();loadPivots(s,g)}catch(e){if(seq!==request||s!==symbol||g!==gateway||t!==indicatorTf)return;completedAt=0;lastKey='';clearVisual('Güvenilir veri yok');$i('timiIndError').textContent='İndikatör hesaplanamadı: '+(e?.message||'Veri hatası')+' · Yanıltıcı AL/SAT gösterilmedi.'}}
- function setTf(t){if(!TF.includes(t))return;indicatorTf=t;for(const b of $i('timiIndPeriods').querySelectorAll('button')){b.classList.toggle('active',b.dataset.period===t);b.setAttribute('aria-pressed',b.dataset.period===t?'true':'false')}request++;completedAt=0;lastKey='';clearVisual('Periyot değişiyor');loadIndicator(true)}
+ async function loadIndicator(force=false){if(!panelVisible())return;const s=symbol,g=gateway,t=indicatorTf,key=g+'|'+s+'|'+t;if(!force&&key===lastKey&&Date.now()-completedAt<16000)return;const seq=++request;lastKey=key;$i('timiIndState').textContent=t+' · Hesaplanıyor';refreshIndicatorHealth();
+ try{let data;try{data=await get('/api/klines/'+encodeURIComponent(s)+'?interval='+t+'&limit=500')}catch(fetchError){fetchError.timiSourceOffline=true;throw fetchError}if(seq!==request||s!==symbol||g!==gateway||t!==indicatorTf)return;let candles=(data.candles||[]).filter(x=>x.closed===true&&[x.t,x.o,x.h,x.l,x.c,x.v].every(Number.isFinite)).sort((a,b)=>a.t-b.t);let dedup=new Map(candles.map(x=>[x.t,x]));candles=[...dedup.values()];for(let i=1;i<candles.length;i++)if(candles[i].t-candles[i-1].t!==TF_MS[t])throw Error('Mumlar arasında boşluk var; hesaplama durduruldu');if(!candles.length||Date.now()-(last(candles).t+TF_MS[t])>Math.max(120000,TF_MS[t]*2.5))throw Error('Kapanmış mum verisi güncel değil');const x=compute(candles);render(x);completedAt=Date.now();lastGoodCalcAt=completedAt;lastError='';refreshIndicatorHealth();loadPivots(s,g)}catch(e){if(seq!==request||s!==symbol||g!==gateway||t!==indicatorTf)return;completedAt=0;lastKey='';lastError=e?.timiSourceOffline?'offline':'delayed';clearVisual('Güvenilir veri yok');$i('timiIndError').textContent='İndikatör hesaplanamadı: '+(e?.message||'Veri hatası')+' · Yanıltıcı AL/SAT gösterilmedi.';refreshIndicatorHealth()}}
+ function setTf(t){if(!TF.includes(t))return;indicatorTf=t;lastError='';lastGoodCalcAt=0;for(const b of $i('timiIndPeriods').querySelectorAll('button')){b.classList.toggle('active',b.dataset.period===t);b.setAttribute('aria-pressed',b.dataset.period===t?'true':'false')}request++;completedAt=0;lastKey='';clearVisual('Periyot değişiyor');refreshIndicatorHealth();loadIndicator(true)}
  $i('timiIndPeriods').replaceChildren(...TF.map(t=>{let b=elem('button',t==='1m'?'active':'',t);b.type='button';b.dataset.period=t;b.setAttribute('aria-pressed',t==='1m'?'true':'false');return b}));
  $i('timiIndPeriods').addEventListener('click',e=>{const b=e.target.closest('button[data-period]');if(!b)return;const t=b.dataset.period;const chartBtn=document.querySelector(`#timeframes button[data-tf="${t}"]`);if(chartBtn&&tf!==t)chartBtn.click();else if(indicatorTf!==t)setTf(t)});
  $i('timeframes').addEventListener('click',e=>{const b=e.target.closest('button[data-tf]');if(b&&indicatorTf!==b.dataset.tf)setTf(b.dataset.tf)});
@@ -306,6 +367,10 @@ connect();loadCandles();loadAnalysis();setInterval(render,1500);setInterval(load
  $i('symbol').addEventListener('change',()=>{reset('Sembol değişiyor');setTimeout(()=>loadIndicator(true),0)});
  $i('saveGateway').addEventListener('click',()=>{reset('Sunucu değişiyor');setTimeout(()=>loadIndicator(true),0)});
  setInterval(()=>{if(panelVisible())loadIndicator(false)},7000);
+ setInterval(()=>{if(panelVisible())refreshIndicatorHealth()},1000);
+ window.addEventListener('offline',()=>{lastError='offline';completedAt=0;lastKey='';clearVisual('Bağlantı yok');refreshIndicatorHealth()});
+ window.addEventListener('online',()=>{refreshIndicatorHealth();if(panelVisible())loadIndicator(true)});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&panelVisible()){refreshIndicatorHealth();loadIndicator(true)}});
  // An active 1m indicator is recomputed after the next confirmed closed candle via REST.
  window.addEventListener('timi-closed-kline',e=>{if(panelVisible()&&indicatorTf==='1m'&&e.detail?.symbol===symbol){completedAt=0;loadIndicator(true)}});
 })();
