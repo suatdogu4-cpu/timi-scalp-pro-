@@ -1,4 +1,4 @@
-"""TiMi SCALP PRO v1.8.2 — read-only Binance Spot analytics.
+"""TiMi SCALP PRO v1.8.3 — read-only Binance Spot analytics.
 Developer: Suat DOĞU. No order endpoints or model training on request path.
 """
 import asyncio
@@ -8,6 +8,7 @@ import math
 import os
 import time
 from collections import deque
+from decimal import Decimal, InvalidOperation
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -22,7 +23,7 @@ from fastapi.responses import FileResponse
 logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger('timi')
 ROOT = Path(__file__).resolve().parent
-VERSION = '1.8.2'
+VERSION = '1.8.3'
 SYMBOLS = ('BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT')
 TF = ('1m', '3m', '5m', '15m', '30m', '1h', '4h', '1d')
 MTF = ('1m', '3m', '5m', '15m')
@@ -48,6 +49,8 @@ class Market:
         self.trades = deque(maxlen=100)
         self.tape = deque()
         self.book_history = deque(maxlen=500)
+        # Bounded, immutable Binance partial-book snapshots for update-ID audit.
+        self.depth_snapshots = deque(maxlen=240)
         self.wall_seen = {'bid': {}, 'ask': {}}
         self.last_trade_ms = self.last_book_ms = self.last_ticker_ms = None
         self.last_trade_id = None
@@ -134,6 +137,9 @@ async def relay():
                                           open_timeout=15, max_size=4_000_000) as ws:
                 status.update(connected=True, error=None)
                 delay = 1
+                # Never match snapshots retained from a previous connection.
+                for existing_market in markets.values():
+                    existing_market.depth_snapshots.clear()
                 async for raw in ws:
                     packet = json.loads(raw)
                     stream = packet.get('stream', '')
@@ -179,6 +185,16 @@ async def relay():
                             m.last_book_ms = now
                             m.last_book_update_id = int(v['lastUpdateId']) if v.get('lastUpdateId') is not None else None
                             m.book_valid, m.book_error = True, None
+                            # Capture original decimal strings before serialization
+                            # and before any subsequent async work modifies the book.
+                            if m.last_book_update_id is not None:
+                                m.depth_snapshots.append({
+                                    'update_id': m.last_book_update_id,
+                                    'captured_ms': now,
+                                    'book_time_ms': now,
+                                    'valid': True,
+                                    'bids': tuple((str(p), str(q)) for p, q in v['bids']),
+                                    'asks': tuple((str(p), str(q)) for p, q in v['asks'])})
                             update_wall_tracking(m, now)
                             bn = sum(p * q for p, q in bids)
                             an = sum(p * q for p, q in asks)
@@ -192,6 +208,7 @@ async def relay():
                             m.bids, m.asks, m.bid, m.ask = [], [], None, None
                             m.last_book_update_id = None
                             m.wall_seen = {'bid': {}, 'ask': {}}
+                            m.depth_snapshots.clear()
                             event = {'type': 'depth_invalid', 'symbol': symbol,
                                      'book_valid': False, 'reason': 'invalid_book', 'ts': now}
                     elif '@kline_1m' in stream:
@@ -237,6 +254,7 @@ async def relay():
                 m.book_valid = False
                 m.last_book_update_id = None
                 m.wall_seen = {'bid': {}, 'ask': {}}
+                m.depth_snapshots.clear()
             LOG.warning('Binance stream disconnected: %s', exc)
             await asyncio.sleep(delay)
             delay = min(30, delay * 2)
@@ -629,65 +647,105 @@ async def health():
             'upstream_error': status['error'], 'symbols': SYMBOLS,
             'real_orders_enabled': False, 'paper_orders_enabled': False,
             'ml_model_loaded': False, 'book_validation_enabled': True,
-            'live_kline_1m_enabled': True, 'depth_audit_enabled': True}
+            'live_kline_1m_enabled': True, 'depth_audit_enabled': True,
+            'depth_audit_matching_enabled': True}
 
 def _book_capture(symbol):
-    """Copy a stream snapshot before/after REST to avoid mutation during an HTTP await."""
+    """Copy latest stream book for diagnostics when update-ID matching fails."""
     m = markets[symbol]
     return {'captured_ms': now_ms(), 'book_time_ms': m.last_book_ms,
             'update_id': m.last_book_update_id, 'valid': m.book_valid,
             'bids': [x[:] for x in m.bids], 'asks': [x[:] for x in m.asks]}
 
 
+def _archive_match(symbol, update_id, start_ms=None, end_ms=None):
+    """Find a *captured* WS top-20 snapshot with the exact REST update ID.
+
+    Stream snapshots are retained for at most 240 events per market (~24 s at
+    100 ms, depending on actual traffic). No event ID is fabricated/interpolated.
+    """
+    if update_id is None:
+        return None
+    matches = [x for x in markets[symbol].depth_snapshots
+               if x['update_id'] == update_id]
+    if not matches:
+        return None
+    if start_ms is None or end_ms is None:
+        return matches[-1]
+    center = (start_ms + end_ms) / 2
+    # Only accept an archived snapshot close to the REST request window.
+    # This prevents a stale pre-reconnect frame from producing a false pass.
+    nearest = min(matches, key=lambda x: abs(x['captured_ms'] - center))
+    if nearest['captured_ms'] < start_ms - 3000 or nearest['captured_ms'] > end_ms + 3000:
+        return None
+    return nearest
+
+
 def _book_summary(book):
-    bid = book['bids']
-    ask = book['asks']
-    bn = sum(p * q for p, q in bid)
-    an = sum(p * q for p, q in ask)
+    bids, asks = book['bids'], book['asks']
+    bn = sum(float(p) * float(q) for p, q in bids)
+    an = sum(float(p) * float(q) for p, q in asks)
     return {'bid_usdt': round(bn, 2), 'ask_usdt': round(an, 2),
             'bid_share_pct': round(100 * bn / (bn + an), 2) if bn + an else None,
-            'best_bid': bid[0][0] if bid else None,
-            'best_ask': ask[0][0] if ask else None,
-            'bid_levels': len(bid), 'ask_levels': len(ask)}
+            'best_bid': float(bids[0][0]) if bids else None,
+            'best_ask': float(asks[0][0]) if asks else None,
+            'bid_levels': len(bids), 'ask_levels': len(asks)}
+
+
+def _canonical_levels(rows, reverse):
+    """Decimal-exact representation: never compare floating-point approximations."""
+    return sorted(((Decimal(str(p)), Decimal(str(q))) for p, q in rows),
+                  key=lambda item: item[0], reverse=reverse)
 
 
 def _book_snapshot_comparison(local, remote):
-    ls = _book_summary(local)
-    rs = _book_summary(remote)
+    ls, rs = _book_summary(local), _book_summary(remote)
     same_id = (local['update_id'] is not None and
                local['update_id'] == remote['update_id'])
     def difference(key):
         lv, rv = ls[key], rs[key]
         return round((lv - rv) / rv * 100, 2) if rv else None
-    def levels_match(a, b):
-        return (len(a) == len(b) and all(
-            abs(x[0] - y[0]) <= 1e-8 and abs(x[1] - y[1]) <= 1e-8
-            for x, y in zip(a, b)))
-    identical = (levels_match(local['bids'], remote['bids']) and
-                 levels_match(local['asks'], remote['asks']))
-    age = ((local['captured_ms'] - local['book_time_ms'])
-           if local['book_time_ms'] is not None else None)
+
+    identical = None
+    first_differences = []
+    if same_id and local['valid']:
+        for side, reverse in (('bids', True), ('asks', False)):
+            ws_levels = _canonical_levels(local[side], reverse)
+            rest_levels = _canonical_levels(remote[side], reverse)
+            if ws_levels != rest_levels:
+                first_differences.append({
+                    'side': side,
+                    'websocket_levels': len(ws_levels),
+                    'rest_levels': len(rest_levels),
+                    'first_mismatch_index': next((i for i in range(min(len(ws_levels), len(rest_levels)))
+                        if ws_levels[i] != rest_levels[i]), min(len(ws_levels), len(rest_levels)))})
+        identical = not first_differences
+    age = (max(0, now_ms() - local['book_time_ms'])
+           if local.get('book_time_ms') is not None else None)
+    verdict = ('EXACT_MATCH' if same_id and identical is True else
+               'SAME_ID_MISMATCH' if same_id and identical is False else
+               'NO_SAME_ID_SNAPSHOT')
     return {
         'ws_update_id': local['update_id'], 'rest_update_id': remote['update_id'],
         'same_update_id': same_id,
-        'exact_levels_match': identical if same_id else None,
+        'match_found_in_history': same_id,
+        'exact_levels_match': identical,
         'ws_book_age_ms': age,
         'ws_book_valid': local['valid'],
         'websocket_20_levels': ls, 'binance_rest_20_levels': rs,
         'bid_notional_difference_pct': difference('bid_usdt'),
         'ask_notional_difference_pct': difference('ask_usdt'),
-        'result': ('EXACT_MATCH' if same_id and identical else
-                   'SAME_ID_MISMATCH' if same_id else
-                   'DIFFERENT_UPDATES_NO_EXACT_VERDICT'),
+        'first_differences': first_differences,
+        'result': verdict,
     }
 
 
 @app.get('/api/depth-audit/{symbol}')
 async def depth_audit(symbol: str, samples: int = 3):
-    """Read-only sampled comparison against Binance official REST depth.
+    """Compare REST /depth to archived WS snapshot with identical lastUpdateId.
 
-    The stream and REST snapshots usually have DIFFERENT update IDs; such
-    samples are measurements, not proof of a processing bug. No orders.
+    If the ID was never observed on WebSocket, report an inconclusive result.
+    A different-update comparison is never labeled a mismatch or match.
     """
     symbol = symbol.upper()
     if symbol not in markets:
@@ -709,46 +767,69 @@ async def depth_audit(symbol: str, samples: int = 3):
                     timeout=8.0)
                 response.raise_for_status()
                 payload = response.json()
-                bids = [[float(p), float(q)] for p, q in payload['bids']]
-                asks = [[float(p), float(q)] for p, q in payload['asks']]
+                bids, asks = payload['bids'], payload['asks']
                 if (not bids or not asks or
-                    any(not math.isfinite(p) or not math.isfinite(q) or p <= 0 or q <= 0
-                        for p,q in bids + asks) or bids[0][0] >= asks[0][0]):
+                    any(finite(p) is None or finite(q) is None or
+                        finite(p) <= 0 or finite(q) <= 0 for p, q in bids + asks) or
+                    float(bids[0][0]) >= float(asks[0][0])):
                     raise ValueError('Binance REST depth invalid')
                 remote = {'update_id': int(payload['lastUpdateId']),
                           'bids': bids, 'asks': asks}
-            except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+            except (httpx.HTTPError, KeyError, TypeError, ValueError, IndexError) as exc:
                 LOG.warning('Depth audit %s: %s', symbol, exc)
                 raise HTTPException(503, 'Binance REST depth unavailable') from exc
             end = now_ms()
+            # If REST is ahead of the stream, allow ~0.8 s for the same
+            # update ID to appear. Never infer missing snapshots.
+            matched = _archive_match(symbol, remote['update_id'], start, end)
+            for _ in range(8):
+                if matched is not None or not status['connected']:
+                    break
+                if (markets[symbol].last_book_update_id is not None and
+                        markets[symbol].last_book_update_id > remote['update_id']):
+                    break
+                await asyncio.sleep(0.1)
+                matched = _archive_match(symbol, remote['update_id'], start, end)
             after = _book_capture(symbol)
-            # Capture nearest to REST response midpoint in server time.
             mid = (start + end) / 2
-            local = min((before, after), key=lambda x: abs(x['captured_ms'] - mid))
+            local = matched if matched is not None else min(
+                (before, after), key=lambda x: abs(x['captured_ms'] - mid))
             row = _book_snapshot_comparison(local, remote)
+            if matched is None:
+                row['same_update_id'] = False
+                row['match_found_in_history'] = False
+                row['exact_levels_match'] = None
+                row['result'] = 'NO_SAME_ID_SNAPSHOT'
+                row['first_differences'] = []
             row.update({'sample': idx + 1,
                         'rest_round_trip_ms': end - start,
                         'ws_snapshot_capture_ms': local['captured_ms'],
                         'rest_request_start_ms': start,
-                        'rest_response_end_ms': end})
+                        'rest_response_end_ms': end,
+                        'archive_size': len(markets[symbol].depth_snapshots),
+                        'archive_capacity': markets[symbol].depth_snapshots.maxlen,
+                        'comparison_note': (
+                            'Same Binance update ID; decimal-exact level comparison' if matched else
+                            'Different or unavailable update IDs; no exact verdict')})
             output.append(row)
             if idx + 1 < samples:
                 await asyncio.sleep(0.8)
     return {
         'symbol': symbol, 'tested_at_ms': now_ms(), 'samples': output,
         'summary': {
-            'matching_update_ids': sum(x['same_update_id'] for x in output),
+            'matching_update_ids': sum(x['match_found_in_history'] for x in output),
             'exactly_identical': sum(x['result'] == 'EXACT_MATCH' for x in output),
             'same_id_mismatches': sum(x['result'] == 'SAME_ID_MISMATCH' for x in output),
+            'inconclusive_different_ids': sum(x['result'] == 'NO_SAME_ID_SNAPSHOT' for x in output),
             'ws_stale_samples': sum(x['ws_book_age_ms'] is None or x['ws_book_age_ms'] > 2000
                                     or not x['ws_book_valid'] for x in output)},
-        'interpretation': ('An exact book match is only assessable for equal update IDs. '
-                           'Different IDs indicate non-synchronized observations; '
-                           'large deltas alone do not prove an error.'),
+        'interpretation': ('EXACT_MATCH: same ID, equal top-20 decimal levels. '
+                           'SAME_ID_MISMATCH: same ID, different top-20 decimal levels. '
+                           'NO_SAME_ID_SNAPSHOT: not synchronized; difference is inconclusive. '
+                           'Matching is opportunistic and cannot be guaranteed.'),
         'source': 'Binance Spot REST /api/v3/depth?limit=20 versus TiMi depth20 stream',
         'read_only': True,
     }
-
 
 @app.get('/api/markets')
 async def market_list():
