@@ -78,34 +78,46 @@
 @media(min-width:700px){.timi-pro{padding:17px}.timi-pro-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:365px){.timi-pro{padding:11px}.timi-pro-main{padding:11px}.timi-pro-scorebox{min-width:82px;padding-left:8px}.timi-pro-unit>summary{padding:9px 8px}.timi-pro-unit-label{font-size:11px}.timi-pro-unit-sub{font-size:9px}}
 </style><style id="timi-tp-v1-style">
-/* TiMi read-only ATR target/stop scenario overlay; all existing pages remain unchanged. */
+/* TiMi ATR visual scenario v2: chart unobstructed; compact summary below. */
 #chart .timi-tp-chart{position:relative;min-width:0;border:1px solid #2c4862;border-radius:12px;overflow:hidden;background:#0d1a2b}
-#chart .timi-tp-chart #canvas{display:block;width:100%;height:390px}
-#chart .timi-tp-float[hidden],#chart .timi-tp-cockpit-line[hidden]{display:none!important}
-#chart .timi-tp-float{position:absolute;right:7px;top:9px;width:min(46%,168px);border:1px solid #446487;border-radius:12px;overflow:hidden;color:#e7f2ff;background:linear-gradient(155deg,rgba(24,43,64,.97),rgba(10,22,38,.96));box-shadow:0 7px 20px #030911ab;pointer-events:none;z-index:1;font-variant-numeric:tabular-nums}
-#chart .timi-tp-head{font-size:10px;font-weight:900;letter-spacing:.4px;text-align:center;background:#263c56;padding:7px 4px;color:#f6c85d}
-#chart .timi-tp-dir{font-size:21px;text-align:center;font-weight:900;margin:7px 0 3px}
-#chart .timi-tp-dir.long{color:#2bdbaa}#chart .timi-tp-dir.short{color:#ff6d8e}
-#chart .timi-tp-list{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 5px;padding:0 7px 6px}
-#chart .timi-tp-list span,#chart .timi-tp-list strong{padding:4px 0;border-bottom:1px solid #31475c;font-size:10px;min-width:0;overflow-wrap:anywhere}
-#chart .timi-tp-list strong{text-align:right}
-#chart .timi-tp-list .good{color:#33dfb1}#chart .timi-tp-list .bad{color:#ff7896}
-#chart .timi-tp-foot{font-size:9px;padding:6px 7px;color:#b9c8d9;line-height:1.4;background:#1c2d41}
-#chart .timi-tp-tools{display:flex;gap:9px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:9px 1px 5px}
+#chart .timi-tp-chart #canvas{display:block;width:100%;height:408px;touch-action:pan-y}
+#chart .timi-tp-float[hidden],#chart .timi-tp-cockpit-line[hidden],#chart .timi-tp-manual[hidden]{display:none!important}
+#chart .timi-tp-float{position:relative;margin:9px 0 8px;padding:9px 8px 7px;border:1px solid #3f6280;border-radius:11px;color:#edf6ff;background:linear-gradient(120deg,#192d47,#102034);font-variant-numeric:tabular-nums;min-width:0}
+#chart .timi-tp-float .timi-tp-head{display:flex;align-items:center;gap:9px;margin-bottom:7px;color:#c5d7ed;font-size:10px;font-weight:700;line-height:1.4}
+#chart .timi-tp-dir{display:inline-flex;align-items:center;justify-content:center;padding:5px 9px;border:1px solid;border-radius:8px;font-size:12px;font-weight:900;white-space:nowrap}
+#chart .timi-tp-dir.long{color:#35e9b8;border-color:#24bd92;background:#07392f}
+#chart .timi-tp-dir.short{color:#ff7898;border-color:#d64d70;background:#452132}
+#chart .timi-tp-list{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;border-top:1px solid #35516a;padding-top:7px}
+#chart .timi-tp-list .timi-tp-pair{min-width:0;text-align:center;padding:2px 1px;border-right:1px solid #31485f}
+#chart .timi-tp-list .timi-tp-pair:last-child{border-right:0}
+#chart .timi-tp-pair span{display:block;color:#a9bfd7;font-size:10px;white-space:nowrap}
+#chart .timi-tp-pair strong{display:block;white-space:nowrap;color:#eef5ff;font-size:10px;margin-top:4px;overflow:hidden;text-overflow:ellipsis}
+#chart .timi-tp-pair strong.good{color:#32e5b1}#chart .timi-tp-pair strong.bad{color:#ff7494}
+#chart .timi-tp-meta{margin-top:7px;padding-top:6px;border-top:1px solid #30475e;display:flex;flex-wrap:wrap;gap:5px 13px;color:#b9cee3;font-size:10px}
+#chart .timi-tp-meta strong{color:#eaf5ff}
+#chart .timi-tp-tools{display:flex;gap:9px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 0 5px}
 #chart .timi-tp-tools>strong{font-size:12px;color:#f7cd78}
-#chart .timi-tp-check{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#c2d6ec}
+#chart .timi-tp-check{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#c2d6ec}
 #chart .timi-tp-check input{width:auto!important;accent-color:#22d3a0;margin:0}
 #chart .timi-tp-risk{display:inline-flex;align-items:center;gap:5px;color:#b9cbe2;font-size:10px}
-#chart #timiTpRisk{width:75px!important;margin:0;padding:5px 6px;border-radius:7px;font-variant-numeric:tabular-nums}
-#chart .timi-tp-state{border:1px solid #394f69;background:#172b41;border-radius:10px;padding:9px 10px;color:#b8cce2;font-size:11px;line-height:1.55;margin-bottom:8px}
+#chart #timiTpRisk{width:73px!important;margin:0;padding:6px;border-radius:7px;font-variant-numeric:tabular-nums}
+#chart .timi-tp-mode{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin:8px 0}
+#chart .timi-tp-mode button,#chart .timi-tp-manual button{border:1px solid #49637d;border-radius:10px;background:#1a2e45;color:#d8e7f7;font-weight:700;padding:10px 6px;cursor:pointer}
+#chart .timi-tp-mode button.active{border-color:#24cc9b;background:#12503f;color:#c1ffe9}
+#chart .timi-tp-manual{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:7px 0 9px}
+#chart .timi-tp-manual button{flex:1;min-width:90px;padding:9px 5px}
+#chart .timi-tp-manual #timiTpManualLong{border-color:#1eaf86;color:#4eecc0}
+#chart .timi-tp-manual #timiTpManualShort{border-color:#da5472;color:#ff839f}
+#chart .timi-tp-reset{border:1px solid #455c75;background:transparent;color:#c1d1e5;border-radius:9px;padding:6px 9px;font-size:10px;cursor:pointer}
+#chart .timi-tp-state{border:1px solid #3b536c;background:#14273d;border-radius:10px;padding:10px;color:#c4d8ed;font-size:11px;line-height:1.5;margin:9px 0}
 #chart .timi-tp-state.valid{border-color:#337d71;color:#a1f0d7;background:#10312f}
-#chart .timi-tp-state.warn{border-color:#7e6650;color:#f6ce89;background:#362c27}
+#chart .timi-tp-state.warn{border-color:#806647;color:#f6ce89;background:#362d25}
 #chart .timi-tp-cockpit-line{margin-top:10px;border-radius:10px;border:1px solid #456180;background:#162a40;padding:10px;color:#bfcee2;font-size:11px;display:grid;grid-template-columns:1fr 1fr;gap:7px}
 #chart .timi-tp-cockpit-line strong{color:#f7c65c}
 #chart .timi-tp-cockpit-line .good{color:#32dfac}#chart .timi-tp-cockpit-line .bad{color:#ff708d}
 #chart .timi-tp-note{color:#a5bacf;font-size:10px;line-height:1.5}
-@media(max-width:380px){#chart .timi-tp-float{width:44%;right:5px}#chart .timi-tp-list{padding:0 5px 5px;gap:0 3px}#chart .timi-tp-list span,#chart .timi-tp-list strong{font-size:9px}#chart .timi-tp-dir{font-size:18px}}
-@media(min-width:700px){#chart .timi-tp-float{width:188px;max-width:188px}#chart .timi-tp-chart #canvas{height:400px}}
+@media(max-width:490px){#chart .timi-tp-list{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:7px}#chart .timi-tp-pair strong{font-size:11px}#chart .timi-tp-pair:nth-child(3){border-right:0}}
+@media(min-width:700px){#chart .timi-tp-chart #canvas{height:430px}#chart .timi-tp-pair strong{font-size:12px}}
 </style></head><body>
 <header><div><div class="logo">TiMi <b>SCALP PRO</b></div><small>v1.8.4 · Suat DOĞU · Salt okunur analiz</small></div><span id="health" class="badge">● Bağlanıyor</span></header>
 <main><div class="row" style="margin-bottom:12px"><select id="symbol"><option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option><option>BNBUSDT</option><option>XRPUSDT</option><option>DOGEUSDT</option><option>ADAUSDT</option><option>AVAXUSDT</option></select><small id="stamp">Son işlem: —</small></div>
@@ -117,26 +129,26 @@
 <div class="card"><h3>Veri sağlığı</h3><div class="stat"><span>İşlem verisi yaşı</span><strong id="tradeAge">—</strong></div><div class="stat"><span>Derinlik verisi yaşı</span><strong id="bookAge">—</strong></div><div class="stat"><span>Emir defteri</span><strong id="bookStatus">—</strong></div><div class="stat"><span>Analiz sunucu zamanı</span><strong id="analysisServerTime">—</strong></div><div class="stat"><span>WebSocket</span><strong id="wsState">Bağlanıyor</strong></div><p class="warning">Geçersiz, gecikmiş veya eksik veride sinyal BEKLE olarak gösterilir.</p></div></section>
 <section id="chart" class="section"><div class="card"><h3>Mum grafiği · Binance Spot</h3><div id="timeframes" class="tabs"></div><div class="row" style="margin:8px 0 12px;flex-wrap:wrap"><span id="candleStatus" class="badge gold">Mum verisi bekleniyor</span><small id="candleStamp">Son mum: —</small></div><div class="timi-tp-chart" id="timiTpChart">
  <canvas id="canvas"></canvas>
- <aside class="timi-tp-float" id="timiTpFloat" hidden aria-label="Salt okunur ATR hedef ve stop senaryosu">
-  <div class="timi-tp-head">◎ ATR · HEDEF / STOP</div>
-  <div class="timi-tp-dir" id="timiTpDirection">—</div>
-  <div class="timi-tp-list">
-   <span>Giriş*</span><strong id="timiTpEntry">—</strong>
-   <span>SL</span><strong id="timiTpSL" class="bad">—</strong>
-   <span>TP1</span><strong id="timiTpTP1" class="good">—</strong>
-   <span>TP2</span><strong id="timiTpTP2" class="good">—</strong>
-   <span>TP3</span><strong id="timiTpTP3" class="good">—</strong>
-   <span>ATR14</span><strong id="timiTpATR">—</strong>
-   <span>R:R (TP1)</span><strong id="timiTpRR">—</strong>
-   <span>Örnek risk</span><strong id="timiTpRiskValue">—</strong>
-   <span>Örnek miktar</span><strong id="timiTpSize">—</strong>
-  </div>
-  <div class="timi-tp-foot">* Son kapanmış mum referansı. Emir/pozisyon değildir.</div>
- </aside>
 </div>
+<div class="timi-tp-float" id="timiTpFloat" hidden aria-label="ATR fiyat senaryosu özeti">
+ <div class="timi-tp-head"><span class="timi-tp-dir" id="timiTpDirection">—</span><span id="timiTpSummaryLabel">Fiyat senaryosu · Gerçek pozisyon değil</span></div>
+ <div class="timi-tp-list">
+  <div class="timi-tp-pair"><span>Giriş*</span><strong id="timiTpEntry">—</strong></div>
+  <div class="timi-tp-pair"><span>SL</span><strong id="timiTpSL" class="bad">—</strong></div>
+  <div class="timi-tp-pair"><span>TP1</span><strong id="timiTpTP1" class="good">—</strong></div>
+  <div class="timi-tp-pair"><span>TP2</span><strong id="timiTpTP2" class="good">—</strong></div>
+  <div class="timi-tp-pair"><span>TP3</span><strong id="timiTpTP3" class="good">—</strong></div>
+  <div class="timi-tp-pair"><span>ATR14</span><strong id="timiTpATR">—</strong></div>
+ </div>
+ <div class="timi-tp-meta"><span>R:R (TP1) <strong id="timiTpRR">—</strong></span><span>Örnek risk <strong id="timiTpRiskValue">—</strong></span><span>Örnek miktar <strong id="timiTpSize">—</strong></span></div>
+</div>
+
 <div class="timi-tp-tools"><strong>◉ ATR TP/SL · Görsel Plan</strong><label class="timi-tp-check"><input id="timiTpToggle" type="checkbox" checked> Grafikte göster</label><label class="timi-tp-risk">Örnek risk (USDT) <input id="timiTpRisk" type="number" min="1" max="100000" value="100" step="10" inputmode="decimal"></label></div>
+<div class="timi-tp-mode" role="group" aria-label="ATR plan modu"><button id="timiTpModeAuto" class="active" type="button" aria-pressed="true">● Otomatik Karar</button><button id="timiTpModeManual" type="button" aria-pressed="false">◉ Manuel Önizleme</button></div>
+<div class="timi-tp-manual" id="timiTpManualControls" hidden><button id="timiTpManualLong" type="button">↗ LONG · Simülasyon</button><button id="timiTpManualShort" type="button">↘ SHORT · Simülasyon</button></div>
+<div class="row" style="justify-content:flex-end;margin:2px 0 8px"><button id="timiTpReset" class="timi-tp-reset" type="button">↺ Planı temizle</button></div>
 <div id="timiTpState" class="timi-tp-state" role="status">BEKLE · Karar Kokpiti onayı ve kapanmış mum bekleniyor.</div>
-<p class="timi-tp-note">Bu bir <b>salt okunur fiyat senaryosudur</b>; gerçek emir, pozisyon, gerçekleşmiş giriş, kâr veya stop değildir. Spot verisiyle SHORT yalnızca teorik yön senaryosudur. ATR14 ×1,5 stop; TP1/TP2/TP3 sırasıyla ATR ×1/2/3. İşlem masrafı, spread ve kayma dahil değildir.</p>
+<p class="timi-tp-note">Bu bir <b>salt okunur fiyat senaryosudur</b>; gerçek emir, pozisyon, gerçekleşmiş giriş, kâr veya stop değildir. Otomatik planda son onaylanan seviyeler, karar BEKLE olsa bile korunur. Hedef/stop temasları ancak sonradan kapanan, eksiksiz mumlarla <b>teorik olarak</b> değerlendirilir; veri boşluğu varsa sonuç çıkarılmaz. Spot verisiyle SHORT yalnızca teorik yön senaryosudur. ATR14 ×1,5 stop; TP1/TP2/TP3 sırasıyla ATR ×1/2/3. İşlem masrafı, spread ve kayma dahil değildir.</p>
 <p class="note">1m grafiği Binance WebSocket mumlarıyla güncellenir; açık mum geçicidir. Analiz yalnızca kapanmış mumlara dayanır. 3m ve üzeri grafikler REST ile yenilenir. Bağlantı kesilirse CANLI göstergesi kapanır.</p></div>
 <div class="card timi-pro" id="timiProCockpit" aria-label="TiMi PRO birleşik karar kokpiti">
  <div class="timi-pro-head">
@@ -289,22 +301,27 @@ async function loadAnalysis(){if(analysisBusy)return;analysisBusy=true;let id=++
 async function loadCandles(){let id=++chartReq,s=symbol,t=tf,g=gateway;try{let d=await get('/api/klines/'+s+'?interval='+t+'&limit=150');if(id!==chartReq||s!==symbol||t!==tf||g!==gateway)return;candles=d.candles||[];if(t==='1m'&&lastLiveCandle&&age(lastKline)<120000){const k=lastLiveCandle;const ix=candles.findIndex(v=>v.t===k.t);if(ix>=0)candles[ix]={...k};else candles.push({...k});candles.sort((a,b)=>a.t-b.t);candles=candles.slice(-150)}updateCandleStatus();draw()}catch(e){if(id===chartReq){if(!candles.length){candles=[];draw()}updateCandleStatus();toast('Grafik: '+e.message)}}}
 const tfs=['1m','3m','5m','15m','30m','1h','4h','1d'];$('timeframes').innerHTML=tfs.map(t=>`<button class="btn ${t===tf?'active':''}" data-tf="${t}">${t}</button>`).join('');$('timeframes').onclick=e=>{let b=e.target.closest('button[data-tf]');if(!b)return;tf=b.dataset.tf;document.querySelectorAll('[data-tf]').forEach(x=>x.classList.toggle('active',x.dataset.tf===tf));loadCandles();updateCandleStatus()};
 function draw(){
- const c=$('canvas'),w=Math.max(200,c.getBoundingClientRect().width),h=w>=700?400:390,dpr=devicePixelRatio||1;
- c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);
- const ctx=c.getContext('2d');ctx.scale(dpr,dpr);
- ctx.fillStyle='#101c2b';ctx.fillRect(0,0,w,h);
+ const c=$('canvas'),w=Math.max(200,c.getBoundingClientRect().width),h=w>=700?430:408,dpr=Math.min(devicePixelRatio||1,3);
+ c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);const ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.fillStyle='#0e1b2b';ctx.fillRect(0,0,w,h);
  if(!candles.length){ctx.fillStyle='#a4b8cc';ctx.font='12px system-ui';ctx.fillText('Mum verisi bekleniyor',15,28);return}
- const data=candles.slice(-65),plan=typeof window.timiTpGetPlan==='function'?window.timiTpGetPlan():null;
+ const plan=typeof window.timiTpGetPlan==='function'?window.timiTpGetPlan():null;
+ const data=candles.slice(-(w<480?43:65));
+ const axis=plan?(w<390?84:100):(w<390?16:32);
+ const plotLeft=7,plotRight=w-axis,plotW=Math.max(140,plotRight-plotLeft-5);
  let hi=Math.max(...data.map(x=>x.h)),lo=Math.min(...data.map(x=>x.l));
  if(plan){hi=Math.max(hi,plan.sl,plan.entry,...plan.targets);lo=Math.min(lo,plan.sl,plan.entry,...plan.targets)}
- const outer=Math.max((hi-lo)*.07,Math.abs(hi)*.00005);hi+=outer;lo-=outer;
- const range=Math.max(hi-lo,1e-10),step=(w-12)/data.length,y=p=>12+(hi-p)/range*(h-36);
- ctx.strokeStyle='#293d51';ctx.lineWidth=1;
- for(let i=0;i<5;i++){const yy=12+i*(h-36)/4;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(w,yy);ctx.stroke()}
- if(plan&&typeof window.timiTpDrawCanvas==='function')window.timiTpDrawCanvas(ctx,{w,h,y,data,step,plan},'back');
- data.forEach((x,i)=>{const xx=6+(i+.5)*step;ctx.strokeStyle=ctx.fillStyle=x.c>=x.o?'#22d3a0':'#ff6682';ctx.beginPath();ctx.moveTo(xx,y(x.h));ctx.lineTo(xx,y(x.l));ctx.stroke();ctx.fillRect(xx-Math.max(1,step*.28),Math.min(y(x.o),y(x.c)),Math.max(2,step*.56),Math.max(1,Math.abs(y(x.o)-y(x.c))))});
- if(plan&&typeof window.timiTpDrawCanvas==='function')window.timiTpDrawCanvas(ctx,{w,h,y,data,step,plan},'front');
- ctx.font='10px system-ui';ctx.fillStyle='#adc0d5';ctx.fillText(fmt(hi,hi<1?6:2),7,13);ctx.fillText(fmt(lo,lo<1?6:2),7,h-7)
+ const outer=Math.max((hi-lo)*.075,Math.abs(hi)*.00006);hi+=outer;lo-=outer;
+ const range=Math.max(hi-lo,1e-10),top=18,bottom=h-27,step=plotW/data.length,y=p=>top+(hi-p)/range*(bottom-top);
+ ctx.lineWidth=1;ctx.strokeStyle='#2a4258';ctx.font='10px system-ui';
+ for(let i=0;i<5;i++){const yy=top+i*(bottom-top)/4;ctx.beginPath();ctx.moveTo(plotLeft,yy);ctx.lineTo(plotRight,yy);ctx.stroke()}
+ ctx.save();ctx.beginPath();ctx.rect(plotLeft,top,plotW,bottom-top);ctx.clip();
+ if(plan&&typeof window.timiTpDrawCanvas==='function')window.timiTpDrawCanvas(ctx,{w,h,y,data,step,plan,plotLeft,plotRight,top,bottom},'back');
+ data.forEach((x,i)=>{const xx=plotLeft+(i+.5)*step;ctx.strokeStyle=ctx.fillStyle=x.c>=x.o?'#22d3a0':'#ff6682';ctx.beginPath();ctx.moveTo(xx,y(x.h));ctx.lineTo(xx,y(x.l));ctx.stroke();ctx.fillRect(xx-Math.max(1,step*.28),Math.min(y(x.o),y(x.c)),Math.max(2,step*.56),Math.max(1,Math.abs(y(x.o)-y(x.c))))});
+ ctx.restore();
+ if(plan&&typeof window.timiTpDrawCanvas==='function')window.timiTpDrawCanvas(ctx,{w,h,y,data,step,plan,plotLeft,plotRight,top,bottom},'front');
+ ctx.fillStyle='#afc5de';ctx.font='10px system-ui';ctx.fillText(fmt(hi,hi<1?6:2),plotLeft+3,12);ctx.fillText(fmt(lo,lo<1?6:2),plotLeft+3,h-5);
+ const N=4;for(let i=0;i<=N;i++){const k=Math.min(data.length-1,Math.floor((data.length-1)*i/N));const xx=plotLeft+(k+.5)*step;const t=new Date(data[k].t).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});if(xx+25<plotRight){ctx.fillText(t,Math.max(1,xx-14),h-15)}}
 }
 $('symbol').onchange=()=>{symbol=$('symbol').value;analysisReq++;chartReq++;connect();loadCandles();loadAnalysis()};$('saveGateway').onclick=()=>{let v=$('gateway').value.trim().replace(/\/$/,'');if(!/^https:\/\//.test(v))return toast('HTTPS adresi girin');gateway=v;localStorage.setItem('timi_scalp_gateway',v);analysisReq++;chartReq++;connect();loadCandles();loadAnalysis()};$('testIndicators').onclick=async()=>{let btn=$('testIndicators');btn.disabled=true;$('indicatorCount').textContent='Hesaplanıyor';try{let x=await get('/api/indicators-all/'+symbol+'?interval=5m');$('indicatorCount').textContent=x.feature_count+' geçerli özellik'}catch(e){$('indicatorCount').textContent='Hata';toast(e.message)}finally{btn.disabled=false}};
 
@@ -633,121 +650,87 @@ connect();loadCandles();loadAnalysis();setInterval(render,1500);setInterval(load
 })();
 </script>
 <script id="timi-tp-v1">
-/* TiMi ATR TP/SL — visual-only research scenario. ZERO trade/broker calls.
- * Entry = closing price of confirmed last candle, never a claim of a fill.
- * New plan created only on a new fully-approved cockpit direction; withdrawn as soon as veto appears.
- */
+/* TiMi ATR visual scenario v2: automated/manual, frozen levels, post-entry closed-candle follow-through.
+ * No orders; no execution or actual TP/SL claims. Missing bars suspend evaluation. */
 (()=>{
  'use strict';
- const el=id=>document.getElementById(id);
- const stepMs={'1m':60000,'3m':180000,'5m':300000,'15m':900000,'30m':1800000,'1h':3600000,'4h':14400000,'1d':86400000};
+ const el=id=>document.getElementById(id), steps={'1m':60000,'3m':180000,'5m':300000,'15m':900000,'30m':1800000,'1h':3600000,'4h':14400000,'1d':86400000};
  const valid=x=>typeof x==='number'&&Number.isFinite(x);
- const nfmt=(x,p=2)=>valid(x)?x.toLocaleString('tr-TR',{minimumFractionDigits:p,maximumFractionDigits:p}):'—';
- const tfmt=t=>new Date(t).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
- let plan=null,shown=true,wasReady=false,budget=100,lastRedrawKey='',lastRenderState='';
- function status(t,kind=''){
-  const root=el('timiTpState');root.textContent=t;root.className='timi-tp-state'+(kind?' '+kind:'');
+ const displayNum=(x,d=2)=>valid(x)?x.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+ const tm=t=>new Date(t).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+ const storageKey='timi_visual_atr_scenario_v2';
+ let plan=null,mode='auto',shown=true,budget=100,lastStatus='',blockedAutoCandle=-Infinity;
+ function save(){try{if(plan)localStorage.setItem(storageKey,JSON.stringify(plan));else localStorage.removeItem(storageKey)}catch(_){}}
+ try{const raw=JSON.parse(localStorage.getItem(storageKey)||'null');if(raw&&raw.schema===2&&raw.symbol&&raw.gateway&&steps[raw.tf]&&valid(raw.entry)&&valid(raw.sl)&&Array.isArray(raw.targets)&&raw.targets.length===3&&raw.targets.every(valid)&&valid(raw.atr)&&valid(raw.createdAt)&&valid(raw.nextOpen)&&Array.isArray(raw.hits)&&Date.now()-raw.createdAt>=0&&Date.now()-raw.createdAt<7*86400000){plan=raw;mode=raw.mode==='manual'?'manual':'auto';}else if(raw)saveInvalid()}catch(_){saveInvalid()}
+ function saveInvalid(){try{localStorage.removeItem(storageKey)}catch(_){}}
+ function state(message,kind=''){if(lastStatus!==message){const x=el('timiTpState');x.textContent=message;x.className='timi-tp-state'+(kind?' '+kind:'');lastStatus=message}}
+ function refreshButtons(){for(const [id,active] of [['timiTpModeAuto',mode==='auto'],['timiTpModeManual',mode==='manual']]){const b=el(id);b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active))}el('timiTpManualControls').hidden=mode!=='manual'}
+ function chartActive(){return !!el('chart')?.classList.contains('active')}
+ function matching(){return !!(plan&&plan.symbol===symbol&&plan.tf===tf&&plan.gateway===gateway)}
+ function safeCurrent(){return !!(ws&&ws.readyState===WebSocket.OPEN&&lastTrade&&Date.now()-lastTrade<8000)}
+ function closedCandles(){const t=steps[tf];return Array.isArray(candles)?candles.filter(c=>c&&c.closed===true&&[c.t,c.o,c.h,c.l,c.c,c.v].every(valid)).sort((a,b)=>a.t-b.t).filter((c,i,a)=>i===0||c.t!==a[i-1].t):[]}
+ function atrSeed(){const tfMs=steps[tf],arr=closedCandles();if(arr.length<35)return null;const a=arr[arr.length-1],barAge=Date.now()-(a.t+tfMs);if(barAge< -5000||barAge>Math.max(tfMs*2.5,120000))return null;const tail=arr.slice(-35);if(tail.some((c,i)=>i>0&&c.t-tail[i-1].t!==tfMs))return null;let tr=[];for(let i=1;i<arr.length;i++){let c=arr[i],prev=arr[i-1];tr.push(Math.max(c.h-c.l,Math.abs(c.h-prev.c),Math.abs(c.l-prev.c)))}let atr=tr.slice(0,14).reduce((a,b)=>a+b,0)/14;for(let i=14;i<tr.length;i++)atr=(atr*13+tr[i])/14;if(!valid(atr)||atr<=0||a.c<=0)return null;return {closed:a,atr,tfMs}}
+ function create(direction,source){const d=atrSeed();if(!d){state('ATR14 hesaplamak için güncel, eksiksiz kapanmış mum gerekli.','warn');return false}
+ const sign=direction==='LONG'?1:-1,entry=d.closed.c,sl=entry-sign*1.5*d.atr,targets=[1,2,3].map(m=>entry+sign*m*d.atr);if(sl<=0||targets.some(x=>x<=0)){state('Geçersiz ATR hedefleri; plan oluşturulmadı.','warn');return false}
+ const start=Date.now();plan={schema:2,symbol,tf,gateway,direction,entry,sl,targets,atr:d.atr,closedAt:d.closed.t,createdAt:start,nextOpen:Math.ceil(start/d.tfMs)*d.tfMs,mode:source,status:'ACTIVE',hits:[false,false,false],finishedAt:null,hasGap:false};save();showPlan();redraw();inspect();return true}
+ function follow(){if(!matching()||plan.status!=='ACTIVE'||plan.hasGap)return;const list=closedCandles().filter(c=>c.t>=plan.nextOpen);if(!list.length)return;const t=steps[tf],sign=plan.direction==='LONG'?1:-1;let changed=false;
+ for(const c of list){if(c.t!==plan.nextOpen){plan.hasGap=true;changed=true;break}plan.nextOpen=c.t+t;changed=true;
+ const slHit=sign>0?c.l<=plan.sl:c.h>=plan.sl;
+ // If intrabar high/low reaches TP and SL simultaneously, the order is unknowable: prioritize SL conservatively.
+ if(slHit){plan.status='SL';plan.finishedAt=c.t+t;break}
+ for(let i=0;i<3;i++){if(!plan.hits[i]&&(sign>0?c.h>=plan.targets[i]:c.l<=plan.targets[i]))plan.hits[i]=true}
+ if(plan.hits[2]){plan.status='TP3';plan.finishedAt=c.t+t;break}
  }
- function closeData(){
-  const tfMs=stepMs[tf],raw=Array.isArray(candles)?candles:[];
-  if(!tfMs||raw.length<35)return null;
-  const closed=raw.filter(c=>c&&c.closed===true&&[c.t,c.o,c.h,c.l,c.c,c.v].every(valid)).sort((a,b)=>a.t-b.t);
-  if(closed.length<35)return null;
-  const last=closed[closed.length-1],age=Date.now()-(last.t+tfMs);
-  if(age < -5000||age>Math.max(tfMs*2.5,120000))return null;
-  const tail=closed.slice(-35);
-  if(tail.some((c,i)=>i>0&&c.t-tail[i-1].t!==tfMs))return null;
-  let trs=[];
-  for(let i=1;i<closed.length;i++){const c=closed[i],prev=closed[i-1];trs.push(Math.max(c.h-c.l,Math.abs(c.h-prev.c),Math.abs(c.l-prev.c)))}
-  if(trs.length<14)return null;
-  let atr=trs.slice(0,14).reduce((a,b)=>a+b,0)/14;
-  for(let i=14;i<trs.length;i++)atr=(atr*13+trs[i])/14;
-  if(!valid(atr)||atr<=0||!valid(last.c)||last.c<=0)return null;
-  return {last,atr,tfMs};
+ if(changed)save()}
+ function showPlan(){const active=matching()?plan:null;el('timiTpFloat').hidden=!active;el('timiTpCockpitLine').hidden=!active;if(!active)return;
+ const dec=active.entry<1?6:2;
+ el('timiTpDirection').textContent=active.direction;el('timiTpDirection').className='timi-tp-dir '+(active.direction==='LONG'?'long':'short');
+ el('timiTpSummaryLabel').textContent=(active.mode==='manual'?'MANUEL SİMÜLASYON':'ÖNCEKİ ONAYDAN BAŞLATILAN SİMÜLASYON')+(active.status==='ACTIVE'?' · Takipte':active.status==='SL'?' · Teorik SL': ' · Teorik TP3');
+ for(const [id,value] of [['timiTpEntry',active.entry],['timiTpSL',active.sl],['timiTpTP1',active.targets[0]],['timiTpTP2',active.targets[1]],['timiTpTP3',active.targets[2]],['timiTpATR',active.atr],['timiTpCpEntry',active.entry],['timiTpCpSL',active.sl],['timiTpCpTP1',active.targets[0]]])el(id).textContent=displayNum(value,dec);
+ el('timiTpCpTP2TP3').textContent=displayNum(active.targets[1],dec)+' / '+displayNum(active.targets[2],dec);
+ el('timiTpRR').textContent='0,67 : 1';el('timiTpRiskValue').textContent=displayNum(budget,0)+' USDT';const r=Math.abs(active.entry-active.sl);el('timiTpSize').textContent=r>0?displayNum(budget/r,active.entry<1?0:5)+' '+active.symbol.replace('USDT',''):'—'
  }
- function isCurrent(){return !!(plan&&shown&&plan.symbol===symbol&&plan.tf===tf&&plan.gateway===gateway)}
- function updateVisual(){
-  const active=isCurrent()?plan:null;
-  const root=el('timiTpFloat');root.hidden=!active;
-  const summary=el('timiTpCockpitLine');summary.hidden=!active;
-  if(!active)return;
-  const decimals=active.entry<1?6:2;
-  el('timiTpDirection').textContent=active.direction;
-  el('timiTpDirection').className='timi-tp-dir '+(active.direction==='LONG'?'long':'short');
-  for(const [id,value] of [['timiTpEntry',active.entry],['timiTpSL',active.sl],['timiTpTP1',active.targets[0]],['timiTpTP2',active.targets[1]],['timiTpTP3',active.targets[2]],['timiTpATR',active.atr],['timiTpCpEntry',active.entry],['timiTpCpSL',active.sl],['timiTpCpTP1',active.targets[0]]])el(id).textContent=nfmt(value,decimals);
-  el('timiTpCpTP2TP3').textContent=nfmt(active.targets[1],decimals)+' / '+nfmt(active.targets[2],decimals);
-  el('timiTpRR').textContent='0,67 : 1';
-  el('timiTpRiskValue').textContent=nfmt(budget,0)+' USDT';
-  const distance=Math.abs(active.entry-active.sl);
-  el('timiTpSize').textContent=distance>0?nfmt(budget/distance,active.entry<1?0:5)+' '+active.symbol.replace('USDT',''):'—';
+ function redraw(){if(chartActive()&&typeof draw==='function')draw()}
+ function inspect(){if(!chartActive())return;
+ if(plan&&!matching()){showPlan();state('Saklanan ATR senaryosu '+plan.symbol+' / '+plan.tf+' periyoduna ait. Aynı sembol ve periyoda dön veya Planı temizle.','warn');return}
+ if(plan){follow();showPlan();
+  const title=plan.mode==='manual'?'MANUEL ÖNİZLEME':'OTOMATİK ÖNCEKİ ONAY';
+  if(plan.hasGap){state('⚠ '+title+' · Kapanmış mum geçmişinde boşluk var. Seviyeler saklandı; sonuç otomatik doğrulanamaz.','warn')}
+  else if(plan.status==='SL'){state('◉ '+title+' · SL seviyesi sonraki kapanmış mumun fiyat aralığında görüldü. Bu gerçek stop işlemi değildir. Plan saklandı.','warn')}
+  else if(plan.status==='TP3'){state('◉ '+title+' · TP3 seviyesi sonraki kapanmış mumun fiyat aralığında görüldü. Bu gerçek kâr/işlem değildir. Plan saklandı.','valid')}
+  else if(!safeCurrent()){state('⚠ '+title+' · Bağlantı gecikmiş. ATR çizgileri korunuyor; doğrulanmamış işlem sonucu gösterilmiyor.','warn')}
+  else{state('● '+title+' · '+plan.direction+' · Plan '+tm(plan.createdAt)+' saatinde sabitlendi. TP1 '+(plan.hits[0]?'✓':'—')+' · TP2 '+(plan.hits[1]?'✓':'—')+' · TP3 '+(plan.hits[2]?'✓':'—')+' · Gerçek emir yok.','valid')}
+  return;
  }
- function redraw(){if(document.getElementById('chart')?.classList.contains('active')&&typeof draw==='function')draw()}
- function clear(reason){
-  if(plan){plan=null;updateVisual();redraw()}
-  if(lastRenderState!==reason){status(reason,reason.startsWith('BEKLE')?'warn':'');lastRenderState=reason}
+ showPlan();if(mode==='manual'){state('MANUEL ÖNİZLEME · LONG veya SHORT seçerek teorik ATR hedeflerini oluştur. Bu bir sinyal değildir.','warn');return}
+ const a=typeof window.timiProRefresh==='function'?window.timiProRefresh():null;
+ if(a&&a.ready&&['AL','SAT'].includes(a.decision)&&a.tech?.period===tf){
+  const c=closedCandles().at(-1);if(c&&c.t<=blockedAutoCandle){state('Plan temizlendi · Aynı mum üzerinde otomatik plan tekrarlanmaz; yeni kapanış bekleniyor.','warn');return}
+  create(a.decision==='AL'?'LONG':'SHORT','auto');return}
+ state('BEKLE · Karar Kokpiti henüz yeni LONG/SHORT planını onaylamıyor. Teknik SAT eğilimi tek başına emir sinyali değildir.','warn')
  }
- function inspect(){
-  if(!el('chart')?.classList.contains('active'))return;
-  const result=typeof window.timiProRefresh==='function'?window.timiProRefresh():null;
-  const expected=typeof tf==='string'?tf:null;
-  if(!result||!result.ready||!['AL','SAT'].includes(result.decision)||result.tech?.period!==expected){
-   wasReady=false;
-   return clear('BEKLE · Karar Kokpiti henüz LONG/SHORT senaryosunu onaylamıyor.');
-  }
-  const data=closeData();
-  if(!data){wasReady=false;return clear('BEKLE · ATR14 için yeterli ve güncel kapanmış mum bulunamadı.')}
-  const dir=result.decision==='AL'?'LONG':'SHORT';
-  const sig=String(gateway)+'|'+symbol+'|'+tf+'|'+dir;
-  if(!plan||plan.signature!==sig){
-   const entry=data.last.c,atr=data.atr,sign=dir==='LONG'?1:-1;
-   const sl=entry-sign*1.5*atr,targets=[1,2,3].map(m=>entry+sign*m*atr);
-   if(sl<=0||targets.some(x=>x<=0)){wasReady=false;return clear('BEKLE · Hesaplanan fiyat seviyeleri geçersiz.')}
-   plan={signature:sig,gateway,symbol,tf,direction:dir,entry,sl,targets,atr,closedAt:data.last.t,createdAt:Date.now()};
-   wasReady=true;updateVisual();redraw();
-  }
-  const text=(shown?'● GÖSTERİLİYOR':'◌ GİZLİ')+' · '+dir+' · Son onay '+tfmt(plan.createdAt)+' · Giriş son kapanış referansıdır, gerçek işlem değildir.';
-  if(lastRenderState!==text){status(text,'valid');lastRenderState=text}
- }
- function simpleLine(ctx,price,label,x,y,width,color,dash){
-  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.2;ctx.setLineDash(dash||[4,3]);ctx.beginPath();ctx.moveTo(x,y(price));ctx.lineTo(width,y(price));ctx.stroke();ctx.setLineDash([]);
-  const v=y(price);ctx.font='bold 10px system-ui';
-  const tw=Math.max(65,ctx.measureText(label).width+10),bx=Math.max(3,x-tw-5),by=Math.max(2,Math.min(v-10,358));
-  ctx.fillStyle='#0a1c2df1';ctx.fillRect(bx,by,tw,18);ctx.strokeStyle=color;ctx.strokeRect(bx+.5,by+.5,tw-1,17);
-  ctx.fillStyle=color;ctx.fillText(label,bx+5,by+12);ctx.restore();
- }
- window.timiTpDrawCanvas=(ctx,g,layer)=>{
-  const {w,h,y,plan:p,data,step}=g;
-  const left=Math.max(80,w*.49),right=Math.min(w*.61,w-15);
-  if(layer==='back'){
-   ctx.save();
-   ctx.fillStyle='rgba(255,102,130,.20)';ctx.fillRect(left,Math.min(y(p.entry),y(p.sl)),Math.max(12,right-left),Math.abs(y(p.sl)-y(p.entry)));
-   ctx.fillStyle='rgba(34,211,160,.18)';ctx.fillRect(left,Math.min(y(p.entry),y(p.targets[2])),Math.max(12,right-left),Math.abs(y(p.entry)-y(p.targets[2])));
-   ctx.strokeStyle='#aac3dc';ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(0,y(p.entry));ctx.lineTo(right,y(p.entry));ctx.stroke();ctx.restore();
-  }else{
-   const dec=p.entry<1?6:2;
-   ctx.save();ctx.strokeStyle='#90a9c7';ctx.strokeRect(left,Math.min(y(p.sl),y(p.targets[2])),Math.max(12,right-left),Math.abs(y(p.sl)-y(p.targets[2])));
-   simpleLine(ctx,p.sl,'SL '+nfmt(p.sl,dec),left,y,right,'#ff6682');
-   simpleLine(ctx,p.entry,'Giriş '+nfmt(p.entry,dec),left,y,right,'#e7eefb',[3,2]);
-   [0,1,2].forEach(i=>simpleLine(ctx,p.targets[i],'TP'+(i+1)+' '+nfmt(p.targets[i],dec),left,y,right,'#29dca8'));
-   const match=data.findIndex(x=>x.t===p.closedAt);
-   if(match>=0){const xx=6+(match+.5)*step;
-    ctx.fillStyle=p.direction==='LONG'?'#22d3a0':'#ff6682';ctx.beginPath();ctx.arc(xx,y(p.entry),4,0,Math.PI*2);ctx.fill()}
-   ctx.restore();
-  }
+ function selectMode(m){if(!['auto','manual'].includes(m)||mode===m)return;mode=m;plan=null;blockedAutoCandle=-Infinity;save();refreshButtons();showPlan();redraw();state(m==='manual'?'MANUEL ÖNİZLEME · LONG veya SHORT seç. Kapanmış mumdan teorik senaryo hesaplanacak.':'OTOMATİK KARAR · Karar Kokpiti onayı bekleniyor.','warn');inspect()}
+ function reset(){blockedAutoCandle=closedCandles().at(-1)?.t??-Infinity;plan=null;save();showPlan();redraw();state('Plan temizlendi. '+(mode==='manual'?'Yeni manuel LONG/SHORT seçebilirsin.':'Yeni onay bekleniyor.'),'warn')}
+ function line(ctx,price,name,clr,g,dash=[]){const {y,plotLeft,plotRight,top,bottom,w}=g;const py=y(price);if(py<top||py>bottom)return;ctx.save();ctx.strokeStyle=clr;ctx.lineWidth=1.35;ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(plotLeft,py);ctx.lineTo(plotRight,py);ctx.stroke();ctx.setLineDash([]);const dec=price<1?6:2;const label=name+' '+displayNum(price,dec);ctx.font='bold 9px system-ui';const mx=Math.min(w-3,plotRight+2),ww=Math.min(w-mx-2,Math.max(60,ctx.measureText(label).width+7));ctx.fillStyle=name==='Giriş'?'#d7e6f8':'#122c41';ctx.fillRect(mx,py-9,ww,18);ctx.strokeStyle=clr;ctx.strokeRect(mx+.5,py-8.5,ww-1,17);ctx.fillStyle=name==='Giriş'?'#0e2132':clr;ctx.fillText(label,mx+3,py+3);ctx.restore()}
+ window.timiTpDrawCanvas=(ctx,g,layer)=>{const p=g.plan,{y,plotLeft,plotRight}=g;const a=y(p.entry),s=y(p.sl),t3=y(p.targets[2]);
+  if(layer==='back'){ctx.save();ctx.fillStyle='rgba(255,96,127,.13)';ctx.fillRect(plotLeft,Math.min(a,s),plotRight-plotLeft,Math.abs(s-a));ctx.fillStyle='rgba(22,225,164,.12)';ctx.fillRect(plotLeft,Math.min(a,t3),plotRight-plotLeft,Math.abs(a-t3));ctx.restore();return}
+  line(ctx,p.sl,'SL','#ff6788',g);line(ctx,p.entry,'Giriş','#d8eaff',g,[4,3]);for(let i=0;i<3;i++)line(ctx,p.targets[i],'TP'+(i+1),'#28e1b0',g,[5,3]);
+  ctx.save();ctx.font='bold 11px system-ui';ctx.fillStyle=p.direction==='LONG'?'#36e7b9':'#ff7897';ctx.fillText(p.direction+' · '+(p.mode==='manual'?'MANUEL SİMÜLASYON':'ONAYLI SENARYO'),plotLeft+7,g.top+16);ctx.restore()
  };
- window.timiTpGetPlan=()=>isCurrent()?plan:null;
- el('timiTpToggle').addEventListener('change',e=>{shown=!!e.target.checked;updateVisual();redraw();inspect()});
- el('timiTpRisk').addEventListener('change',e=>{
-  let v=Number(e.target.value);if(!Number.isFinite(v)||v<1)v=100;budget=Math.max(1,Math.min(100000,v));e.target.value=String(budget);updateVisual()
- });
- const cancel=()=>{plan=null;wasReady=false;lastRenderState='';updateVisual();status('BEKLE · Yeni periyot/sembol için geçerli veri bekleniyor.','warn');redraw()};
- el('timeframes').addEventListener('click',cancel);
- el('timiIndPeriods').addEventListener('click',cancel);
- el('symbol').addEventListener('change',cancel);
- el('saveGateway').addEventListener('click',cancel);
+ window.timiTpGetPlan=()=>matching()&&shown?plan:null;
+ refreshButtons();showPlan();
+ el('timiTpModeAuto').addEventListener('click',()=>selectMode('auto'));
+ el('timiTpModeManual').addEventListener('click',()=>selectMode('manual'));
+ el('timiTpManualLong').addEventListener('click',()=>{if(mode==='manual')create('LONG','manual')});
+ el('timiTpManualShort').addEventListener('click',()=>{if(mode==='manual')create('SHORT','manual')});
+ el('timiTpReset').addEventListener('click',reset);
+ el('timiTpToggle').addEventListener('change',e=>{shown=!!e.target.checked;redraw();inspect()});
+ el('timiTpRisk').addEventListener('change',e=>{let x=Number(e.target.value);if(!valid(x)||x<1)x=100;budget=Math.min(100000,Math.max(1,x));e.target.value=budget;showPlan()});
+ const cancel=()=>{blockedAutoCandle=-Infinity;showPlan();redraw();lastStatus='';setTimeout(inspect,100)};
+ el('timeframes').addEventListener('click',cancel);el('timiIndPeriods').addEventListener('click',cancel);
+ el('symbol').addEventListener('change',cancel);el('saveGateway').addEventListener('click',cancel);
  document.querySelector('nav [data-page="chart"]')?.addEventListener('click',()=>setTimeout(inspect,80));
  window.addEventListener('timi-closed-kline',()=>setTimeout(inspect,280));
- window.timiTpInspect=inspect;
- setInterval(inspect,2000);
+ window.timiTpInspect=inspect;setInterval(inspect,2000);
 })();
 </script></body></html>
