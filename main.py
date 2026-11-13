@@ -1,4 +1,4 @@
-"""TiMi SCALP PRO v1.4 — public Binance Spot analytics, no order endpoints.
+"""TiMi SCALP PRO v1.5 — public Binance Spot analytics, no order endpoints.
 Developer: Suat DOĞU. Models are never trained on the live request path.
 """
 import asyncio
@@ -22,7 +22,7 @@ from fastapi.responses import FileResponse
 LOG = logging.getLogger('timi')
 logging.basicConfig(level=logging.INFO)
 ROOT = Path(__file__).resolve().parent
-VERSION = '1.4.0'
+VERSION = '1.5.0'
 SYMBOLS = ('BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT','XRPUSDT','DOGEUSDT','ADAUSDT','AVAXUSDT')
 TF = ('1m','3m','5m','15m','30m','1h','4h','1d')
 MTF = ('1m','3m','5m','15m')
@@ -38,18 +38,24 @@ class Market:
         self.tape=deque();self.last_trade_ms=None;self.last_book_ms=None
         self.last_ticker_ms=None;self.book_history=deque(maxlen=500)
         self.sequence=0;self.last_trade_id=None;self.source='Binance Spot'
+        self.book_valid=False;self.book_error=None;self.book_last_valid_ms=None
     def public(self):
         return dict(symbol=self.symbol,price=self.price,change=self.change,volume=self.volume,
                     high=self.high,low=self.low,bid=self.bid,ask=self.ask,bids=self.bids,asks=self.asks,
                     trades=list(self.trades),buy_qty=sum(x[2] for x in self.tape if x[1]=='buy'),
                     sell_qty=sum(x[2] for x in self.tape if x[1]=='sell'),
                     last_trade_ms=self.last_trade_ms,last_book_ms=self.last_book_ms,
-                    last_ticker_ms=self.last_ticker_ms,sequence=self.sequence,source=self.source)
+                    last_ticker_ms=self.last_ticker_ms,sequence=self.sequence,source=self.source,
+                    book_valid=self.book_valid,book_error=self.book_error)
 
 markets={s:Market(s) for s in SYMBOLS}
 clients=[]
 status={'connected':False,'last_message_ms':None,'error':None,'endpoint':'data-stream.binance.vision'}
 cache={};cache_locks={};http_client=None
+full_indicator_semaphore=asyncio.Semaphore(1)
+FULL_CACHE_TTL=60
+full_cache={}
+
 
 def finite(v):
     try:
@@ -108,15 +114,26 @@ async def relay():
                         while m.tape and m.tape[0][0]<cutoff:m.tape.popleft()
                         event={'type':'trade','symbol':symbol,'trade':trade,'price':price,'ts':now}
                     elif '@depth20' in stream:
-                        m.bids=[[float(p),float(q)] for p,q in v.get('bids',[])]
-                        m.asks=[[float(p),float(q)] for p,q in v.get('asks',[])]
-                        m.bid=m.bids[0][0] if m.bids else None
-                        m.ask=m.asks[0][0] if m.asks else None
-                        m.last_book_ms=now
-                        bn=sum(p*q for p,q in m.bids);an=sum(p*q for p,q in m.asks)
-                        if bn+an:m.book_history.append((now,(bn-an)/(bn+an)))
-                        event={'type':'depth','symbol':symbol,'bids':m.bids,'asks':m.asks,
-                               'bid':m.bid,'ask':m.ask,'ts':now}
+                        try:
+                            bids=sorted([[float(p),float(q)] for p,q in v.get('bids',[])],reverse=True)
+                            asks=sorted([[float(p),float(q)] for p,q in v.get('asks',[])])
+                            if (not bids or not asks or
+                                any(not (math.isfinite(p) and math.isfinite(q) and p>0 and q>=0) for p,q in bids+asks) or
+                                bids[0][0]>=asks[0][0]):
+                                raise ValueError('Empty, invalid or crossed depth snapshot')
+                            m.bids=bids;m.asks=asks
+                            m.bid=bids[0][0];m.ask=asks[0][0]
+                            m.last_book_ms=now;m.book_last_valid_ms=now
+                            m.book_valid=True;m.book_error=None
+                            bn=sum(p*q for p,q in bids);an=sum(p*q for p,q in asks)
+                            if bn+an:m.book_history.append((now,(bn-an)/(bn+an)))
+                            event={'type':'depth','symbol':symbol,'bids':bids,'asks':asks,
+                                   'bid':m.bid,'ask':m.ask,'ts':now}
+                        except (ValueError,TypeError,OverflowError) as exc:
+                            m.book_valid=False;m.book_error=str(exc)
+                            m.bids=[];m.asks=[];m.bid=None;m.ask=None
+                            event={'type':'depth_invalid','symbol':symbol,'ts':now,
+                                   'reason':'invalid_or_crossed_book'}
                     elif '@ticker' in stream:
                         m.change=finite(v.get('P'));m.volume=finite(v.get('q'))
                         m.high=finite(v.get('h'));m.low=finite(v.get('l'))
@@ -136,11 +153,11 @@ async def relay():
 async def get_candles(symbol,interval='1m',limit=250):
     # Cache per symbol/timeframe; closed-candle changes invalidate within 2 seconds.
     key=(symbol,interval,limit);now=time.monotonic();entry=cache.get(key)
-    if entry and now-entry[0]<2:return entry[1]
+    if entry and now-entry[0]<min(30, max(2, {'1m':10,'3m':20,'5m':30}.get(interval,30))):return entry[1]
     lock=cache_locks.setdefault(key,asyncio.Lock())
     async with lock:
         now=time.monotonic();entry=cache.get(key)
-        if entry and now-entry[0]<2:return entry[1]
+        if entry and now-entry[0]<min(30, max(2, {'1m':10,'3m':20,'5m':30}.get(interval,30))):return entry[1]
         try:
             r=await http_client.get(f'{REST}/klines',params={'symbol':symbol,'interval':interval,'limit':limit})
             r.raise_for_status();current=now_ms()
@@ -192,20 +209,21 @@ def indicators(candles):
 def orderflow(m):
     now=now_ms();trade_age=now-m.last_trade_ms if m.last_trade_ms else None
     book_age=now-m.last_book_ms if m.last_book_ms else None
-    fresh=bool(status['connected'] and trade_age is not None and 0<=trade_age<=5000 and
+    fresh=bool(status['connected'] and m.book_valid and trade_age is not None and 0<=trade_age<=5000 and
                book_age is not None and 0<=book_age<=5000)
     bid_notional=sum(p*q for p,q in m.bids);ask_notional=sum(p*q for p,q in m.asks)
     imbalance=(bid_notional-ask_notional)/(bid_notional+ask_notional) if bid_notional+ask_notional else None
     window=[x for x in m.tape if now-x[0]<=60000]
     buy=sum(x[2]*x[3] for x in window if x[1]=='buy')
     sell=sum(x[2]*x[3] for x in window if x[1]=='sell')
-    spread_pct=(m.ask-m.bid)/m.ask*100 if m.ask and m.bid and m.ask>=m.bid else None
+    spread_pct=(m.ask-m.bid)/((m.ask+m.bid)/2)*100 if m.book_valid and m.ask and m.bid and m.ask>m.bid else None
     return {'fresh':fresh,'trade_age_ms':trade_age,'book_age_ms':book_age,
             'bid_notional':bid_notional,'ask_notional':ask_notional,'imbalance':imbalance,
             'buy_notional_60s':buy,'sell_notional_60s':sell,'cvd_60s':buy-sell,
             'trade_count_60s':len(window),'spread_pct':spread_pct,
             'window':'rolling_60s_server_received','depth_type':'partial_20_levels_not_full_L2',
-            'cvd_note':'Observed stream trades only; not historical or exchange-wide CVD'}
+            'cvd_note':'Observed stream trades only; not historical or exchange-wide CVD',
+            'book_valid':m.book_valid,'book_error':m.book_error}
 
 def decision(m,flow,ind):
     reasons=[];score=0
@@ -300,7 +318,7 @@ async def health():
     return {'app':'TiMi SCALP PRO','version':VERSION,'upstream_connected':status['connected'],
             'last_message_age_ms':age,'upstream_endpoint':status['endpoint'],
             'upstream_error':status['error'],'symbols':SYMBOLS,'real_orders_enabled':False,
-            'paper_orders_enabled':False,'ml_model_loaded':False}
+            'paper_orders_enabled':False,'ml_model_loaded':False,'book_validation_enabled':True}
 
 @app.get('/api/markets')
 async def market_list():
@@ -349,17 +367,25 @@ async def indicators_all(symbol:str,interval:str='5m'):
     symbol=symbol.upper()
     if symbol not in markets or interval not in TF:raise HTTPException(400,'Invalid symbol or interval')
     candles=await get_candles(symbol,interval,500)
+    closed_t=max((x['t'] for x in candles if x['closed']),default=None)
+    key=(symbol,interval,closed_t)
+    cached=full_cache.get(key)
+    if cached and time.monotonic()-cached[0]<FULL_CACHE_TTL:return cached[1]
+    if full_indicator_semaphore.locked():raise HTTPException(429,'Full indicator worker busy; retry later')
     try:
-        df=await asyncio.wait_for(asyncio.to_thread(feature_frame,candles,True),timeout=45)
+        async with full_indicator_semaphore:
+            df=await asyncio.wait_for(asyncio.to_thread(feature_frame,candles,True),timeout=45)
     except Exception as exc:
         LOG.warning('Full indicators failed %s %s: %s',symbol,interval,exc)
         raise HTTPException(503,'Full indicator calculation unavailable') from exc
     if df is None:raise HTTPException(422,'Not enough closed candles')
     row=df.iloc[-1]
     values={str(k):finite(v) for k,v in row.items() if k not in ('t','closed') and finite(v) is not None}
-    return {'symbol':symbol,'interval':interval,'last_closed_t':int(row['t']),
+    result={'symbol':symbol,'interval':interval,'last_closed_t':int(row['t']),
             'feature_count':len(values),'features':values,
             'note':'Indicator features, not independent predictions; not a trained model'}
+    full_cache.clear();full_cache[key]=(time.monotonic(),result)
+    return result
 
 @app.websocket('/ws/{symbol}')
 async def live(ws:WebSocket,symbol:str):
