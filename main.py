@@ -1,4 +1,4 @@
-"""TiMi SCALP PRO v1.6 — read-only Binance Spot analytics.
+"""TiMi SCALP PRO v1.7 — read-only Binance Spot analytics.
 Developer: Suat DOĞU. No order endpoints or model training on request path.
 """
 import asyncio
@@ -22,7 +22,7 @@ from fastapi.responses import FileResponse
 logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger('timi')
 ROOT = Path(__file__).resolve().parent
-VERSION = '1.6.0'
+VERSION = '1.7.0'
 SYMBOLS = ('BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT')
 TF = ('1m', '3m', '5m', '15m', '30m', '1h', '4h', '1d')
 MTF = ('1m', '3m', '5m', '15m')
@@ -53,6 +53,9 @@ class Market:
         self.sequence = 0
         self.book_valid = False
         self.book_error = None
+        self.live_candle = None
+        self.last_candle_ms = None
+        self.last_closed_candle = None
 
     def public(self):
         cutoff = now_ms() - 60000
@@ -66,7 +69,8 @@ class Market:
                     last_trade_ms=self.last_trade_ms, last_book_ms=self.last_book_ms,
                     last_ticker_ms=self.last_ticker_ms, sequence=self.sequence,
                     source='Binance Spot', book_valid=self.book_valid,
-                    book_error=self.book_error)
+                    book_error=self.book_error,
+                    last_candle_ms=self.last_candle_ms)
 
 markets = {s: Market(s) for s in SYMBOLS}
 clients = []
@@ -117,7 +121,8 @@ async def relay():
     names = []
     for symbol in SYMBOLS:
         s = symbol.lower()
-        names.extend((f'{s}@trade', f'{s}@depth20@100ms', f'{s}@ticker'))
+        names.extend((f'{s}@trade', f'{s}@depth20@100ms',
+                      f'{s}@ticker', f'{s}@kline_1m'))
     delay = 1
     while True:
         try:
@@ -182,6 +187,28 @@ async def relay():
                             m.bids, m.asks, m.bid, m.ask = [], [], None, None
                             event = {'type': 'depth_invalid', 'symbol': symbol,
                                      'book_valid': False, 'reason': 'invalid_book', 'ts': now}
+                    elif '@kline_1m' in stream:
+                        k = v.get('k') or {}
+                        try:
+                            candle = {'t': int(k['t']), 'o': float(k['o']),
+                                      'h': float(k['h']), 'l': float(k['l']),
+                                      'c': float(k['c']), 'v': float(k['v']),
+                                      'closed': bool(k.get('x', False))}
+                            if (not all(math.isfinite(candle[f]) for f in
+                                        ('o', 'h', 'l', 'c', 'v')) or
+                                min(candle[f] for f in ('o', 'h', 'l', 'c')) <= 0 or
+                                candle['v'] < 0 or candle['h'] < candle['l']):
+                                continue
+                        except (KeyError, ValueError, TypeError, OverflowError):
+                            continue
+                        m.live_candle = candle
+                        m.last_candle_ms = now
+                        if candle['closed']:
+                            m.last_closed_candle = candle.copy()
+                            # A newly closed candle must invalidate the indicator cache.
+                            analysis_cache.pop(symbol, None)
+                        event = {'type': 'kline', 'symbol': symbol,
+                                 'interval': '1m', 'candle': candle, 'ts': now}
                     elif '@ticker' in stream:
                         m.change = finite(v.get('P'))
                         m.volume = finite(v.get('q'))
@@ -207,17 +234,39 @@ async def relay():
         finally:
             status['connected'] = False
 
+def merge_live_candles(symbol, interval, candles, limit):
+    """Overlay authoritative Binance kline events without mutating REST cache."""
+    result = {c['t']: dict(c) for c in candles}
+    if interval == '1m':
+        m = markets[symbol]
+        for c in (m.last_closed_candle, m.live_candle):
+            if c is not None and m.last_candle_ms is not None and now_ms() - m.last_candle_ms < 120000:
+                result[c['t']] = dict(c)
+    # REST close flags are time-dependent: never retain them from cache creation.
+    step = {'1m':60, '3m':180, '5m':300, '15m':900,
+            '30m':1800, '1h':3600, '4h':14400, '1d':86400}[interval] * 1000
+    current = now_ms()
+    output = sorted(result.values(), key=lambda c: c['t'])[-limit:]
+    for c in output:
+        c['closed'] = bool(c['closed'] or c['t'] + step <= current)
+        # If a REST candle is still in progress, it is not closed.
+        if c['t'] + step > current and not (interval == '1m' and
+                markets[symbol].last_closed_candle is not None and
+                c['t'] == markets[symbol].last_closed_candle['t']):
+            c['closed'] = False
+    return output
+
 async def get_candles(symbol, interval='1m', limit=250):
     key = (symbol, interval, limit)
     ttl = {'1m': 10, '3m': 20, '5m': 30}.get(interval, 30)
     entry = candle_cache.get(key)
     if entry and time.monotonic() - entry[0] < ttl:
-        return entry[1]
+        return merge_live_candles(symbol, interval, entry[1], limit)
     lock = candle_locks.setdefault(key, asyncio.Lock())
     async with lock:
         entry = candle_cache.get(key)
         if entry and time.monotonic() - entry[0] < ttl:
-            return entry[1]
+            return merge_live_candles(symbol, interval, entry[1], limit)
         try:
             r = await http_client.get(f'{REST}/klines',
                                       params={'symbol': symbol, 'interval': interval, 'limit': limit})
@@ -227,10 +276,10 @@ async def get_candles(symbol, interval='1m', limit=250):
                         'l': float(x[3]), 'c': float(x[4]), 'v': float(x[5]),
                         'closed': int(x[6]) < current} for x in r.json()]
             candle_cache[key] = (time.monotonic(), candles)
-            return candles
+            return merge_live_candles(symbol, interval, candles, limit)
         except (httpx.HTTPError, ValueError, KeyError, IndexError) as exc:
             if entry and time.monotonic() - entry[0] < 30:
-                return entry[1]
+                return merge_live_candles(symbol, interval, entry[1], limit)
             LOG.warning('Candles %s %s: %s', symbol, interval, exc)
             raise HTTPException(503, 'Binance candle service unavailable') from exc
 
@@ -305,7 +354,7 @@ def orderflow(m):
             'depth_type': 'partial_20_levels_not_full_L2',
             'cvd_note': 'Observed stream trades only, not historical or market-wide CVD'}
 
-def decision(m, flow, ind):
+def decision(m, flow, ind, interval='1m'):
     def wait(reason, confidence='veri_yetersiz'):
         return {'decision': 'BEKLE', 'score': 0, 'confidence': confidence,
                 'reasons': [reason], 'note': 'Test edilmiş başarı olasılığı değildir'}
@@ -314,6 +363,8 @@ def decision(m, flow, ind):
     if not ind or any(ind.get(k) is None for k in
                       ('ema20', 'ema50', 'rsi14', 'last_closed_price')):
         return wait('Kapanmış mum veya gösterge verisi yetersiz')
+    if interval == '1m' and (now_ms() - ind['last_closed_t'] > 180000):
+        return wait('Son kapanmış 1m mum güncel değil')
     if flow['spread_pct'] is None or flow['spread_pct'] > 0.12:
         return wait('Spread eksik veya yüksek', 'risk_vetosu')
     if flow['trade_count_60s'] < 10:
@@ -484,7 +535,8 @@ async def health():
             'last_message_age_ms': age, 'upstream_endpoint': status['endpoint'],
             'upstream_error': status['error'], 'symbols': SYMBOLS,
             'real_orders_enabled': False, 'paper_orders_enabled': False,
-            'ml_model_loaded': False, 'book_validation_enabled': True}
+            'ml_model_loaded': False, 'book_validation_enabled': True,
+            'live_kline_1m_enabled': True}
 
 @app.get('/api/markets')
 async def market_list():
@@ -504,7 +556,7 @@ async def klines(symbol: str, interval: str = '1m', limit: int = 150):
     symbol = symbol.upper()
     if symbol not in markets or interval not in TF:
         raise HTTPException(400, 'Invalid symbol or interval')
-    return {'symbol': symbol, 'interval': interval, 'source': 'Binance Spot REST',
+    return {'symbol': symbol, 'interval': interval, 'source': 'Binance Spot REST + 1m WebSocket overlay',
             'candles': await get_candles(symbol, interval, max(20, min(limit, 500)))}
 
 @app.get('/api/analysis/{symbol}')
@@ -519,7 +571,7 @@ async def analysis(symbol: str, interval: str = '1m'):
     except HTTPException:
         ind = None
     return {'symbol': symbol, 'interval': interval, 'ts': now_ms(),
-            'flow': flow, 'indicators': ind, 'signal': decision(m, flow, ind),
+            'flow': flow, 'indicators': ind, 'signal': decision(m, flow, ind, interval),
             'market_price': m.price}
 
 @app.get('/api/analysis-pro/{symbol}')
