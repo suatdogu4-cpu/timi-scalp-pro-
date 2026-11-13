@@ -1,11 +1,10 @@
-
-name: TiMi Machine Learning v2
+name: TiMi Machine Learning v3
 
 on:
   workflow_dispatch:
     inputs:
       symbol:
-        description: "Kripto para"
+        description: "Kripto para (Spot)"
         required: true
         type: choice
         default: BTCUSDT
@@ -13,19 +12,17 @@ on:
           - BTCUSDT
           - ETHUSDT
           - SOLUSDT
-
       bars:
-        description: "1 dakikalik mum sayisi"
+        description: "1 dakikalik kapanmis mum sayisi"
         required: true
         type: choice
-        default: "60000"
+        default: "90000"
         options:
           - "30000"
           - "60000"
           - "90000"
-
       cost_bps:
-        description: "Nötr bölge (bps) - araştırma eşiği"
+        description: "Sabit etiket esigi (islem maliyeti DEGIL)"
         required: true
         type: choice
         default: "12"
@@ -39,20 +36,19 @@ permissions:
 
 jobs:
   train:
-    name: TiMi ML v2 Walk-Forward
+    name: TiMi ML v3 Two-Stage Research
     runs-on: ubuntu-latest
     timeout-minutes: 60
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install offline training dependencies
+      - name: Install offline research dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements_training.txt
@@ -60,11 +56,13 @@ jobs:
       - name: Check source syntax
         run: python -m py_compile train_model.py ml_features.py
 
-      - name: Train and evaluate research models
+      - name: Train two-stage models and evaluate
         env:
           TIMI_SYMBOL: ${{ inputs.symbol }}
           TIMI_BARS: ${{ inputs.bars }}
           TIMI_BPS: ${{ inputs.cost_bps }}
+          OPENBLAS_NUM_THREADS: "1"
+          OMP_NUM_THREADS: "2"
         run: |
           python train_model.py \
             --symbol "$TIMI_SYMBOL" \
@@ -74,11 +72,11 @@ jobs:
             --cost-bps "$TIMI_BPS" \
             --out models
 
-      - name: Upload model files and test report
+      - name: Upload research models and report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: TiMi-ML-v2-Results
+          name: TiMi-ML-v3-Research-Results
           path: models/
           if-no-files-found: warn
           retention-days: 14
