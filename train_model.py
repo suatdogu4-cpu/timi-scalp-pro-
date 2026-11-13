@@ -1,7 +1,10 @@
-"""TiMi SCALP PRO — ML v2.0 — walk-forward LightGBM research trainer.
+"""TiMi SCALP PRO ML v3 — two-stage, selective-signal OFFLINE research.
 
-No exchange keys, real orders, paper trades, or automatic live model deployment.
-Run from GitHub Actions or a computer. Developer: Suat DOĞU.
+Only closed Binance Spot candles. No live endpoints, trading, orders or deployment.
+Developer: Suat DOĞU.
+
+Important: Historical holdouts have already been examined in v1/v2; v3 results
+on overlapping dates are exploratory, NOT an independent performance proof.
 """
 from __future__ import annotations
 
@@ -18,9 +21,7 @@ import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
-from sklearn.metrics import (
-    accuracy_score, balanced_accuracy_score, confusion_matrix, f1_score, log_loss, precision_recall_fscore_support,
-)
+from sklearn.metrics import balanced_accuracy_score, confusion_matrix, f1_score
 
 from ml_features import FEATURE_SCHEMA, WARMUP_BARS, make_features
 
@@ -29,45 +30,40 @@ STEP = {'1m': 60_000, '3m': 180_000, '5m': 300_000, '15m': 900_000}
 SYMBOLS = {'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT',
            'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT'}
 CLASS_NAMES = {0: 'DOWN', 1: 'NEUTRAL', 2: 'UP'}
+# The final test period from earlier experiments is already public and reused.
+PRIOR_EVALUATION_END_UTC = '2026-11-13T16:04:44+00:00'
 
 
-def stamp(ms: int) -> str:
-    return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).isoformat()
+def utc(ms: int) -> str:
+    return datetime.fromtimestamp(int(ms) / 1000, timezone.utc).isoformat()
 
 
-def fetch(symbol: str, interval: str, bars: int, *, now_ms: int | None = None,
-          pause_s: float = 0.15) -> pd.DataFrame:
-    """Download exactly `bars` completed candles; fail if any gap or malformed OHLCV."""
+def fetch(symbol: str, interval: str, bars: int, pause_s: float = 0.16) -> pd.DataFrame:
+    """Download `bars` completed candles. Abort on missing, malformed, or duplicate data."""
     step = STEP[interval]
-    now_ms = now_ms if now_ms is not None else int(time.time() * 1000)
-    # Exclude current open candle and allow a 3s publication margin.
-    last_closed_open = ((now_ms - 3000) // step) * step - step
-    end = last_closed_open + step - 1
+    now = int(time.time() * 1000)
+    last_open = ((now - 3000) // step) * step - step
+    end = last_open + step - 1
     rows: list[list] = []
     with httpx.Client(timeout=25) as client:
         while len(rows) < bars:
             limit = min(1000, bars - len(rows))
-            response = None
             for attempt in range(4):
                 try:
-                    response = client.get(API, params={
-                        'symbol': symbol, 'interval': interval, 'limit': limit,
-                        'endTime': end,
-                    })
-                    response.raise_for_status()
+                    r = client.get(API, params={'symbol': symbol, 'interval': interval,
+                                                'limit': limit, 'endTime': end})
+                    r.raise_for_status()
                     break
                 except httpx.HTTPStatusError as exc:
                     code = exc.response.status_code
-                    if code in (418, 400, 401, 403, 404) or (code != 429 and code < 500) or attempt == 3:
+                    if attempt == 3 or code in (400, 401, 403, 404, 418) or (code < 500 and code != 429):
                         raise
-                    delay = min(15.0, 1.0 * 2 ** attempt)
-                    print(f'HTTP {code}, retrying after {delay}s', flush=True)
-                    time.sleep(delay)
+                    time.sleep(min(15, 2 ** attempt))
                 except (httpx.TimeoutException, httpx.TransportError):
                     if attempt == 3:
                         raise
-                    time.sleep(min(8.0, 1.0 * 2 ** attempt))
-            batch = response.json()
+                    time.sleep(min(8, 2 ** attempt))
+            batch = r.json()
             if not isinstance(batch, list) or not batch:
                 raise RuntimeError(f'Binance returned no candles after {len(rows)} of {bars}')
             rows = batch + rows
@@ -75,307 +71,338 @@ def fetch(symbol: str, interval: str, bars: int, *, now_ms: int | None = None,
             if len(rows) < bars:
                 time.sleep(pause_s)
     if len(rows) != bars:
-        raise RuntimeError(f'Expected {bars} candles but fetched {len(rows)}')
-    frame = pd.DataFrame(rows, columns=[
-        't', 'open', 'high', 'low', 'close', 'volume', 'close_t',
-        'quote_volume', 'n_trades', 'taker_base', 'taker_quote', 'ignore',
-    ])
-    for col in ('open', 'high', 'low', 'close', 'volume'):
-        frame[col] = pd.to_numeric(frame[col], errors='coerce')
-    frame['t'] = pd.to_numeric(frame['t'], errors='coerce')
-    frame['close_t'] = pd.to_numeric(frame['close_t'], errors='coerce')
-    if frame[['t', 'close_t', 'open', 'high', 'low', 'close', 'volume']].isna().any().any():
-        raise RuntimeError('NaNs or malformed values in raw Binance OHLCV')
-    frame['t'] = frame['t'].astype('int64')
-    frame['close_t'] = frame['close_t'].astype('int64')
-    frame = frame.sort_values('t').reset_index(drop=True)
-    if frame['t'].duplicated().any() or not frame['t'].diff().dropna().eq(step).all():
-        raise RuntimeError('Duplicate or missing candles; training aborted')
-    if (frame['t'] % step != 0).any():
-        raise RuntimeError('Candles not aligned to UTC time buckets')
-    if (frame['t'] + step > now_ms - 3000).any() or (frame['close_t'] >= now_ms - 3000).any():
-        raise RuntimeError('Unclosed candle detected; training aborted')
-    if (frame[['open', 'high', 'low', 'close']] <= 0).any().any() or (frame['volume'] < 0).any():
-        raise RuntimeError('Non-positive OHLC or negative volume')
-    if ((frame['high'] < frame[['open', 'close', 'low']].max(axis=1)) |
-            (frame['low'] > frame[['open', 'close', 'high']].min(axis=1))).any():
-        raise RuntimeError('Inconsistent OHLC ranges')
-    return frame[['t', 'open', 'high', 'low', 'close', 'volume']]
+        raise RuntimeError(f'Expected {bars} candles, received {len(rows)}')
+    df = pd.DataFrame(rows, columns=['t', 'open', 'high', 'low', 'close', 'volume',
+                                     'close_t', 'quote_volume', 'n_trades',
+                                     'taker_base', 'taker_quote', 'ignore'])
+    fields = ['t', 'close_t', 'open', 'high', 'low', 'close', 'volume']
+    for col in fields:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+    if df[fields].isna().any().any():
+        raise RuntimeError('Incomplete Binance candle data')
+    df = df.sort_values('t').reset_index(drop=True)
+    df['t'] = df['t'].astype('int64')
+    if (df['t'].duplicated().any() or not df['t'].diff().dropna().eq(step).all()
+            or (df['t'] % step != 0).any()):
+        raise RuntimeError('Missing/duplicated/misaligned candles')
+    if (df['t'].to_numpy() + step > now - 3000).any() or (df['close_t'] >= now - 3000).any():
+        raise RuntimeError('Unclosed candles detected')
+    if (df[['open', 'high', 'low', 'close']] <= 0).any().any() or (df['volume'] < 0).any():
+        raise RuntimeError('Invalid OHLCV')
+    if ((df['high'] < df[['open', 'close', 'low']].max(axis=1)) |
+            (df['low'] > df[['open', 'close', 'high']].min(axis=1))).any():
+        raise RuntimeError('Inconsistent OHLC extremes')
+    return df[['t', 'open', 'high', 'low', 'close', 'volume']].copy()
 
 
-def label_for_horizon(close: pd.Series, horizon: int, cost_bps: float) -> pd.Series:
-    """0=DOWN, 1=NEUTRAL, 2=UP. Last horizon rows have missing labels."""
-    future_return = close.shift(-horizon) / close - 1
-    threshold = cost_bps / 10_000
-    label = pd.Series(np.select([future_return < -threshold,
-                                 future_return > threshold], [0, 2], default=1),
-                      index=close.index, dtype='float64')
-    label.loc[future_return.isna()] = np.nan
-    return label
+def threshold_series(features: pd.DataFrame, mode: str, fixed_bps: float) -> np.ndarray:
+    """Thresholds are computed ONLY from already closed current/past candles."""
+    if mode == 'fixed':
+        return np.full(len(features), fixed_bps, dtype=float)
+    if mode != 'atr_dynamic':
+        raise ValueError(mode)
+    # ATR is a normalized 14-bar, closed-candle historical feature.
+    # This is NOT a measured spread/fee/slippage cost or executable stop.
+    atr = features['atr_pct_14'].to_numpy(dtype=float) * 10_000
+    return np.clip(0.75 * atr, 4.0, 24.0)
 
 
-
-def distribution(series: pd.Series) -> dict[str, int]:
-    counts = series.value_counts().to_dict()
-    return {CLASS_NAMES[k]: int(counts.get(k, 0)) for k in (0, 1, 2)}
-
-
-def fold_boundaries(dev_end: int, horizon: int) -> list[tuple[slice, slice]]:
-    """Three expanding-window folds; each forward label stops before validation.
-
-    The untouched final holdout begins at dev_end, beyond all fold validations.
-    """
-    folds = []
-    for fraction in (0.45, 0.60, 0.75):
-        start = int(dev_end * fraction)
-        end = min(dev_end, start + int(dev_end * 0.10))
-        folds.append((slice(0, start - horizon), slice(start, end)))
-    return folds
+def make_labels(close: pd.Series, horizon: int, thresholds_bps: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    if len(close) != len(thresholds_bps):
+        raise ValueError('Threshold/close length mismatch')
+    future_ret = (close.shift(-horizon) / close - 1).to_numpy(dtype=float)
+    labels = np.select((future_ret < -thresholds_bps / 10_000,
+                        future_ret > thresholds_bps / 10_000), (0, 2), default=1).astype(float)
+    labels[~np.isfinite(future_ret)] = np.nan
+    return labels, future_ret
 
 
-def model_config(weight_mode: str, target: pd.Series) -> dict:
-    """Class weighting is calculated on training rows alone, never validation/test."""
-    weights = None
-    if weight_mode == 'weighted_capped':
-        counts = target.value_counts().to_dict()
-        neutral = max(int(counts.get(1, 0)), 1)
-        weights = {c: float(min(6.0, max(1.0, math.sqrt(neutral / max(int(counts.get(c, 0)), 1)))))
-                   for c in (0, 2)}
-        weights[1] = 1.0
+def folds_for(dev_end: int, horizon: int) -> list[tuple[slice, slice]]:
+    """Non-overlapping expanding chronological folds with purged label overlap."""
+    return [(slice(0, max(0, int(dev_end * lo) - horizon)),
+             slice(int(dev_end * lo), min(dev_end, int(dev_end * hi))))
+            for lo, hi in ((0.45, 0.55), (0.60, 0.70), (0.75, 0.80))]
+
+
+def counts(y: np.ndarray) -> dict[str, int]:
+    y = np.asarray(y)
+    return {CLASS_NAMES[k]: int(np.count_nonzero(y == k)) for k in (0, 1, 2)}
+
+
+def fit_pair(x: pd.DataFrame, y: np.ndarray, weight_mode: str) -> tuple[LGBMClassifier, LGBMClassifier]:
+    """Event: any threshold crossing. Direction: among actual historical events."""
+    y = np.asarray(y, dtype=np.int64)
+    event = (y != 1).astype(np.int64)
+    event_idx = np.flatnonzero(event)
+    if min(np.bincount(event, minlength=2)) < 30 or min(
+            np.bincount((y[event_idx] == 2).astype(int), minlength=2)) < 20:
+        raise ValueError('Not enough historical events for two-stage training')
+    params = dict(n_estimators=140, learning_rate=0.045, num_leaves=11,
+                  max_depth=4, min_child_samples=65, colsample_bytree=0.85,
+                  subsample=0.85, subsample_freq=1, reg_lambda=8.0,
+                  n_jobs=2, random_state=42, verbosity=-1)
+    sw = None
+    if weight_mode == 'capped_event_weight':
+        positives, negatives = int(event.sum()), int((1 - event).sum())
+        factor = min(5.0, max(1.0, math.sqrt(negatives / positives)))
+        sw = np.where(event == 1, factor, 1.0)
     elif weight_mode != 'standard':
-        raise ValueError(f'Invalid weight mode: {weight_mode}')
-    return dict(
-        objective='multiclass', n_estimators=220, learning_rate=0.035,
-        num_leaves=15, max_depth=5, min_child_samples=80,
-        colsample_bytree=0.8, subsample=0.8, subsample_freq=1,
-        reg_lambda=5.0, random_state=42, n_jobs=2, verbosity=-1,
-        class_weight=weights,
-    )
+        raise ValueError(weight_mode)
+    event_model = LGBMClassifier(objective='binary', **params)
+    event_model.fit(x, event, sample_weight=sw)
+    dir_model = LGBMClassifier(objective='binary', **params)
+    dir_model.fit(x.iloc[event_idx], (y[event_idx] == 2).astype(np.int64))
+    return event_model, dir_model
 
 
-def evaluate(y: pd.Series, probabilities: np.ndarray, classes: np.ndarray) -> dict:
-    """Class-specific diagnostic metrics. All three classes are expected in training."""
-    classes = np.asarray(classes, dtype=int)
-    preds = classes[np.argmax(probabilities, axis=1)]
-    truth = np.asarray(y, dtype=int)
-    pr, rc, f1, _ = precision_recall_fscore_support(
-        truth, preds, labels=[0, 1, 2], zero_division=0)
-    directional_predictions = int(np.isin(preds, [0, 2]).sum())
-    directional_events = int(np.isin(truth, [0, 2]).sum())
-    correct_directions = int(((preds == truth) & np.isin(preds, [0, 2])).sum())
-    return {
-        'rows': len(truth),
-        'actual_classes': distribution(pd.Series(truth)),
-        'predicted_classes': distribution(pd.Series(preds)),
-        'accuracy': round(float(accuracy_score(truth, preds)), 6),
-        'balanced_accuracy': round(float(balanced_accuracy_score(truth, preds)), 6),
-        'macro_f1': round(float(f1_score(truth, preds, labels=[0, 1, 2],
-                                         average='macro', zero_division=0)), 6),
-        'class_precision': {CLASS_NAMES[i]: round(float(pr[i]), 6) for i in range(3)},
-        'class_recall': {CLASS_NAMES[i]: round(float(rc[i]), 6) for i in range(3)},
-        'class_f1': {CLASS_NAMES[i]: round(float(f1[i]), 6) for i in range(3)},
-        'directional_prediction_count': directional_predictions,
-        'directional_prediction_rate': round(directional_predictions / len(truth), 6),
-        'correct_directional_predictions': correct_directions,
-        'directional_precision': (round(correct_directions / directional_predictions, 6)
-                                  if directional_predictions else None),
-        'directional_event_recall': (round(correct_directions / directional_events, 6)
-                                     if directional_events else None),
-        'neutral_only_baseline_accuracy': round(float((truth == 1).mean()), 6),
-        'log_loss': round(float(log_loss(truth, probabilities, labels=classes)), 6),
-        'confusion_matrix_0_1_2': confusion_matrix(truth, preds, labels=[0, 1, 2]).tolist(),
+def predict_pair(models: tuple[LGBMClassifier, LGBMClassifier], x: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+    ev, dr = models
+    if list(ev.classes_) != [0, 1] or list(dr.classes_) != [0, 1]:
+        raise ValueError('Unexpected classifier class order')
+    return ev.predict_proba(x)[:, 1], dr.predict_proba(x)[:, 1]
+
+
+def signals(event_score: np.ndarray, up_given_event_score: np.ndarray,
+            event_cut: float, direction_cut: float) -> np.ndarray:
+    """Score gates do NOT represent calibrated probability thresholds."""
+    event_score = np.asarray(event_score)
+    up = np.asarray(up_given_event_score)
+    decisions = np.ones(len(event_score), dtype=int)
+    gate = event_score >= event_cut
+    decisions[gate & (up >= direction_cut)] = 2
+    decisions[gate & (up <= 1.0 - direction_cut)] = 0
+    return decisions
+
+
+def evaluate(truth: np.ndarray, pred: np.ndarray, future_ret: np.ndarray | None = None) -> dict:
+    truth = np.asarray(truth, dtype=np.int64)
+    pred = np.asarray(pred, dtype=np.int64)
+    if len(truth) == 0 or len(truth) != len(pred):
+        raise ValueError('Invalid evaluation vectors')
+    directional = pred != 1
+    true_events = truth != 1
+    correct = (pred == truth) & directional
+    n_signal = int(directional.sum())
+    n_true = int(true_events.sum())
+    result = {
+        'rows': len(truth), 'actual_classes': counts(truth), 'predicted_classes': counts(pred),
+        'accuracy': round(float(np.mean(pred == truth)), 6),
+        'neutral_only_baseline_accuracy': round(float(np.mean(truth == 1)), 6),
+        'balanced_accuracy': round(float(balanced_accuracy_score(truth, pred)), 6),
+        'macro_f1': round(float(f1_score(truth, pred, labels=[0, 1, 2], average='macro', zero_division=0)), 6),
+        'directional_signals': n_signal,
+        'directional_coverage': round(n_signal / len(truth), 6),
+        'correct_directional_signals': int(correct.sum()),
+        'directional_precision': round(float(correct.sum() / n_signal), 6) if n_signal else None,
+        'directional_event_recall': round(float(correct.sum() / n_true), 6) if n_true else None,
+        'false_directional_alarms': int((directional & ~correct).sum()),
+        'precision_by_class': {
+            CLASS_NAMES[k]: (round(float(np.sum((pred == k) & (truth == k)) / np.sum(pred == k)), 6)
+                             if np.sum(pred == k) else None) for k in (0, 2)},
+        'confusion_matrix_0_1_2': confusion_matrix(truth, pred, labels=[0, 1, 2]).tolist(),
     }
+    if future_ret is not None:
+        future_ret = np.asarray(future_ret)
+        signed = np.where(pred[directional] == 2, 1.0, -1.0) * future_ret[directional] * 10_000
+        result['mean_signed_future_change_bps_on_signals'] = (round(float(signed.mean()), 6)
+                                                              if len(signed) else None)
+        result['signed_return_note'] = 'Research price change only; NOT net trading P&L or execution backtest'
+    return result
 
 
-def fit_and_evaluate(x_train: pd.DataFrame, y_train: pd.Series,
-                     x_val: pd.DataFrame, y_val: pd.Series,
-                     mode: str) -> tuple[LGBMClassifier, dict]:
-    model = LGBMClassifier(**model_config(mode, y_train))
-    model.fit(x_train, y_train)
-    result = evaluate(y_val, model.predict_proba(x_val), model.classes_)
-    return model, result
+def select_policy(y: np.ndarray, scores: tuple[np.ndarray, np.ndarray], min_signals: int = 60) -> dict:
+    """Select scores/thresholds only on early walk-forward OOF validation rows."""
+    event, upward = scores
+    candidates = []
+    for ec in (0.20, 0.30, 0.40, 0.50, 0.60, 0.70):
+        for dc in (0.55, 0.60, 0.65, 0.70, 0.75):
+            pred = signals(event, upward, ec, dc)
+            met = evaluate(y, pred)
+            if met['directional_signals'] >= min_signals:
+                candidates.append((met['directional_precision'], met['correct_directional_signals'],
+                                   -met['false_directional_alarms'], ec, dc, met))
+    if not candidates:
+        return {'found_min_support_policy': False, 'reason': f'No policy produced {min_signals} validation signals',
+                'event_score_cut': 0.50, 'direction_score_cut': 0.65, 'selection_metrics': None}
+    best = max(candidates, key=lambda v: v[:3])
+    return {'found_min_support_policy': True,
+            'event_score_cut': best[3], 'direction_score_cut': best[4],
+            'selection_metrics': best[5],
+            'policy_count_tested': 30,
+            'selection_warning': 'Multiple thresholds explored: validation score is optimistically selected'}
 
 
 def train_models(raw: pd.DataFrame, symbol: str, interval: str, horizons: list[int],
-                 cost_bps: float, out: Path) -> dict:
-    """Choose weight mode on three forward validations, then test once at end."""
+                 fixed_bps: float, out: Path) -> dict:
     out.mkdir(parents=True, exist_ok=True)
-    frame, candidates = make_features(raw)
-    frame = frame.iloc[WARMUP_BARS:].reset_index(drop=True)
+    features, names = make_features(raw)
+    features = features.iloc[WARMUP_BARS:].reset_index(drop=True)
     raw = raw.iloc[WARMUP_BARS:].reset_index(drop=True)
+    if features['atr_pct_14'].isna().any():
+        raise ValueError('ATR unavailable after warmup')
     report = {
-        'purpose': 'v2_walk_forward_offline_research_only_not_deployed',
-        'symbol': symbol, 'interval': interval,
-        'bars_after_warmup': len(raw), 'feature_schema': FEATURE_SCHEMA,
-        'label_threshold_bps': cost_bps,
-        'label_definition': 'close[i+h] / close[i] - 1; DOWN below -threshold, UP above threshold; otherwise NEUTRAL',
-        'class_labels': CLASS_NAMES,
-        'selection': '3 expanding walk-forward validation folds (train-only class weights); choose larger mean macro-F1; 20% final untouched holdout',
-        'data_start_utc': stamp(int(raw['t'].iloc[0])),
-        'data_end_utc': stamp(int(raw['t'].iloc[-1])),
-        'created_utc': datetime.now(timezone.utc).isoformat(),
+        'purpose': 'TiMi_ML_v3_research_not_deployed',
+        'symbol': symbol, 'interval': interval, 'bars_after_warmup': len(raw),
+        'feature_schema': FEATURE_SCHEMA, 'created_utc': datetime.now(timezone.utc).isoformat(),
+        'data_start_utc': utc(int(raw.t.iloc[0])), 'data_end_utc': utc(int(raw.t.iloc[-1])),
+        'prior_experiments_accessed_data_through_utc': PRIOR_EVALUATION_END_UTC,
+        'holdout_independence': 'HISTORICAL_OVERLAP_WITH_PRIOR_V1_V2; EXPLORATORY_NOT_PROSPECTIVE',
+        'validation_plan': ('3 expanding, purged walk-forward folds. Folds 1+2 select '
+                            'weight variant and signal-score gates; fold 3 confirms; '
+                            'last 20% historical holdout is reported separately.'),
+        'label_modes': {'fixed': f'fixed {fixed_bps} bps',
+                        'atr_dynamic': 'clip(0.75 * ATR14 bps, 4 bps, 24 bps)'},
         'models': {},
         'caveats': [
-            'Weights are a diagnostic experiment, not an assurance of predictive power.',
-            'Final holdout is evaluated only after model selection; retesting changes on it would invalidate its untouched status.',
-            'predict_proba outputs are NOT calibrated probabilities.',
-            '12 bps is an illustrative movement threshold, NOT independently measured execution cost.',
-            'One asset and a short historical window do not establish robustness across regimes.',
-            'Only OHLCV features are available; historical synchronized CVD/order book records are absent.',
-            'No trades, broker calls, or automatic production ML deployment.',
+            'This is NOT a newly untouched test period; v1/v2 already examined overlapping dates.',
+            'Policy thresholds optimized on folds 1+2; false discovery / multiple comparisons remain possible.',
+            'LightGBM prediction scores are uncalibrated; do not interpret as true probabilities.',
+            'The directional threshold is a label definition, NOT a verified transaction cost.',
+            'Only closed OHLCV; no synchronized historical CVD or order book features.',
+            'Overlapping time horizons create correlated observations, not independent trades.',
+            'No fees, slippage, execution simulator, capital management or trading endpoints.',
+            'Models must NOT be promoted to live on the basis of this report.',
         ],
     }
-    for horizon in horizons:
-        labels = label_for_horizon(raw['close'], horizon, cost_bps)
-        n = len(raw) - horizon
-        entry = {'horizon_bars': horizon, 'horizon_minutes':
-                 horizon * STEP[interval] // 60_000}
-        if n < 3000:
-            entry['status'] = 'insufficient_rows'
-            report['models'][str(horizon)] = entry
+    variants = ('standard', 'capped_event_weight')
+    for h in horizons:
+        n = len(raw) - h
+        if n < 5000:
+            report['models'][str(h)] = {'status': 'insufficient_rows'}
             continue
-        matrix = frame.iloc[:n].copy()
-        target = labels.iloc[:n].astype('int64')
-        t = raw['t'].iloc[:n]
-        dev_end = int(n * .80)
-        folds = fold_boundaries(dev_end, horizon)
-        first_train_end = folds[0][0].stop
-        chosen = [col for col in candidates if
-                  matrix[col].iloc[:first_train_end].notna().mean() >= .90 and
-                  matrix[col].iloc[:first_train_end].nunique(dropna=True) > 1]
-        entry.update({'feature_count': len(chosen),
-                      'raw_class_distribution': distribution(target),
-                      'final_holdout_start_utc': stamp(int(t.iloc[dev_end])),
-                      'final_holdout_rows': n - dev_end,
-                      'fold_count': len(folds),
-                      'folds': [], 'variants': {}})
-        if len(chosen) < 8 or dev_end - horizon < 1000:
-            entry['status'] = 'insufficient_features'
-            report['models'][str(horizon)] = entry
+        dev_end = int(n * 0.8)
+        folds = folds_for(dev_end, h)
+        first_train = folds[0][0].stop
+        selected = [c for c in names if features[c].iloc[:first_train].notna().mean() >= .90
+                    and features[c].iloc[:first_train].nunique(dropna=True) > 1]
+        if len(selected) < 8:
+            report['models'][str(h)] = {'status': 'insufficient_features'}
             continue
-        ready = True
-        for idx, (tr, va) in enumerate(folds, 1):
-            train_y, val_y = target.iloc[tr], target.iloc[va]
-            if min(len(train_y), len(val_y)) < 200 or any(
-                    distribution(train_y)[v] < 20 for v in CLASS_NAMES.values()) or any(
-                    distribution(val_y)[v] < 1 for v in CLASS_NAMES.values()):
-                ready = False
-                entry['reason'] = f'Fold {idx} has too few rows or rare directional classes'
-                break
-            entry['folds'].append({
-                'fold': idx,
-                'train_rows': len(train_y), 'validation_rows': len(val_y),
-                'train_end_open_utc': stamp(int(t.iloc[tr].iloc[-1])),
-                'validation_start_open_utc': stamp(int(t.iloc[va].iloc[0])),
-                'validation_end_open_utc': stamp(int(t.iloc[va].iloc[-1])),
-                'train_classes': distribution(train_y),
-                'validation_classes': distribution(val_y),
-                'purged_rows_before_validation': horizon,
-            })
-        if not ready:
-            entry['status'] = 'insufficient_class_diversity'
-            report['models'][str(horizon)] = entry
-            continue
-        for mode in ('standard', 'weighted_capped'):
-            fold_metrics = []
-            for tr, va in folds:
-                _, fm = fit_and_evaluate(matrix[chosen].iloc[tr], target.iloc[tr],
-                                         matrix[chosen].iloc[va], target.iloc[va], mode)
-                fold_metrics.append(fm)
-            mean_f1 = float(np.mean([f['macro_f1'] for f in fold_metrics]))
-            mean_bal = float(np.mean([f['balanced_accuracy'] for f in fold_metrics]))
-            entry['variants'][mode] = {
-                'fold_metrics': fold_metrics,
-                'mean_macro_f1': round(mean_f1, 6),
-                'mean_balanced_accuracy': round(mean_bal, 6),
-            }
-        best = max(('standard', 'weighted_capped'), key=lambda mode: (
-            entry['variants'][mode]['mean_macro_f1'],
-            entry['variants'][mode]['mean_balanced_accuracy'],
-            mode == 'standard',
-        ))
-        final_fit_end = dev_end - horizon
-        train_x, train_y = matrix[chosen].iloc[:final_fit_end], target.iloc[:final_fit_end]
-        test_x, test_y = matrix[chosen].iloc[dev_end:], target.iloc[dev_end:]
-        if min(distribution(train_y).values()) < 20 or min(distribution(test_y).values()) < 1:
-            entry['status'] = 'insufficient_holdout_classes'
-            report['models'][str(horizon)] = entry
-            continue
-        final_model, test_metrics = fit_and_evaluate(train_x, train_y, test_x, test_y, best)
-        entry.update({
-            'status': 'research_only_not_calibrated',
-            'selected_variant': best, 'final_train_rows': len(train_x),
-            'final_train_classes': distribution(train_y),
-            'test': test_metrics,
-            'test_beats_neutral_accuracy_baseline': (
-                test_metrics['accuracy'] > test_metrics['neutral_only_baseline_accuracy']),
-            'test_macro_f1_exceeds_one_third': (test_metrics['macro_f1'] > (1.0 / 3.0)),
-        })
-        model_name = f'{symbol}_{interval}_h{horizon}_model.txt'
-        final_model.booster_.save_model(str(out / model_name))
-        metadata = {
-            'model_file': model_name, 'symbol': symbol, 'interval': interval,
-            'horizon_bars': horizon, 'horizon_minutes': entry['horizon_minutes'],
-            'feature_schema': FEATURE_SCHEMA,
-            'feature_names_ordered': chosen,
-            'selected_variant': best,
-            'class_order': [int(v) for v in final_model.classes_],
-            'class_labels': CLASS_NAMES,
-            'threshold_bps': cost_bps,
-            'training_end_open_ms': int(t.iloc[final_fit_end - 1]),
-            'test_start_open_ms': int(t.iloc[dev_end]),
-            'training_rows': len(train_x),
-            'approval': 'NOT_APPROVED_FOR_LIVE_TRADING',
-            'lightgbm_version': lgb.__version__,
-        }
-        (out / f'{symbol}_{interval}_h{horizon}_metadata.json').write_text(
-            json.dumps(metadata, indent=2, ensure_ascii=False), encoding='utf-8')
-        booster = lgb.Booster(model_file=str(out / model_name))
-        sample = test_x.head(3)
-        restored = booster.predict(sample)
-        if not np.allclose(restored, final_model.predict_proba(sample), rtol=1e-6, atol=1e-7):
-            raise RuntimeError('Saved LightGBM model failed round-trip verification')
-        report['models'][str(horizon)] = entry
-        print(f'Horizon {horizon} ({entry["horizon_minutes"]}m), variant={best}: '
-              f'holdout macro_F1={test_metrics["macro_f1"]} '
-              f'balanced_accuracy={test_metrics["balanced_accuracy"]} '
-              f'directional_precision={test_metrics["directional_precision"]} '
-              f'directional_coverage={test_metrics["directional_prediction_rate"]}',
-              flush=True)
-    (out / 'training_report.json').write_text(
-        json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
+        x = features[selected].iloc[:n].copy()
+        ret = (raw.close.shift(-h) / raw.close - 1).iloc[:n].to_numpy(dtype=float)
+        horizon_entry = {'horizon_bars': h, 'horizon_minutes': h * STEP[interval] / 60000,
+                         'feature_count': len(selected), 'modes': {}}
+        for mode in ('fixed', 'atr_dynamic'):
+            cut = threshold_series(features, mode, fixed_bps)
+            y_full, _ = make_labels(raw.close, h, cut)
+            y = y_full[:n].astype(np.int64)
+            sub = {'label_classes': counts(y), 'validation_folds': [],
+                   'holdout_start_utc': utc(int(raw.t.iloc[dev_end])),
+                   'holdout_rows': n - dev_end,
+                   'candidate_variants': {},
+                   'mode': mode}
+            # All selection uses strictly past training and F1/F2 forward validation.
+            try:
+                for variant in variants:
+                    f_preds = []
+                    first2 = []
+                    for i, (tr, va) in enumerate(folds):
+                        if min(np.bincount((y[tr] != 1).astype(int), minlength=2)) < 30:
+                            raise ValueError('Insufficient directional events in fold training')
+                        models = fit_pair(x.iloc[tr], y[tr], variant)
+                        ev, up = predict_pair(models, x.iloc[va])
+                        f_preds.append((ev, up))
+                        first2.append((y[va], ret[va]))
+                    candidate_policy = select_policy(
+                        np.concatenate([first2[i][0] for i in (0, 1)]),
+                        (np.concatenate([f_preds[i][0] for i in (0, 1)]),
+                         np.concatenate([f_preds[i][1] for i in (0, 1)])))
+                    third_pred = signals(*f_preds[2], candidate_policy['event_score_cut'],
+                                         candidate_policy['direction_score_cut'])
+                    third_stats = evaluate(y[folds[2][1]], third_pred, ret[folds[2][1]])
+                    sub['candidate_variants'][variant] = {
+                        'policy': candidate_policy,
+                        'confirmation_fold3': third_stats,
+                        'validation_fold3_rows': len(third_pred),
+                    }
+                # Select on F1/F2 only: never use confirmation/holdout for selection.
+                def ranking(variant: str):
+                    p = sub['candidate_variants'][variant]['policy']
+                    s = p.get('selection_metrics')
+                    return (s['directional_precision'] if s else -1,
+                            s['correct_directional_signals'] if s else -1,
+                            variant == 'standard')
+                best = max(variants, key=ranking)
+                pol = sub['candidate_variants'][best]['policy']
+                final_fit_end = dev_end - h
+                final_pair = fit_pair(x.iloc[:final_fit_end], y[:final_fit_end], best)
+                ev, up = predict_pair(final_pair, x.iloc[dev_end:])
+                hold_pred = signals(ev, up, pol['event_score_cut'], pol['direction_score_cut'])
+                holdout = evaluate(y[dev_end:], hold_pred, ret[dev_end:])
+                conf = sub['candidate_variants'][best]['confirmation_fold3']
+                # Conservative research gate, never authorizes live deployment.
+                diagnostic_pass = bool(pol['found_min_support_policy'] and
+                                       pol['selection_metrics']['directional_precision'] >= .50 and
+                                       conf['directional_signals'] >= 30 and
+                                       conf['directional_precision'] is not None and
+                                       conf['directional_precision'] >= .50)
+                sub.update({'status': 'trained_research_only', 'selected_variant': best,
+                            'selected_policy': pol, 'confirmation_fold3': conf,
+                            'historical_holdout': holdout,
+                            'validation_diagnostic_pass': diagnostic_pass,
+                            'live_deployment_allowed': False})
+                stem = f'{symbol}_{interval}_h{h}_{mode}'
+                files = {'event_model': stem + '_event_model.txt',
+                         'direction_model': stem + '_direction_model.txt',
+                         'metadata': stem + '_metadata.json'}
+                for model, fname in zip(final_pair, (files['event_model'], files['direction_model'])):
+                    model.booster_.save_model(str(out / fname))
+                # Ensure native model bytes round-trip without pickle.
+                sample = x.iloc[dev_end:dev_end + 5]
+                for model, filename in zip(final_pair, (files['event_model'], files['direction_model'])):
+                    restored = lgb.Booster(model_file=str(out / filename)).predict(sample)
+                    assert np.allclose(restored, model.predict_proba(sample)[:, 1], atol=1e-7, rtol=1e-6)
+                meta = {'approval': 'RESEARCH_ONLY_NOT_APPROVED_FOR_LIVE',
+                        'feature_schema': FEATURE_SCHEMA, 'features_ordered': selected,
+                        'symbol': symbol, 'interval': interval, 'horizon': h,
+                        'mode': mode, 'fixed_bps': fixed_bps,
+                        'selected_variant': best, 'event_gate': pol['event_score_cut'],
+                        'direction_gate': pol['direction_score_cut'],
+                        'model_files': files, 'training_end_utc': utc(int(raw.t.iloc[final_fit_end - 1])),
+                        'holdout_start_utc': utc(int(raw.t.iloc[dev_end])),
+                        'holdout_reused_historical': True,
+                        'lightgbm_version': lgb.__version__}
+                (out / files['metadata']).write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding='utf-8')
+                sub['artifacts'] = files
+                print(f'h={h} mode={mode} selected={best} historical_holdout: '
+                      f'signals={holdout["directional_signals"]}, '
+                      f'directional_precision={holdout["directional_precision"]}, '
+                      f'balanced_accuracy={holdout["balanced_accuracy"]}', flush=True)
+            except ValueError as exc:
+                sub['status'] = 'insufficient_data'
+                sub['error'] = str(exc)
+            horizon_entry['modes'][mode] = sub
+        report['models'][str(h)] = horizon_entry
+    (out / 'training_report.json').write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
     return report
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description='TiMi ML v2 walk-forward OFFLINE research; no live trading')
-    parser.add_argument('--symbol', default='BTCUSDT')
-    parser.add_argument('--interval', choices=STEP, default='1m')
-    parser.add_argument('--bars', type=int, default=60000)
-    parser.add_argument('--horizons', type=int, nargs='+', default=[1, 5])
-    parser.add_argument('--cost-bps', type=float, default=12.0,
-                        help='Illustrative movement threshold in basis points, NOT measured fees')
-    parser.add_argument('--out', default='models')
-    args = parser.parse_args()
+    ap = argparse.ArgumentParser(description='TiMi ML v3 offline two-stage research trainer')
+    ap.add_argument('--symbol', default='BTCUSDT')
+    ap.add_argument('--interval', choices=tuple(STEP), default='1m')
+    ap.add_argument('--bars', type=int, default=90000)
+    ap.add_argument('--horizons', nargs='+', type=int, default=[1, 5])
+    ap.add_argument('--cost-bps', type=float, default=12.0,
+                    help='Only the fixed-label research threshold. NOT actual cost.')
+    ap.add_argument('--out', default='models')
+    args = ap.parse_args()
     args.symbol = args.symbol.upper()
-    if args.symbol not in SYMBOLS:
-        parser.error('Unsupported symbol')
-    if not 3000 <= args.bars <= 100000:
-        parser.error('bars must be 3000..100000')
+    if args.symbol not in SYMBOLS or not 10000 <= args.bars <= 100000:
+        ap.error('Invalid symbol or number of candles')
     if (not args.horizons or len(set(args.horizons)) != len(args.horizons)
-            or any(h < 1 or h > 60 for h in args.horizons)):
-        parser.error('horizons must be unique integers 1..60')
-    if not (math.isfinite(args.cost_bps) and 0 <= args.cost_bps <= 100):
-        parser.error('cost-bps must be finite and between 0 and 100')
-    output = Path(args.out)
+            or any(h < 1 or h > 30 for h in args.horizons)):
+        ap.error('Invalid horizon values')
+    if not math.isfinite(args.cost_bps) or not 0 <= args.cost_bps <= 100:
+        ap.error('Invalid threshold')
     raw = fetch(args.symbol, args.interval, args.bars)
-    report = train_models(raw, args.symbol, args.interval, args.horizons, args.cost_bps, output)
-    trained = sum(item.get('status') == 'research_only_not_calibrated'
-                  for item in report['models'].values())
-    print(f'Finished: {trained}/{len(args.horizons)} models. '
-          f'Report: {output / "training_report.json"}', flush=True)
-    if trained == 0:
-        raise SystemExit('No trainable model: inspect training_report.json')
+    report = train_models(raw, args.symbol, args.interval, args.horizons,
+                          args.cost_bps, Path(args.out))
+    ready = sum(sub.get('status') == 'trained_research_only'
+                for entry in report['models'].values() for sub in entry.get('modes', {}).values())
+    print(f'Research training complete: {ready} out of {len(args.horizons) * 2} model pairs.', flush=True)
+    if ready == 0:
+        raise SystemExit('No models trained. See models/training_report.json')
 
 
 if __name__ == '__main__':
