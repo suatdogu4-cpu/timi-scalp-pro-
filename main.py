@@ -1,4 +1,4 @@
-"""TiMi SCALP PRO v1.7 — read-only Binance Spot analytics.
+"""TiMi SCALP PRO v1.8 — read-only Binance Spot analytics.
 Developer: Suat DOĞU. No order endpoints or model training on request path.
 """
 import asyncio
@@ -22,7 +22,7 @@ from fastapi.responses import FileResponse
 logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger('timi')
 ROOT = Path(__file__).resolve().parent
-VERSION = '1.7.0'
+VERSION = '1.8.0'
 SYMBOLS = ('BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT')
 TF = ('1m', '3m', '5m', '15m', '30m', '1h', '4h', '1d')
 MTF = ('1m', '3m', '5m', '15m')
@@ -48,6 +48,7 @@ class Market:
         self.trades = deque(maxlen=100)
         self.tape = deque()
         self.book_history = deque(maxlen=500)
+        self.wall_seen = {'bid': {}, 'ask': {}}
         self.last_trade_ms = self.last_book_ms = self.last_ticker_ms = None
         self.last_trade_id = None
         self.sequence = 0
@@ -175,6 +176,7 @@ async def relay():
                             m.bid, m.ask = bids[0][0], asks[0][0]
                             m.last_book_ms = now
                             m.book_valid, m.book_error = True, None
+                            update_wall_tracking(m, now)
                             bn = sum(p * q for p, q in bids)
                             an = sum(p * q for p, q in asks)
                             if bn + an > 0:
@@ -185,6 +187,7 @@ async def relay():
                         except (ValueError, TypeError, OverflowError) as exc:
                             m.book_valid, m.book_error = False, str(exc)
                             m.bids, m.asks, m.bid, m.ask = [], [], None, None
+                            m.wall_seen = {'bid': {}, 'ask': {}}
                             event = {'type': 'depth_invalid', 'symbol': symbol,
                                      'book_valid': False, 'reason': 'invalid_book', 'ts': now}
                     elif '@kline_1m' in stream:
@@ -228,6 +231,7 @@ async def relay():
             status.update(connected=False, error=str(exc))
             for m in markets.values():
                 m.book_valid = False
+                m.wall_seen = {'bid': {}, 'ask': {}}
             LOG.warning('Binance stream disconnected: %s', exc)
             await asyncio.sleep(delay)
             delay = min(30, delay * 2)
@@ -363,7 +367,7 @@ def decision(m, flow, ind, interval='1m'):
     if not ind or any(ind.get(k) is None for k in
                       ('ema20', 'ema50', 'rsi14', 'last_closed_price')):
         return wait('Kapanmış mum veya gösterge verisi yetersiz')
-    if interval == '1m' and (now_ms() - ind['last_closed_t'] > 180000):
+    if interval == '1m' and (now_ms() - (ind['last_closed_t'] + 60000) > 120000):
         return wait('Son kapanmış 1m mum güncel değil')
     if flow['spread_pct'] is None or flow['spread_pct'] > 0.12:
         return wait('Spread eksik veya yüksek', 'risk_vetosu')
@@ -419,33 +423,84 @@ async def mtf_analysis(symbol):
             if not ind or any(ind.get(k) is None for k in
                               ('last_closed_price', 'ema20', 'ema50', 'rsi14')):
                 return {'tf': tf, 'direction': 'YETERSIZ', 'reason': 'Mum yetersiz'}
+            step_ms = {'1m': 60000, '3m': 180000, '5m': 300000,
+                       '15m': 900000}[tf]
+            closed_at = ind['last_closed_t'] + step_ms
+            candle_age = now_ms() - closed_at
+            if candle_age < -5000 or candle_age > 2 * step_ms:
+                return {'tf': tf, 'direction': 'YETERSIZ',
+                        'reason': 'Kapanmış mum güncel değil',
+                        'closed_t': ind['last_closed_t'],
+                        'closed_at_ms': closed_at, 'candle_age_ms': candle_age}
             price, e20, e50, rsi = (ind['last_closed_price'], ind['ema20'],
                                      ind['ema50'], ind['rsi14'])
             direction = ('LONG' if price > e20 > e50 and rsi >= 50 else
                          'SHORT' if price < e20 < e50 and rsi <= 50 else 'KARISIK')
             return {'tf': tf, 'direction': direction, 'rsi14': round(rsi, 2),
                     'ema20': round(e20, 8), 'ema50': round(e50, 8),
-                    'closed_t': ind['last_closed_t']}
+                    'closed_t': ind['last_closed_t'],
+                    'closed_at_ms': closed_at, 'candle_age_ms': candle_age}
         except Exception as exc:
             LOG.warning('MTF %s %s: %s', symbol, tf, exc)
             return {'tf': tf, 'direction': 'YETERSIZ', 'reason': 'Hesaplama hatası'}
     return await asyncio.gather(*(one(tf) for tf in MTF))
 
+def update_wall_tracking(m, ts):
+    """Track persistence of candidate levels in successive partial-book snapshots.
+
+    A price level must remain in the top-20 snapshot to keep its first-seen time.
+    This is an observation, not proof that the same order persisted.
+    """
+    for side, levels in (('bid', m.bids), ('ask', m.asks)):
+        seen = m.wall_seen[side]
+        current = {p for p, q in levels if p > 0 and q > 0}
+        for price in list(seen):
+            if price not in current:
+                del seen[price]
+        for price in current:
+            seen.setdefault(price, ts)
+
+
 def flow_extras(m, flow):
     now = now_ms()
-    recent = [v for ts, v in m.book_history if 0 <= now - ts <= 5000]
-    previous = [v for ts, v in m.book_history if 10000 <= now - ts <= 20000]
+    # Compare two non-overlapping windows, not arbitrary consecutive snapshots.
+    recent = [v for ts, v in m.book_history if 0 <= now - ts < 5000]
+    previous = [v for ts, v in m.book_history if 10000 <= now - ts < 20000]
     delta = (sum(recent) / len(recent) - sum(previous) / len(previous)
              if recent and previous else None)
-    def walls(levels):
-        sizes = sorted(p * q for p, q in levels)
-        med = sizes[len(sizes) // 2] if sizes else 0
-        return [{'price': p, 'notional': round(p * q, 2),
-                 'multiple': round(p * q / med, 1)}
-                for p, q in levels if med > 0 and p * q >= max(3 * med, 1000)][:5]
+
+    def walls(levels, side):
+        total = sum(p * q for p, q in levels)
+        notionals = sorted(p * q for p, q in levels)
+        median = ((notionals[len(notionals)//2 - 1] + notionals[len(notionals)//2]) / 2
+                  if len(notionals) % 2 == 0 and notionals else
+                  notionals[len(notionals)//2] if notionals else 0)
+        # Never divide by a dust-sized median; ratios are descriptive only.
+        baseline = max(median, 1000.0)
+        result = []
+        for p, q in levels:
+            notional = p * q
+            share = 100 * notional / total if total > 0 else 0
+            persistence_ms = max(0, now - m.wall_seen[side].get(p, now))
+            if notional < 5000 or share < 5 or persistence_ms < 3000:
+                continue
+            result.append({'price': p, 'notional': round(notional, 2),
+                           'share_pct': round(share, 2),
+                           'multiple': round(min(notional / baseline, 999), 1),
+                           'observed_ms': persistence_ms,
+                           'persistent': True})
+        return sorted(result, key=lambda x: x['notional'], reverse=True)[:5]
+
     return {'imbalance_delta_10s': delta,
-            'bid_walls': walls(m.bids), 'ask_walls': walls(m.asks),
-            'wall_definition': '>=3x median level notional and >=1000 USDT; partial 20 levels'}
+            'pressure_recent_window': '0-5s',
+            'pressure_reference_window': '10-20s',
+            'pressure_recent_samples': len(recent),
+            'pressure_reference_samples': len(previous),
+            'bid_walls': walls(m.bids, 'bid') if flow['fresh'] else [],
+            'ask_walls': walls(m.asks, 'ask') if flow['fresh'] else [],
+            'wall_definition': ('partial 20 levels; >=5000 USDT, >=5% of side '
+                                'notional, >=3s observed at price; baseline >=1000 USDT'),
+            'wall_note': 'Price-level persistence does not prove order identity'}
 
 def enhanced_decision(base, mtf, flow, extras):
     reasons = list(base['reasons'])
@@ -455,10 +510,23 @@ def enhanced_decision(base, mtf, flow, extras):
                 'confidence': 'veri_yetersiz', 'mtf_agreement': False}
     if base['decision'] == 'BEKLE':
         return {**base, 'mtf_agreement': False}
+    if not flow['fresh']:
+        return {**base, 'decision': 'BEKLE', 'mtf_agreement': False,
+                'reasons': reasons + ['Akış güncel değil']}
     direction = base['decision']
     aligned = all(x['direction'] == direction for x in mtf[:3])
     if not aligned:
         reasons.append('1m/3m/5m yönleri aynı değil')
+    # Veto strong disagreement between executed trades and resting liquidity.
+    traded = flow['buy_notional_60s'] + flow['sell_notional_60s']
+    aggressor = (flow['cvd_60s'] / traded) if traded > 0 else 0
+    imbalance = flow['imbalance']
+    if imbalance is not None and ((direction == 'LONG' and aggressor < -0.10) or
+                                  (direction == 'SHORT' and aggressor > 0.10) or
+                                  (direction == 'LONG' and imbalance < -0.15) or
+                                  (direction == 'SHORT' and imbalance > 0.15)):
+        aligned = False
+        reasons.append('İşlem akışı veya defter baskısı sinyal yönüne ters')
     delta = extras['imbalance_delta_10s']
     if delta is not None and ((direction == 'LONG' and delta < -0.35) or
                               (direction == 'SHORT' and delta > 0.35)):
@@ -482,6 +550,8 @@ async def pro_result(symbol):
     return {'symbol': symbol, 'ts': now_ms(), 'interval': '1m',
             'flow': flow, 'indicators': ind, 'signal': signal,
             'mtf': frames, 'extras': extras, 'market_price': m.price,
+            'analysis_candle_closed_at_ms': (ind['last_closed_t'] + 60000 if ind else None),
+            'analysis_candle_age_ms': (now_ms() - ind['last_closed_t'] - 60000 if ind else None),
             'ml': {'status': 'not_trained', 'probabilities': None},
             'disclaimer': 'Kural tabanlı gözlem; test edilmiş başarı olasılığı değildir'}
 
@@ -497,6 +567,15 @@ async def cached_pro(symbol):
             result['extras'] = extras
             result['market_price'] = markets[symbol].price
             result['ts'] = now_ms()
+            if result.get('analysis_candle_closed_at_ms') is not None:
+                result['analysis_candle_age_ms'] = now_ms() - result['analysis_candle_closed_at_ms']
+            for frame in result['mtf']:
+                if frame.get('closed_at_ms') is not None:
+                    frame['candle_age_ms'] = now_ms() - frame['closed_at_ms']
+                    step = {'1m': 60000, '3m': 180000, '5m': 300000, '15m': 900000}[frame['tf']]
+                    if frame['candle_age_ms'] > 2 * step:
+                        frame['direction'] = 'YETERSIZ'
+                        frame['reason'] = 'Kapanmış mum güncel değil'
             result['signal'] = enhanced_decision(
                 decision(markets[symbol], flow, result['indicators']),
                 result['mtf'], flow, extras)
