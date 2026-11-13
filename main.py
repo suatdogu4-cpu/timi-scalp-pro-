@@ -1,4 +1,4 @@
-"""TiMi SCALP PRO v1.8 — read-only Binance Spot analytics.
+"""TiMi SCALP PRO v1.8.1 — read-only Binance Spot analytics.
 Developer: Suat DOĞU. No order endpoints or model training on request path.
 """
 import asyncio
@@ -22,7 +22,7 @@ from fastapi.responses import FileResponse
 logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger('timi')
 ROOT = Path(__file__).resolve().parent
-VERSION = '1.8.0'
+VERSION = '1.8.1'
 SYMBOLS = ('BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT')
 TF = ('1m', '3m', '5m', '15m', '30m', '1h', '4h', '1d')
 MTF = ('1m', '3m', '5m', '15m')
@@ -246,18 +246,18 @@ def merge_live_candles(symbol, interval, candles, limit):
         for c in (m.last_closed_candle, m.live_candle):
             if c is not None and m.last_candle_ms is not None and now_ms() - m.last_candle_ms < 120000:
                 result[c['t']] = dict(c)
-    # REST close flags are time-dependent: never retain them from cache creation.
+    # Preserve source-confirmed close flags. An open REST candle captured before
+    # the boundary does not magically acquire final OHLC when the clock advances.
+    # A fresh REST response or a closed WebSocket kline must confirm the final data.
     step = {'1m':60, '3m':180, '5m':300, '15m':900,
             '30m':1800, '1h':3600, '4h':14400, '1d':86400}[interval] * 1000
     current = now_ms()
     output = sorted(result.values(), key=lambda c: c['t'])[-limit:]
     for c in output:
-        c['closed'] = bool(c['closed'] or c['t'] + step <= current)
-        # If a REST candle is still in progress, it is not closed.
-        if c['t'] + step > current and not (interval == '1m' and
-                markets[symbol].last_closed_candle is not None and
-                c['t'] == markets[symbol].last_closed_candle['t']):
+        if c['t'] + step > current:
             c['closed'] = False
+        else:
+            c['closed'] = bool(c['closed'])
     return output
 
 async def get_candles(symbol, interval='1m', limit=250):
@@ -446,20 +446,29 @@ async def mtf_analysis(symbol):
     return await asyncio.gather(*(one(tf) for tf in MTF))
 
 def update_wall_tracking(m, ts):
-    """Track persistence of candidate levels in successive partial-book snapshots.
+    """Track *eligible, approximately stable* level liquidity across snapshots.
 
-    A price level must remain in the top-20 snapshot to keep its first-seen time.
-    This is an observation, not proof that the same order persisted.
+    Requiring a stable notional within a 25% band avoids inheriting a long
+    price-level age when a large wall suddenly arrives. This still cannot
+    establish individual order identity from partial-book snapshots.
     """
     for side, levels in (('bid', m.bids), ('ask', m.asks)):
         seen = m.wall_seen[side]
-        current = {p for p, q in levels if p > 0 and q > 0}
+        total = sum(p * q for p, q in levels)
+        eligible = {p: p * q for p, q in levels
+                    if total > 0 and p * q >= 5000 and p * q / total >= 0.05}
         for price in list(seen):
-            if price not in current:
+            if price not in eligible:
                 del seen[price]
-        for price in current:
-            seen.setdefault(price, ts)
-
+        for price, notional in eligible.items():
+            previous = seen.get(price)
+            if previous is None:
+                seen[price] = (ts, notional)
+            else:
+                started_at, reference_notional = previous
+                if (reference_notional <= 0 or
+                        abs(notional - reference_notional) / reference_notional > 0.25):
+                    seen[price] = (ts, notional)
 
 def flow_extras(m, flow):
     now = now_ms()
@@ -481,7 +490,7 @@ def flow_extras(m, flow):
         for p, q in levels:
             notional = p * q
             share = 100 * notional / total if total > 0 else 0
-            persistence_ms = max(0, now - m.wall_seen[side].get(p, now))
+            persistence_ms = max(0, now - m.wall_seen[side].get(p, (now, notional))[0])
             if notional < 5000 or share < 5 or persistence_ms < 3000:
                 continue
             result.append({'price': p, 'notional': round(notional, 2),
@@ -500,7 +509,7 @@ def flow_extras(m, flow):
             'ask_walls': walls(m.asks, 'ask') if flow['fresh'] else [],
             'wall_definition': ('partial 20 levels; >=5000 USDT, >=5% of side '
                                 'notional, >=3s observed at price; baseline >=1000 USDT'),
-            'wall_note': 'Price-level persistence does not prove order identity'}
+            'wall_note': 'Approximately stable price-level liquidity does not prove order identity'}
 
 def enhanced_decision(base, mtf, flow, extras):
     reasons = list(base['reasons'])
