@@ -28,6 +28,55 @@
 @media(min-width:690px){.timi-ind-grids{grid-template-columns:repeat(2,minmax(0,1fr))}.timi-ind-summary{grid-template-columns:repeat(3,1fr)}.timi-ind-sum{padding:13px}.timi-ind-title{font-size:18px}.timi-ind-colhead,.timi-ind-entry{font-size:12px}}
 @media(max-width:390px){.timi-ind{padding:11px}.timi-ind-colhead,.timi-ind-entry{grid-template-columns:minmax(0,1.4fr) minmax(0,.7fr) 48px}.timi-ind-entry{font-size:11px}.timi-ind-summary{gap:5px}.timi-ind-tfs button{padding:8px}}
 
+</style><style id="timi-pro-cockpit-style">
+/* TiMi PRO Decision Cockpit: additive styles, existing application style remains unchanged. */
+.timi-pro{position:relative;background:linear-gradient(145deg,#172a43 0%,#0d192b 94%);border-color:#37516e;padding:14px;overflow:hidden}
+.timi-pro:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,#f7c65c,#22d3a0 57%,transparent);opacity:.8}
+.timi-pro-title{display:flex;align-items:center;gap:9px;font-weight:850;font-size:18px;letter-spacing:-.35px;line-height:1.25}
+.timi-pro-icon{display:grid;place-items:center;width:31px;height:31px;flex:none;border-radius:9px;background:#44391e;color:#f7c65c;font-size:18px}
+.timi-pro-head{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.timi-pro-sub{color:#9eb1c9;font-size:11px;margin:7px 0 0;line-height:1.5}
+.timi-pro-status{display:inline-flex;align-items:center;gap:4px;border:1px solid #526077;color:#c7d5e8;border-radius:99px;padding:5px 8px;white-space:nowrap;font-size:10px;font-weight:750;background:#1b293a}
+.timi-pro-status.ok{color:#6de3bb;border-color:#2d9575;background:rgba(34,211,160,.09)}
+.timi-pro-status.bad{color:#ffadbd;border-color:#854052;background:rgba(255,102,130,.10)}
+.timi-pro-context{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:12px 0 10px;color:#a5b9d3;font-size:11px}
+.timi-pro-context b{color:#f7c65c;border:1px solid #7d693e;background:rgba(247,198,92,.07);padding:4px 8px;border-radius:20px;font-variant-numeric:tabular-nums}
+.timi-pro-context em{font-style:normal;color:#a6b8ce}
+.timi-pro-main{border:1px solid #385575;border-radius:14px;padding:14px;background:linear-gradient(145deg,#132a40,#111e32);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.timi-pro-decision-cap{font-size:10px;font-weight:800;letter-spacing:.8px;color:#adbfda}
+.timi-pro-decision{display:block;font-size:clamp(23px,6vw,34px);font-weight:900;line-height:1.24;margin:6px 0 4px;color:#f7c65c}
+.timi-pro-decision.buy{color:#3fe2ae}.timi-pro-decision.sell{color:#ff708e}.timi-pro-decision.wait{color:#f7c65c}
+.timi-pro-reason{color:#b6c6d8;font-size:11px;line-height:1.55;max-width:380px}
+.timi-pro-scorebox{text-align:center;min-width:97px;border-left:1px solid #334c65;padding-left:12px}
+.timi-pro-scorebox span{display:block;color:#9eb1c9;font-size:10px;line-height:1.4}
+.timi-pro-scorebox strong{display:block;font-size:23px;margin:5px 0;color:#f7c65c;font-variant-numeric:tabular-nums}
+.timi-pro-scorebox small{font-size:9px;color:#9eb1c9}
+.timi-pro-meter{height:6px;background:linear-gradient(90deg,#f05b77,#38465b 50%,#23c58f);border-radius:10px;margin:11px 0 2px;position:relative}
+.timi-pro-meter b{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#fff1bc;border:3px solid #eebf65;box-shadow:0 0 9px #eebf6590;transition:left .25s}
+.timi-pro-meter-axis{display:flex;justify-content:space-between;font-size:10px;color:#a8bad2;margin-bottom:11px}
+.timi-pro-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.timi-pro-unit{min-width:0;border:1px solid #334a64;border-radius:12px;background:linear-gradient(160deg,#1a3047,#101e30);overflow:hidden}
+.timi-pro-unit>summary{display:block;padding:10px 10px 9px;cursor:pointer;list-style:none;position:relative}
+.timi-pro-unit>summary::-webkit-details-marker{display:none}
+.timi-pro-unit>summary:after{content:'⌄';color:#92aac4;font-size:15px;position:absolute;right:9px;top:9px}
+.timi-pro-unit[open]>summary:after{content:'⌃'}
+.timi-pro-unit-label{display:block;color:#dce8f6;font-weight:790;font-size:12px;line-height:1.4;padding-right:13px}
+.timi-pro-unit-tag{display:inline-block;border:1px solid #526275;border-radius:99px;padding:3px 8px;font-size:10px;margin:8px 0 5px;font-weight:760;color:#bcd0e4;white-space:nowrap}
+.timi-pro-unit-tag.buy{color:#54e3b5;background:#0f3b36;border-color:#26896d}
+.timi-pro-unit-tag.sell{color:#ff8ca2;background:#462435;border-color:#91465f}
+.timi-pro-unit-tag.wait{color:#f7cd72;background:#3d3529;border-color:#897045}
+.timi-pro-unit-sub{font-size:10px;color:#a6b9d0;min-height:27px;line-height:1.38;overflow-wrap:anywhere}
+.timi-pro-unit-meter{height:4px;border-radius:6px;background:#33455b;margin-top:7px;overflow:hidden;position:relative}
+.timi-pro-unit-meter span{display:block;width:0;height:100%;background:#f7c65c;transition:width .25s}
+.timi-pro-unit-meter span.buy{background:#22d3a0}.timi-pro-unit-meter span.sell{background:#ff6682}
+.timi-pro-unit-detail{border-top:1px solid #344c65;font-size:11px;color:#bdcee0;padding:9px 10px 10px;line-height:1.6;overflow-wrap:anywhere}
+.timi-pro-foot{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:11px}
+.timi-pro-footnote{font-size:10px;color:#9aacc4;line-height:1.6;flex:1 1 160px}
+.timi-pro-detail-btn{background:transparent;color:#f7cd72;border:1px solid #71623f;border-radius:9px;padding:8px 10px;font-size:11px;cursor:pointer;white-space:nowrap}
+.timi-pro-detail-btn:focus-visible,.timi-pro-unit>summary:focus-visible{outline:2px solid #f7c65c;outline-offset:3px}
+#timiIndicatorPanel{scroll-margin-top:96px}
+@media(min-width:700px){.timi-pro{padding:17px}.timi-pro-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:365px){.timi-pro{padding:11px}.timi-pro-main{padding:11px}.timi-pro-scorebox{min-width:82px;padding-left:8px}.timi-pro-unit>summary{padding:9px 8px}.timi-pro-unit-label{font-size:11px}.timi-pro-unit-sub{font-size:9px}}
 </style></head><body>
 <header><div><div class="logo">TiMi <b>SCALP PRO</b></div><small>v1.8.4 · Suat DOĞU · Salt okunur analiz</small></div><span id="health" class="badge">● Bağlanıyor</span></header>
 <main><div class="row" style="margin-bottom:12px"><select id="symbol"><option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option><option>BNBUSDT</option><option>XRPUSDT</option><option>DOGEUSDT</option><option>ADAUSDT</option><option>AVAXUSDT</option></select><small id="stamp">Son işlem: —</small></div>
@@ -38,6 +87,25 @@
 <div class="card"><h3>Likidite ve baskı değişimi</h3><div class="stat"><span>Defter baskısı değişimi</span><strong id="pressureDelta">—</strong></div><p class="section-sub" id="pressureWindow">Ölçüm penceresi: bekleniyor</p><h3 class="green">Alış likidite duvarları</h3><div id="bidWalls" class="wall-list"><span class="muted-value">Veri bekleniyor</span></div><h3 class="red">Satış likidite duvarları</h3><div id="askWalls" class="wall-list"><span class="muted-value">Veri bekleniyor</span></div><p class="note">Duvar kriterleri: en az 5.000 USDT, ilgili tarafın ilk 20 seviyelik toplamının en az %5’i, fiyat seviyesinde en az 3 saniyelik gözlem. Katsayı en az 1.000 USDT referansla hesaplanır; aynı emrin kalıcılığını veya destek/direnci kanıtlamaz.</p></div>
 <div class="card"><h3>Veri sağlığı</h3><div class="stat"><span>İşlem verisi yaşı</span><strong id="tradeAge">—</strong></div><div class="stat"><span>Derinlik verisi yaşı</span><strong id="bookAge">—</strong></div><div class="stat"><span>Emir defteri</span><strong id="bookStatus">—</strong></div><div class="stat"><span>Analiz sunucu zamanı</span><strong id="analysisServerTime">—</strong></div><div class="stat"><span>WebSocket</span><strong id="wsState">Bağlanıyor</strong></div><p class="warning">Geçersiz, gecikmiş veya eksik veride sinyal BEKLE olarak gösterilir.</p></div></section>
 <section id="chart" class="section"><div class="card"><h3>Mum grafiği · Binance Spot</h3><div id="timeframes" class="tabs"></div><div class="row" style="margin:8px 0 12px;flex-wrap:wrap"><span id="candleStatus" class="badge gold">Mum verisi bekleniyor</span><small id="candleStamp">Son mum: —</small></div><canvas id="canvas"></canvas><p class="note">1m grafiği Binance WebSocket mumlarıyla güncellenir; açık mum geçicidir. Analiz yalnızca kapanmış mumlara dayanır. 3m ve üzeri grafikler REST ile yenilenir. Bağlantı kesilirse CANLI göstergesi kapanır.</p></div>
+<div class="card timi-pro" id="timiProCockpit" aria-label="TiMi PRO birleşik karar kokpiti">
+ <div class="timi-pro-head">
+  <div><div class="timi-pro-title"><span class="timi-pro-icon">◈</span>TiMi PRO · Karar Kokpiti</div><p class="timi-pro-sub">Teknik analiz, çoklu zaman, işlem akışı ve likiditenin ayrı değerlendirmesi</p></div>
+  <span class="timi-pro-status" id="timiProStatus" role="status" aria-live="polite">● BAĞLANIYOR</span>
+ </div>
+ <div class="timi-pro-context"><span>Teknik periyot</span><b id="timiProPeriod">1m</b><em>Grafik seçimiyle eşleşir</em><span>· Ana karar motoru: <strong>1m</strong></span></div>
+ <div class="timi-pro-main">
+  <div style="min-width:0;flex:1"><div class="timi-pro-decision-cap">PROFESYONEL ORTAK KARAR</div><strong class="timi-pro-decision wait" id="timiProDecision">BEKLE</strong><div class="timi-pro-reason" id="timiProReason" aria-live="polite">Canlı piyasa verileri ve kapanmış mumlar doğrulanıyor.</div></div>
+  <div class="timi-pro-scorebox"><span>Birleşik<br>yön puanı</span><strong id="timiProScore">—</strong><small>−100 … +100</small></div>
+ </div>
+ <div class="timi-pro-meter" aria-hidden="true"><b id="timiProNeedle"></b></div><div class="timi-pro-meter-axis"><span>Güçlü SAT</span><span>NÖTR</span><span>Güçlü AL</span></div>
+ <div class="timi-pro-grid">
+  <details class="timi-pro-unit" data-cockpit-card="technical"><summary><span class="timi-pro-unit-label">▥ Teknik İndikatörler</span><span class="timi-pro-unit-tag" id="timiProTechTag">BEKLENİYOR</span><div class="timi-pro-unit-sub" id="timiProTechSub">26 göstergelik analiz</div><div class="timi-pro-unit-meter"><span id="timiProTechBar"></span></div></summary><div class="timi-pro-unit-detail" id="timiProTechDetail">Kapanmış mumlar bekleniyor.</div></details>
+  <details class="timi-pro-unit" data-cockpit-card="mtf"><summary><span class="timi-pro-unit-label">◷ Çoklu Zaman Dilimi</span><span class="timi-pro-unit-tag" id="timiProMtfTag">BEKLENİYOR</span><div class="timi-pro-unit-sub" id="timiProMtfSub">1m · 3m · 5m · 15m</div><div class="timi-pro-unit-meter"><span id="timiProMtfBar"></span></div></summary><div class="timi-pro-unit-detail" id="timiProMtfDetail">Çoklu zaman verisi bekleniyor.</div></details>
+  <details class="timi-pro-unit" data-cockpit-card="flow"><summary><span class="timi-pro-unit-label">≋ Canlı Order Flow</span><span class="timi-pro-unit-tag" id="timiProFlowTag">BEKLENİYOR</span><div class="timi-pro-unit-sub" id="timiProFlowSub">CVD · Agresif işlemler</div><div class="timi-pro-unit-meter"><span id="timiProFlowBar"></span></div></summary><div class="timi-pro-unit-detail" id="timiProFlowDetail">İşlem akışı verisi bekleniyor.</div></details>
+  <details class="timi-pro-unit" data-cockpit-card="liquidity"><summary><span class="timi-pro-unit-label">▤ Likidite ve Baskı</span><span class="timi-pro-unit-tag" id="timiProLiqTag">BEKLENİYOR</span><div class="timi-pro-unit-sub" id="timiProLiqSub">20 seviye · Baskı değişimi</div><div class="timi-pro-unit-meter"><span id="timiProLiqBar"></span></div></summary><div class="timi-pro-unit-detail" id="timiProLiqDetail">Emir defteri verisi bekleniyor.</div></details>
+ </div>
+ <div class="timi-pro-foot"><div class="timi-pro-footnote" id="timiProFoot">30/30/25/15 ağırlıkları deneysel yön değerlendirmesidir. ML değildir, başarı olasılığı veya emir tavsiyesi değildir. Canlı scalping kararı son veto olarak korunur.</div><button class="timi-pro-detail-btn" type="button" id="timiProShowIndicators">26 göstergeyi incele ↓</button></div>
+</div>
 <div class="card timi-ind" id="timiIndicatorPanel" aria-label="Gelişmiş indikatör paneli">
  <div class="timi-ind-head"><div><div class="timi-ind-title">Gelişmiş İndikatörler</div><div class="timi-ind-sub">Kapanmış mumdan hesaplanan teknik yön ve ortak değerlendirme</div></div><span class="timi-ind-state" id="timiIndState">Veri bekleniyor</span></div>
 
@@ -373,5 +441,120 @@ connect();loadCandles();loadAnalysis();setInterval(render,1500);setInterval(load
  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&panelVisible()){refreshIndicatorHealth();loadIndicator(true)}});
  // An active 1m indicator is recomputed after the next confirmed closed candle via REST.
  window.addEventListener('timi-closed-kline',e=>{if(panelVisible()&&indicatorTf==='1m'&&e.detail?.symbol===symbol){completedAt=0;loadIndicator(true)}});
+})();
+</script>
+<script id="timi-pro-cockpit-logic">
+/* TiMi PRO cockpit v1 — display-only, no order calls or modification of original signal engine.
+ * Distinct factors: technical votes / MTF closed candles / executed aggressor trades /
+ * resting 20-level order book + measured pressure change.
+ * The original 1m live scalping signal is a veto, never counted twice as a fifth vote.
+ * The combined directional score is exploratory (NOT a probability or validated edge).
+ */
+(()=>{
+ 'use strict';
+ const P=id=>document.getElementById(id);
+ const isNum=x=>typeof x==='number'&&Number.isFinite(x);
+ const numeric=x=>x!==null&&x!==undefined&&x!==''&&Number.isFinite(Number(x))?Number(x):null;
+ const clamp=(v,lo=-1,hi=1)=>Math.max(lo,Math.min(hi,v));
+ const asFmt=(v,d=1)=>isNum(v)?v.toLocaleString('tr-TR',{maximumFractionDigits:d,minimumFractionDigits:d}):'—';
+ const ownStatus=(s)=>s>0.15?'AL':s< -0.15?'SAT':'NÖTR';
+ const tag=(kind)=>kind==='AL'?'buy':kind==='SAT'?'sell':kind==='NÖTR'?'wait':'';
+ const steps={'1m':60000,'3m':180000,'5m':300000,'15m':900000};
+ function visible(){return !!P('chart')?.classList.contains('active')}
+ function formatTag(prefix,s,sub,detail,score){
+  const el=P('timiPro'+prefix+'Tag'),subEl=P('timiPro'+prefix+'Sub'),detailEl=P('timiPro'+prefix+'Detail');
+  el.textContent=s;el.className='timi-pro-unit-tag '+tag(s);subEl.textContent=sub;
+  detailEl.textContent=detail;
+  const bar=P('timiPro'+prefix+'Bar');
+  bar.style.width=isNum(score)?asFmt(Math.abs(score)*100,1).replace(',','.')+'%':'0%';
+  bar.className=isNum(score)?(score>0.15?'buy':score<-.15?'sell':''):'';
+ }
+ function samples(){
+  const health=P('timiIndHealth')?.textContent||'';
+  const period=document.querySelector('#timiIndPeriods button.active')?.dataset.period||'—';
+  const numbers=['timiIndBuy','timiIndSell','timiIndNeutral'].map(id=>numeric(P(id)?.textContent));
+  const [buy,sell,neutral]=numbers;
+  if(!health.includes('VERİ GÜNCEL')||numbers.some(n=>n===null)||buy+sell+neutral<20)return {ok:false,period};
+  return {ok:true,period,buy,sell,neutral,dir:(buy-sell)/(buy+sell+neutral)};
+ }
+ function inspect(){
+  const now=Date.now(),a=typeof analysis==='object'&&analysis?analysis:null;
+  const elapsed=typeof analysisAt==='number'&&analysisAt>0?now-analysisAt:Infinity;
+  const liveSocket=typeof ws!=='undefined'&&ws&&ws.readyState===WebSocket.OPEN;
+  const liveStream=liveSocket&&typeof lastTrade==='number'&&typeof lastBook==='number'&&now-lastTrade<5000&&now-lastBook<5000&&market?.book_valid===true;
+  const freshAnalysis=a&&a.symbol===symbol&&elapsed>=0&&elapsed<12000;
+  const aFlow=freshAnalysis?a.flow:null;
+  const engine=freshAnalysis?a.signal:null;
+  const tech=samples();
+  P('timiProPeriod').textContent=tech.period==='—'?(typeof tf==='string'?tf:'—'):tech.period;
+  if(tech.ok){
+    const {buy,sell,neutral,dir,period}=tech;
+    formatTag('Tech',ownStatus(dir),`${buy} AL · ${neutral} NÖTR · ${sell} SAT`,
+      `${period} · ${buy+sell+neutral} teknik gösterge. EMA/SMA oyları birbiriyle ilişkilidir; bu tek bir bilgi grubudur.`,dir);
+  }else formatTag('Tech','EKSİK','Kapanmış mum / gösterge bekleniyor','Kaynak güncel değilse eski AL/SAT oyları kullanılmaz.',null);
+  let mtf=null;
+  const frames=freshAnalysis&&Array.isArray(a.mtf)?a.mtf:[];
+  if(frames.length>=4&&['1m','3m','5m','15m'].every(t=>frames.some(f=>f.tf===t&&['LONG','SHORT','KARISIK'].includes(f.direction)&&numeric(f.candle_age_ms)!==null&&numeric(f.candle_age_ms)+elapsed<=2*steps[t]+15000&&numeric(f.candle_age_ms)+elapsed>=-5000))){
+    const directions=['1m','3m','5m','15m'].map(t=>frames.find(f=>f.tf===t).direction);
+    mtf=directions.reduce((sum,v)=>sum+(v==='LONG'?1:v==='SHORT'?-1:0),0)/4;
+    formatTag('Mtf',ownStatus(mtf),directions.map((v,i)=>['1m','3m','5m','15m'][i]+':'+(v==='LONG'?'AL':v==='SHORT'?'SAT':'KARIŞIK')).join(' · '),
+      '1m / 3m / 5m / 15m kapanmış mum yönleri. Ana scalping motorunun sert yön uyumu şartı ayrıca geçerlidir.',mtf);
+  }else formatTag('Mtf','EKSİK','1m / 3m / 5m / 15m doğrulanıyor','Dört periyottan herhangi biri eksik veya gecikmişse bu grup puanlanmaz.',null);
+  let flow=null,liquidity=null;
+  const buyVol=numeric(aFlow?.buy_notional_60s),sellVol=numeric(aFlow?.sell_notional_60s);
+  const volume=(buyVol!==null&&sellVol!==null)?buyVol+sellVol:null;
+  const count=numeric(aFlow?.trade_count_60s);
+  const spread=numeric(aFlow?.spread_pct);
+  const fresh=!!(liveStream&&freshAnalysis&&aFlow?.fresh===true&&aFlow?.book_valid===true);
+  if(fresh&&isNum(volume)&&volume>0&&count!==null&&count>=10){
+    flow=clamp((numeric(aFlow.buy_notional_60s)-numeric(aFlow.sell_notional_60s))/volume);
+    formatTag('Flow',ownStatus(flow),`CVD ${asFmt(numeric(aFlow.cvd_60s),0)} USDT`,
+      `Son 60 sn · ${count} işlem · Agresif AL ${asFmt(numeric(aFlow.buy_notional_60s),0)} / SAT ${asFmt(numeric(aFlow.sell_notional_60s),0)} USDT. Defter oranı bu grupta tekrar sayılmaz.`,flow);
+  }else formatTag('Flow','EKSİK','Canlı işlem akışı doğrulanıyor','WebSocket, işlem yaşı veya en az 10 işlem koşulu sağlanmadı. Eksik veri NÖTR sayılmaz.',null);
+  const imbalance=numeric(aFlow?.imbalance),delta=numeric(a?.extras?.imbalance_delta_10s);
+  if(fresh&&imbalance!==null&&delta!==null){
+    liquidity=clamp(.70*clamp(imbalance)+.30*clamp(delta/.40));
+    const bCount=Array.isArray(a.extras?.bid_walls)?a.extras.bid_walls.length:0;
+    const sCount=Array.isArray(a.extras?.ask_walls)?a.extras.ask_walls.length:0;
+    formatTag('Liq',ownStatus(liquidity),`Defter ${asFmt(imbalance*100,1)}% · Δ ${asFmt(delta*100,1)} puan`,
+      `İlk 20 seviye · gözlemlenen alış/satış duvarı ${bCount}/${sCount}. Duvarların kendisi puanlanmaz; duvar kalıcılığı gerçek emir kimliği değildir.`,liquidity);
+  }else formatTag('Liq','EKSİK',fresh?'Baskı değişimi için örnek bekleniyor':'Güncel emir defteri bekleniyor',
+      'İlk 20 defter seviyesi ve karşılaştırılabilir iki zaman penceresi olmadan bu grup puanlanmaz.',null);
+  const ready=tech.ok&&mtf!==null&&flow!==null&&liquidity!==null&&fresh&&spread!==null&&spread<=0.12&&engine&&['LONG','SHORT','BEKLE'].includes(engine.decision);
+  const score=ready?Math.round(100*(.30*tech.dir+.30*mtf+.25*flow+.15*liquidity)):null;
+  P('timiProScore').textContent=score===null?'—':(score>0?'+':'')+score;
+  P('timiProNeedle').style.left=score===null?'50%':(50+score/2)+'%';
+  let decision='BEKLE',reason='Veri grupları doğrulanıyor.';
+  if(!fresh){reason='Canlı işlem/defter bağlantısı veya analiz yanıtı güncel değil.'}
+  else if(!tech.ok||mtf===null||flow===null||liquidity===null){reason='Teknik, MTF, Order Flow veya likidite verilerinin tamamı henüz güncel değil.'}
+  else if(spread===null||spread>0.12){reason='Spread bilinmiyor veya mevcut motorun 0,12% üst sınırını aşıyor.'}
+  else if(engine?.decision==='BEKLE'){
+   const rs=Array.isArray(engine.reasons)?engine.reasons:[];
+   reason=rs.length?String(rs[0]):'Mevcut canlı scalping motoru onay vermedi.';
+  }else if(ready&&score!==null){
+   const desired=engine.decision==='LONG'?1:-1;
+   // Do not promote a directional call if major evidence disagrees with the original engine.
+   const contradict=[tech.dir,mtf,flow,liquidity].some(v=>desired*v<-.25);
+   if(contradict){reason='Analiz grupları canlı scalping kararıyla çelişiyor; güvenli karar BEKLE.'}
+   else if(desired*score<22){reason='Birleşik yön puanı eşik altında; yeterli uyum yok.'}
+   else{decision=desired>0?'AL':'SAT';reason=`Mevcut ${engine.decision} kararı + dört analiz grubu uyumlu. Kural tabanlıdır; test edilmiş başarı garantisi değildir.`}
+  }
+  const out=P('timiProDecision');out.textContent=decision;out.className='timi-pro-decision '+(decision==='AL'?'buy':decision==='SAT'?'sell':'wait');
+  P('timiProReason').textContent=reason;
+  const status=P('timiProStatus');
+  status.textContent=ready?'● VERİ GÜNCEL':!liveSocket?'● BAĞLANTI YOK':'● VERİ EKSİK / GECİKMELİ';
+  status.className='timi-pro-status '+(ready?'ok':'bad');
+  P('timiProFoot').textContent=`Son güncelleme: ${new Date().toLocaleTimeString('tr-TR')} · Teknik ${tech.period} / canlı motor 1m. Yön puanı deneysel (−100…+100); bağımsız test edilmiş başarı olasılığı değildir. ML bağlantısı yok. Eksik kaynakta BEKLE.`;
+  return {decision,score,ready,reason,tech,mtf,flow,liquidity,liveStream};
+ }
+ P('timiProShowIndicators').addEventListener('click',()=>P('timiIndicatorPanel').scrollIntoView({behavior:'smooth',block:'start'}));
+ // Display updates do not trigger extra network requests: the existing WebSocket, /api/analysis-pro and indicator subsystem remain authoritative.
+ window.timiProRefresh=inspect;
+ setInterval(()=>{if(visible())inspect()},1500);
+ document.querySelector('nav [data-page="chart"]')?.addEventListener('click',()=>setTimeout(inspect,25));
+ document.getElementById('timeframes')?.addEventListener('click',()=>setTimeout(inspect,25));
+ document.getElementById('timiIndPeriods')?.addEventListener('click',()=>setTimeout(inspect,25));
+ document.getElementById('symbol')?.addEventListener('change',()=>setTimeout(inspect,30));
+ document.getElementById('saveGateway')?.addEventListener('click',()=>setTimeout(inspect,30));
 })();
 </script></body></html>
