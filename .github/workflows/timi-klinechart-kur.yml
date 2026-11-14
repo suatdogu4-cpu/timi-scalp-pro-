@@ -1,0 +1,92 @@
+name: TiMi - KLineChart Canli Grafik Entegrasyonu
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timi-klinechart-chart-integration
+  cancel-in-progress: false
+
+jobs:
+  install_kline_chart:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Save current index.html as backup
+        run: cp index.html timi_index_before_klinechart.html
+      - name: Validate JavaScript syntax
+        run: node --check timi_kline_chart.js
+      - name: Integrate chart into existing index.html
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('index.html')
+          script_path = Path('timi_kline_chart.js')
+          old = path.read_text(encoding='utf-8')
+          addon = script_path.read_text(encoding='utf-8')
+
+          if 'id="timi-kline-10-1-0"' in old:
+              raise SystemExit('KLineChart zaten kurulu. İkinci kez eklenmedi.')
+          required = (
+              'id="overview"', 'id="chart"', 'id="flow"', 'id="more"',
+              'id="canvas"', 'id="timiTpChart"', 'id="timiTpFloat"',
+              'id="timiProCockpit"', 'id="timiIndBuy"',
+              'id="timi-meta-widget-inline"',
+          )
+          for item in required:
+              if item not in old:
+                  raise ValueError('Orijinal TiMi dosyasında alan eksik: ' + item)
+          if re.search(r'</script\s*>', addon, flags=re.IGNORECASE):
+              raise ValueError('JS dosyasında HTML script kapanış etiketi bulunmamalı')
+          marker = re.search(r'</body>\s*</html>\s*$', old, flags=re.IGNORECASE)
+          if not marker:
+              raise ValueError('index.html sonundaki body/html etiketleri bulunamadı')
+          extra = ('<!-- TiMi KLineChart v10.1.0: salt okunur otomatik grafik -->\n'
+                   '<script id="timi-kline-10-1-0">\n' + addon +
+                   '\n</script>\n')
+          fresh = old[:marker.start()] + extra + old[marker.start():]
+          for item in required:
+              if item not in fresh:
+                  raise ValueError('Bir özellik kayboldu: ' + item)
+          if fresh.count('<script') != fresh.count('</script>'):
+              raise ValueError('Script etiketleri dengesiz')
+          if fresh.count('<style') != fresh.count('</style>'):
+              raise ValueError('Style etiketleri dengesiz')
+          if fresh.count('id="timi-kline-10-1-0"') != 1:
+              raise ValueError('KLineChart birden fazla eklendi')
+          path.write_text(fresh, encoding='utf-8')
+          print('Original bytes:', len(old.encode('utf-8')))
+          print('New bytes:', len(fresh.encode('utf-8')))
+          print('TiMi signal engine, ML panel, 26 indicators and original canvas preserved')
+          PY
+      - name: Back up original HTML for 30 days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-html-before-klinechart-${{ github.run_number }}
+          path: timi_index_before_klinechart.html
+          retention-days: 30
+          if-no-files-found: error
+      - name: Commit only index.html
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --check
+          changed=$(git diff --cached --name-only)
+          test "$changed" = 'index.html'
+          git commit -m 'Integrate KLineChart v10 auto signal and ATR overlays; preserve TiMi UI'
+          git push origin HEAD:main
