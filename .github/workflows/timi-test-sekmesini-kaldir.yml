@@ -1,0 +1,129 @@
+name: TiMi - Test Sekmesini Tamamen Kaldir (index.html)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timi-remove-test-tab-main
+  cancel-in-progress: false
+
+jobs:
+  remove_test_from_html:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Get current main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Save old HTML as backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp index.html index_before_test_removal.html
+
+      - name: Remove Test tab and its frontend dependencies
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('index.html')
+          html = path.read_text(encoding='utf-8')
+          original = html
+
+          if 'id="performance"' not in html:
+              raise SystemExit('Test sekmesi zaten kaldirilmis. Hicbir dosya degistirilmedi.')
+
+          def cut(start, end):
+              global html
+              i = html.find(start)
+              j = html.find(end, i + len(start))
+              if i < 0 or j < 0:
+                  raise ValueError(f'Kaynak kod yapisi beklenenden farkli: {start[:70]}')
+              html = html[:i] + html[j:]
+
+          def remove_once(fragment):
+              global html
+              if html.count(fragment) != 1:
+                  raise ValueError('Beklenen kod eksik veya tekrarli: ' + fragment[:70])
+              html = html.replace(fragment, '', 1)
+
+          # Only the Test tab and Test-specific styling are removed.
+          cut('/* TiMi ML v5.1 — TEST panel only',
+              '</style><style id="timi-pro-cockpit-style">')
+          cut('<section id="performance" class="section">',
+              '<section id="more" class="section">')
+          remove_once('<button data-page="performance">◉<div>Test</div></button>')
+          remove_once("if(p==='performance')loadAudit()")
+
+          # In the first application script, preserve loadHealth() for the Menu.
+          cut('// v1.8.4: read-only forward signal audit; no order or training actions.',
+              'async function loadHealth()')
+          cut("$('refreshAudit').onclick=loadAudit;",
+              'loadHealth();setInterval(loadHealth,60000);')
+          remove_once("setInterval(()=>{if($('performance').classList.contains('active'))loadAudit()},20000);")
+
+          # Remove the standalone v5.1 Test-only script. Keep MetaFilter script.
+          marker = '</script><script>/* TiMi ML v5.1 quality TEST UI'
+          preserve = '<!-- TiMi MetaFilter v0.1:'
+          i = html.find(marker)
+          j = html.find(preserve, i + len(marker))
+          if i < 0 or j < 0:
+              raise ValueError('Test-only script or MetaFilter boundary missing')
+          html = html[:i] + '</script>\n' + html[j:]
+
+          # Test-specific audit card CSS, without deleting the shared UI styles.
+          cut('.audit-two{', '.model-tag{display:inline-block}')
+
+          forbidden = (
+              'id="performance"', 'data-page="performance"',
+              'loadAudit(', 'ml51Connection', 'ml52Panel',
+              'timi-v52-box', 'quality TEST UI', '.audit-panel',
+          )
+          required = (
+              'id="overview"', 'id="chart"', 'id="flow"', 'id="more"',
+              'id="timiProCockpit"', 'id="timiIndBuy"', 'id="timiTpChart"',
+              'id="timi-meta-widget-inline"',
+              'async function loadHealth()', 'id="auditEnabled"',
+          )
+          for token in forbidden:
+              if token in html:
+                  raise ValueError('Test kodu kaldi: ' + token)
+          for token in required:
+              if token not in html:
+                  raise ValueError('Korunmasi gereken alan eksik: ' + token)
+          for opening, closing in (('<script', '</script>'), ('<style', '</style>')):
+              if html.count(opening) != html.count(closing):
+                  raise ValueError('Etiket dengesi bozuldu: ' + opening)
+          assert original != html
+          path.write_text(html, encoding='utf-8')
+          print('Test sekmesi ve bagimli on-yuz kodlari kaldirildi')
+          print('Eski uzunluk:', len(original), 'Yeni uzunluk:', len(html))
+          print('26 indikatör, grafik, WebSocket, ML paneli ve Menu korundu')
+          PY
+
+      - name: Retain original HTML backup
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-index-before-test-removal-${{ github.run_number }}
+          path: index_before_test_removal.html
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Commit updated index.html to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --check
+          git commit -m 'Remove Test tab from TiMi frontend; keep MetaFilter and live analysis'
+          git push origin HEAD:main
