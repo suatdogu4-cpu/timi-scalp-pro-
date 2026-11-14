@@ -793,10 +793,13 @@ app = FastAPI(title='TiMi SCALP PRO', version=VERSION, lifespan=lifespan)
 # It remains DISABLED until TIMI_V5_DATABASE_URL (external PostgreSQL) is set.
 # No trading, no ML inference, no changes to existing WebSocket/decision logic.
 from timi_ml_v5_archive import install_v5_archive
-install_v5_archive(
+timi_ml_v5_archive = install_v5_archive(
     app, get_candles=get_candles, cached_pro=cached_pro,
     now_ms=now_ms, allowed_symbols=SYMBOLS,
 )
+# TiMi ML v5.1 - aggregate-only research-quality endpoint for the Test tab.
+from timi_ml_v51_quality import install_v51_quality
+install_v51_quality(app, timi_ml_v5_archive)
 
 origins = [x.strip() for x in os.getenv('TIMI_ORIGINS', '').split(',') if x.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins,
