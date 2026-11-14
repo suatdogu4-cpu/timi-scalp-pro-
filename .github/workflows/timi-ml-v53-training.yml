@@ -1,0 +1,47 @@
+
+name: TiMi ML v5.3 - Offline Research Training
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 5 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: timi-ml-v53-research-training
+  cancel-in-progress: false
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install trainer dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'numpy>=1.26,<3' 'scikit-learn>=1.5,<2' 'lightgbm>=4.3,<5' 'psycopg[binary]>=3.2,<4'
+
+      - name: Train only when data is ready
+        env:
+          TIMI_V53_DATABASE_URL: ${{ secrets.TIMI_V53_DATABASE_URL }}
+          TIMI_V53_SYMBOL: BTCUSDT
+        run: python timi_ml_v53_train.py
+
+      - name: Upload research report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-ml-v53-research-${{ github.run_number }}
+          path: timi_v53_artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
