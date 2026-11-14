@@ -1,0 +1,55 @@
+
+name: TiMi ML v5.4 - Binance Historical Research
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_month:
+        description: 'First month YYYY-MM'
+        required: true
+        default: '2026-05'
+      to_month:
+        description: 'Last fully published month YYYY-MM'
+        required: true
+        default: '2026-10'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: timi-ml-v54-history
+  cancel-in-progress: false
+
+jobs:
+  historical_training:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'numpy>=1.26,<3' 'pandas>=2.2,<3' 'scikit-learn>=1.5,<2' 'lightgbm>=4.3,<5'
+
+      - name: Historical source verification and standalone training
+        env:
+          TIMI_HISTORY_FROM: ${{ inputs.from_month }}
+          TIMI_HISTORY_TO: ${{ inputs.to_month }}
+        run: |
+          python timi_ml_v54_history_train.py --from-month "$TIMI_HISTORY_FROM" --to-month "$TIMI_HISTORY_TO"
+
+      - name: Upload report and research-only model
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-ml-v54-historical-${{ github.run_number }}
+          path: timi_v54_artifacts/
+          retention-days: 14
+          if-no-files-found: ignore
