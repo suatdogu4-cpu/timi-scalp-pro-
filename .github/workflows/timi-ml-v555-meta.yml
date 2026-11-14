@@ -1,0 +1,91 @@
+name: TiMi ML v5.5.5 - Calibrated Meta Strategies 1m 3m 5m
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_month:
+        description: 'First FULLY published historical month YYYY-MM'
+        required: true
+        default: '2026-05'
+      to_month:
+        description: 'Last FULLY published historical month YYYY-MM'
+        required: true
+        default: '2026-10'
+      funding_mode:
+        description: 'Funding: off, optional, required'
+        required: true
+        type: choice
+        default: optional
+        options:
+          - optional
+          - off
+          - required
+      fee_bps:
+        description: 'Fee in basis points PER SIDE'
+        required: true
+        default: '10'
+      slippage_bps:
+        description: 'Slippage in basis points PER SIDE'
+        required: true
+        default: '2'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: timi-v555-meta-historical
+  cancel-in-progress: false
+
+jobs:
+  historical_meta_research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Scientific dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'numpy>=1.26,<3' 'pandas>=2.2,<3' 'scikit-learn>=1.5,<2' 'lightgbm>=4.3,<5' 'pytest>=8,<10'
+
+      - name: Verify dependencies and syntax
+        run: |
+          for file in timi_ml_v54_history_train.py timi_ml_v55_research.py timi_ml_v551_research.py timi_ml_v552_research.py timi_ml_v553_scalp.py timi_ml_v554_scalp.py timi_ml_v555_meta.py test_v552_research.py test_v553_scalp.py test_v554_scalp.py test_v555_meta.py; do
+            test -f "$file" || { echo "Missing required file: $file"; exit 1; }
+          done
+          python -m py_compile timi_ml_v554_scalp.py timi_ml_v555_meta.py test_v555_meta.py
+
+      - name: Run full offline correctness suite
+        run: |
+          python -m pytest -q test_v552_research.py test_v553_scalp.py test_v554_scalp.py test_v555_meta.py
+
+      - name: Train 1m 3m 5m meta research only
+        env:
+          FROM_MONTH: ${{ inputs.from_month }}
+          TO_MONTH: ${{ inputs.to_month }}
+          FUNDING_MODE: ${{ inputs.funding_mode }}
+          FEE_BPS: ${{ inputs.fee_bps }}
+          SLIPPAGE_BPS: ${{ inputs.slippage_bps }}
+        run: |
+          python -u timi_ml_v555_meta.py \
+            --from-month "$FROM_MONTH" \
+            --to-month "$TO_MONTH" \
+            --funding-mode "$FUNDING_MODE" \
+            --fee-bps "$FEE_BPS" \
+            --slippage-bps "$SLIPPAGE_BPS" \
+            --output timi_v555_artifacts
+
+      - name: Upload report and research-only artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-ml-v555-meta-${{ github.run_number }}
+          path: timi_v555_artifacts/
+          retention-days: 14
+          if-no-files-found: ignore
