@@ -1,4 +1,4 @@
-"""TiMi ML v5.5.6 — causal features, label funnel and calibrated meta-research.
+"""TiMi ML v5.5.6 R3 — causal features, label funnel and calibrated meta-research.
 
 Developer: Suat DOĞU. Strictly OFFLINE, READ-ONLY historical BTCUSDT Spot.
 No order placement, no private API keys, no live inference, no database writes.
@@ -212,7 +212,20 @@ def causal_features(raw: pd.DataFrame, feat: pd.DataFrame):
         })
         blocks.append(x)
     extra = pd.concat(blocks,ignore_index=True)
-    frame = feat.merge(extra,on="ts",how="left",validate="one_to_one",sort=False)
+    # The upstream v5.4 feature builder already defines volume_ratio20 and
+    # macd_hist_pct. Merging both copies would suffix them (_x/_y), so the
+    # canonical names disappear and pandas raises KeyError in production.
+    # Use this version's causally calculated columns as the single source,
+    # explicitly replacing the two overlapping upstream names.
+    overlap = (set(feat.columns) & set(extra.columns)) - {"ts"}
+    permitted = {"volume_ratio20", "macd_hist_pct"}
+    unexpected = overlap - permitted
+    if unexpected:
+        raise ValueError(f"Unexpected feature name collisions: {sorted(unexpected)}")
+    frame = feat.drop(columns=sorted(overlap)).merge(
+        extra, on="ts", how="left", validate="one_to_one", sort=False)
+    if not set(EXTRA_COLS).issubset(frame.columns):
+        raise ValueError("Research feature merge omitted required columns")
     frame[list(EXTRA_COLS)] = frame[list(EXTRA_COLS)].replace([np.inf,-np.inf],np.nan)
     return frame.dropna(subset=list(EXTRA_COLS)).reset_index(drop=True)
 
@@ -534,7 +547,7 @@ def run(first,last,outdir,*,funding_mode="optional",config=Config(),train=True,
     output,model,trades=experiment(raw,feat,cols,config,
                                    funding_usable=(funding["status"]=="usable"),train=train)
     result={"engine":"TiMi ML v5.5.6 — feature+label diagnostics and 1/3/5/10/15m meta research",
-            "schema":SCHEMA,"developer":"Suat DOĞU","source":"Binance Vision Spot BTCUSDT 1m",
+            "schema":SCHEMA,"patch":"R3-feature-column-collision-fix", "developer":"Suat DOĞU","source":"Binance Vision Spot BTCUSDT 1m",
             "months":months,"candles":len(raw),"feature_rows":len(feat),
             "data_quality":audit,
             "strategies":list(STRATEGIES),"horizon_minutes":list(HORIZONS),
