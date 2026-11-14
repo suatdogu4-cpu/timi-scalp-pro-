@@ -28,6 +28,38 @@
 @media(min-width:690px){.timi-ind-grids{grid-template-columns:repeat(2,minmax(0,1fr))}.timi-ind-summary{grid-template-columns:repeat(3,1fr)}.timi-ind-sum{padding:13px}.timi-ind-title{font-size:18px}.timi-ind-colhead,.timi-ind-entry{font-size:12px}}
 @media(max-width:390px){.timi-ind{padding:11px}.timi-ind-colhead,.timi-ind-entry{grid-template-columns:minmax(0,1.4fr) minmax(0,.7fr) 48px}.timi-ind-entry{font-size:11px}.timi-ind-summary{gap:5px}.timi-ind-tfs button{padding:8px}}
 
+/* TiMi ML v5.1 — TEST panel only; no chart, navigation or trading changes. */
+.timi-ml51{background:linear-gradient(155deg,#15283f,#0e1d32);border-color:#30516b;box-shadow:0 12px 34px #020c1930}
+.timi-ml51 *{box-sizing:border-box}
+.timi-ml51-head{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.timi-ml51-head h3{font-size:18px;margin:0;line-height:1.3}
+.timi-ml51-sub{font-size:12px;line-height:1.65;color:#b1c4dd;margin:8px 0 14px}
+.timi-ml51-badge{border:1px solid #6a5971;border-radius:22px;padding:6px 10px;color:#f7c65c;font-weight:750;font-size:11px;line-height:1.2}
+.timi-ml51-badge.good{color:#51e7b5;border-color:#1a976d;background:#0c493323}
+.timi-ml51-badge.bad{color:#ff8197;border-color:#aa4e67;background:#622b3a22}
+.timi-ml51-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.timi-ml51-toolbar select,.timi-ml51-toolbar button{background:#132b42;color:#e8f2ff;border:1px solid #3f5974;border-radius:10px;padding:9px 10px;font-size:13px;font-weight:700}
+.timi-ml51-toolbar button{background:#203d5b;cursor:pointer}
+.timi-ml51-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.timi-ml51-stat{border:1px solid #36506b;background:#152c44;border-radius:12px;padding:12px 10px;min-width:0}
+.timi-ml51-stat small{display:block;font-size:11px;color:#b3c6dc;margin-bottom:8px}
+.timi-ml51-stat strong{font-size:21px;display:block;font-weight:850;line-height:1.15;font-variant-numeric:tabular-nums;word-wrap:break-word}
+.timi-ml51-stat strong.good{color:#39dca6}.timi-ml51-stat strong.bad{color:#ff708d}
+.timi-ml51-kicker{font-weight:750;font-size:13px;color:#e7f0fc;margin:16px 0 9px}
+.timi-ml51-bar{height:8px;border-radius:16px;background:#2b3b52;overflow:hidden}
+.timi-ml51-bar>span{display:block;height:100%;background:linear-gradient(90deg,#f7c65c,#1fd4a0);border-radius:16px;max-width:100%;transition:width .2s}
+.timi-ml51-meterline{font-size:12px;color:#a9bed8;margin:6px 0 12px;line-height:1.6}
+.timi-ml51-row{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #30485f;padding:9px 0;font-size:12px}
+.timi-ml51-row span{color:#c6d7ed}.timi-ml51-row strong{font-variant-numeric:tabular-nums;white-space:nowrap}
+.timi-ml51-days{display:flex;flex-direction:column;gap:7px}
+.timi-ml51-day{display:grid;grid-template-columns:76px minmax(0,1fr) 90px;gap:6px;align-items:center;font-size:11px}
+.timi-ml51-day span{color:#bcd0e8}.timi-ml51-day b{text-align:right;color:#e8f5ff;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:10px}
+.timi-ml51-day-track{height:9px;border-radius:8px;background:#263d58;overflow:hidden}
+.timi-ml51-day-track i{display:block;background:#20c997;height:100%;border-radius:8px}
+.timi-ml51-foot{font-size:11px;line-height:1.65;color:#a9bdd5;margin:13px 0 2px}
+.timi-ml51-link{display:inline-block;color:#f7c65c;font-size:12px;font-weight:750;margin:8px 0}
+@media(max-width:375px){.timi-ml51-stat strong{font-size:18px}.timi-ml51-day{grid-template-columns:68px minmax(0,1fr) 72px}}
+
 </style><style id="timi-pro-cockpit-style">
 /* TiMi PRO Decision Cockpit: additive styles, existing application style remains unchanged. */
 .timi-pro{position:relative;background:linear-gradient(145deg,#172a43 0%,#0d192b 94%);border-color:#37516e;padding:14px;overflow:hidden}
@@ -203,6 +235,32 @@
 </section>
 <section id="flow" class="section"><div class="twocol"><div class="card"><h3>Order Book · 20 seviye</h3><div class="bookhead"><span>Fiyat</span><span>Miktar</span><span>Kümülatif</span></div><div id="asks"></div><div class="stat"><strong id="mid">—</strong><small>En iyi alış / satış</small></div><div id="bids"></div></div><div class="card"><h3>Time &amp; Sales</h3><div class="bookhead"><span>Saat</span><span>Fiyat</span><span>Miktar</span></div><div id="trades"></div></div></div></section>
 <section id="performance" class="section">
+<div class="card timi-ml51" id="timiMl51Panel" aria-label="TiMi ML v5.1 veri kalitesi ve eğitim hazırlığı">
+ <div class="timi-ml51-head"><h3>▥ TiMi ML v5.1 · Veri Kontrol Merkezi</h3><span class="timi-ml51-badge" id="ml51Connection">Kontrol ediliyor</span></div>
+ <p class="timi-ml51-sub">PostgreSQL'deki <strong>gerçek arşiv kayıtları</strong> ve 26 gösterge + MTF + Order Flow kalite denetimleri. Bu bölüm eğitim yapmaz; başarı yüzdesi veya işlem sinyali üretmez.</p>
+ <div class="timi-ml51-toolbar"><label for="ml51Symbol" class="muted">Arşiv paritesi</label><select id="ml51Symbol"><option value="BTCUSDT">BTCUSDT</option></select><button type="button" id="ml51Reload">↻ Yenile</button><small id="ml51Updated" class="muted">—</small></div>
+ <div class="timi-ml51-grid">
+  <div class="timi-ml51-stat"><small>PostgreSQL toplam kayıt</small><strong id="ml51Total">—</strong></div>
+  <div class="timi-ml51-stat"><small>ML açısından uygun kayıt</small><strong class="good" id="ml51Eligible">—</strong></div>
+  <div class="timi-ml51-stat"><small>Eksik kalite koşulu olan</small><strong id="ml51Invalid">—</strong></div>
+  <div class="timi-ml51-stat"><small>Uygun kayıt oranı</small><strong id="ml51Rate">—</strong></div>
+ </div>
+ <div class="timi-ml51-kicker">İlk araştırma veri miktarı göstergesi</div>
+ <div class="timi-ml51-bar"><span id="ml51Progress" style="width:0%"></span></div>
+ <p class="timi-ml51-meterline" id="ml51Readiness">Henüz ölçülmedi · 10.080 uygun kayıt / en az 7 ayrı UTC gün yalnızca örnek takip eşiğidir.</p>
+ <div class="timi-ml51-kicker">Arşiv sağlığı ve eksik kayıtlar</div>
+ <div class="timi-ml51-row"><span>Eksik dakika / boşluk olayı</span><strong id="ml51Gaps">—</strong></div>
+ <div class="timi-ml51-row"><span>Son kayıt ve geçen süre</span><strong id="ml51Last">—</strong></div>
+ <div class="timi-ml51-row"><span>Bu sunucuda reddedilen / hata</span><strong id="ml51Errors">—</strong></div>
+ <div class="timi-ml51-kicker">Kaydedilen gözlemlerin kalite testleri</div>
+ <div id="ml51QualityFlags">—</div>
+ <div class="timi-ml51-kicker">Günlere göre veri arşivi (UTC, son 14 gün)</div>
+ <div id="ml51Days" class="timi-ml51-days">Kayıt bekleniyor.</div>
+ <p class="timi-ml51-foot" id="ml51Message">Model eğitimi kapalı. Veri toplanırken hatalı veya gecikmiş örnekler eğitim dışında tutulacak.</p>
+ <a class="timi-ml51-link" href="https://github.com/suatdogu4-cpu/timi-scalp-pro-/actions/workflows/export_ml_v51.yml" target="_blank" rel="noopener noreferrer">↗ Elle veri dışa aktarma (GitHub Actions)</a>
+ <p class="timi-ml51-foot">Yedek yalnızca ayrıca yapılandırılıp elle çalıştırılır; bu düğme otomatik yedek almaz. Render Free PostgreSQL son tarihi: 14 Aralık 2026. Rapor ham işlem geçmişi, kâr veya ML başarı oranı değildir.</p>
+</div>
+
  <div class="card">
   <div class="row"><h3>İleriye dönük sinyal performansı</h3><span class="badge" id="auditStatus">Kontrol ediliyor</span></div>
   <p class="note">Sunucunun gerçekten ürettiği LONG/SHORT/BEKLE gözlemleri. LONG ve SHORT için 1 ve 5 dakika sonraki fiyat yönü ölçülür. <strong>Bu gerçek işlem, sanal emir veya geçmişe dönük test değildir.</strong></p>
@@ -732,5 +790,86 @@ connect();loadCandles();loadAnalysis();setInterval(render,1500);setInterval(load
  document.querySelector('nav [data-page="chart"]')?.addEventListener('click',()=>setTimeout(inspect,80));
  window.addEventListener('timi-closed-kline',()=>setTimeout(inspect,280));
  window.timiTpInspect=inspect;setInterval(inspect,2000);
+})();
+</script><script>/* TiMi ML v5.1 quality TEST UI — read-only, no trade calls. */
+(()=>{
+ 'use strict';
+ const E=id=>document.getElementById(id), n=x=>Number(x||0).toLocaleString('tr-TR'),
+       stamp=ms=>!ms?'—':new Date(Number(ms)).toLocaleString('tr-TR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
+ const LABELS={closed_candle_verified:'Kaynak onaylı kapanmış mum',
+   pro_analysis_matches_candle:'Ana analiz aynı kapanmış muma ait',
+   flow_fresh:'Canlı işlem ve emir defteri güncel',
+   snapshot_time_fresh:'Analiz anı güncel',
+   mtf_all_four_fresh:'Dört zaman dilimi doğrulandı',
+   ml_eligible:'Tüm kalite koşullarını geçen'};
+ let seq=0, prevKey='', refreshed=0;
+ function msg(t){E('ml51Message').textContent=t}
+ function reset(){
+  for(const id of ['ml51Total','ml51Eligible','ml51Invalid','ml51Rate','ml51Gaps','ml51Last','ml51Errors'])E(id).textContent='—';
+  E('ml51Progress').style.width='0%';E('ml51QualityFlags').textContent='—';E('ml51Days').textContent='—';E('ml51Readiness').textContent='Veri kontrol ediliyor.';
+ }
+ function render(d){
+  const connected=d.database_status==='connected',b=E('ml51Connection');
+  b.textContent=connected?'● PostgreSQL bağlı':d.database_status==='disabled'?'● Arşiv kapalı':'● Bağlantı sorunu';
+  b.className='timi-ml51-badge '+(connected?'good':'bad');
+  if(!connected){reset();msg(d.message||'Arşiv istatistikleri okunamadı. Sunucu dosyalarını ve Render loglarını kontrol et.');return;}
+  const m=d.statistics||{},r=m.readiness||{},p=d.process_observations||{};
+  E('ml51Total').textContent=n(m.total_records);
+  E('ml51Eligible').textContent=n(m.eligible_records);
+  E('ml51Invalid').textContent=n(m.ineligible_records);
+  E('ml51Rate').textContent=m.eligible_pct==null?'—':'%'+Number(m.eligible_pct).toLocaleString('tr-TR',{maximumFractionDigits:2});
+  E('ml51Gaps').textContent=n(m.missing_minute_slots)+' dk / '+n(m.gap_events)+' boşluk';
+  E('ml51Last').textContent=m.last_observed_ms?stamp(m.last_observed_ms)+' · '+Number(m.last_record_age_minutes).toLocaleString('tr-TR',{maximumFractionDigits:1})+' dk':'Henüz yok';
+  E('ml51Errors').textContent=n(p.rejected)+' / '+n(p.errors);
+  const progress=Math.max(0,Math.min(100,Number(r.progress_pct)||0));E('ml51Progress').style.width=progress+'%';
+  E('ml51Readiness').textContent=n(m.eligible_records)+' / '+n(r.descriptive_minimum_eligible_records||10080)+' uygun kayıt · '+(r.at_least_7_distinct_utc_days_in_recent_14?'7 günlük kapsama var':'7 ayrı gün gerekli')+'. Bu eşik modelin hazır olduğunu kanıtlamaz.';
+  const flags=E('ml51QualityFlags');flags.replaceChildren();
+  Object.entries(LABELS).forEach(([key,label])=>{
+   const row=document.createElement('div');row.className='timi-ml51-row';
+   const name=document.createElement('span');name.textContent=label;
+   const value=document.createElement('strong');value.textContent=n((m.quality_pass_counts||{})[key])+' / '+n(m.total_records);
+   row.append(name,value);flags.append(row);
+  });
+  const days=E('ml51Days');days.replaceChildren();let records=Array.isArray(m.daily)?m.daily:[];
+  if(!records.length)days.textContent='Arşivde henüz kayıt bulunmuyor.';
+  const max=Math.max(1,...records.map(x=>Number(x.records)||0));
+  records.forEach(d=>{
+   const line=document.createElement('div');line.className='timi-ml51-day';
+   const date=document.createElement('span');date.textContent=d.day_utc;
+   const track=document.createElement('div');track.className='timi-ml51-day-track';
+   const fill=document.createElement('i');fill.style.width=(100*Number(d.records||0)/max)+'%';track.append(fill);
+   const val=document.createElement('b');val.textContent=n(d.eligible)+' / '+n(d.records);
+   line.append(date,track,val);days.append(line);
+  });
+  msg('Kayıtlar kapalı 1m mumlardan ve gerçek gözlem zamanından oluşuyor. Uygun olmayan örnekler ML eğitimine alınmamalı. ML canlı kararlarına bağlı değil.');
+ }
+ async function load(force=false){
+  if(!E('performance')?.classList.contains('active'))return;
+  const s=E('ml51Symbol').value, g=typeof gateway==='string'?gateway:'',key=g+'|'+s;
+  if(!force&&prevKey===key&&Date.now()-refreshed<20000)return;
+  const id=++seq;prevKey=key;E('ml51Connection').textContent='Kontrol ediliyor';
+  try{
+   const result=await get('/api/ml-v51/quality?symbol='+encodeURIComponent(s));
+   if(id!==seq||g!==gateway||s!==E('ml51Symbol').value)return;
+   refreshed=Date.now();E('ml51Updated').textContent='Son sorgu: '+stamp(refreshed);
+   render(result);
+   if(Array.isArray(result.tracked_symbols)&&result.tracked_symbols.length){
+    const current=E('ml51Symbol').value,opts=E('ml51Symbol');
+    if(opts.options.length!==result.tracked_symbols.length||!result.tracked_symbols.every(x=>[...opts.options].some(y=>y.value===x))){
+     opts.replaceChildren();result.tracked_symbols.forEach(x=>{const o=document.createElement('option');o.value=x;o.textContent=x;opts.append(o)});
+     opts.value=result.tracked_symbols.includes(current)?current:result.tracked_symbols[0];
+    }
+   }
+  }catch(e){
+   if(id!==seq||g!==gateway||s!==E('ml51Symbol').value)return;
+   const b=E('ml51Connection');b.textContent='● Arşiv kontrol edilemedi';b.className='timi-ml51-badge bad';
+   reset();msg('Bağlantı hatası: '+String(e.message||e)+'. Eski sunucu sürümüyse /api/ml-v51/quality adresi bulunmaz.');
+  }
+ }
+ E('ml51Reload')?.addEventListener('click',()=>load(true));
+ E('ml51Symbol')?.addEventListener('change',()=>{refreshed=0;load(true)});
+ document.querySelector('nav [data-page="performance"]')?.addEventListener('click',()=>setTimeout(()=>load(true),50));
+ E('saveGateway')?.addEventListener('click',()=>{seq++;refreshed=0;setTimeout(()=>load(true),100)});
+ setInterval(()=>load(false),30000);
 })();
 </script></body></html>
