@@ -800,6 +800,18 @@ timi_ml_v5_archive = install_v5_archive(
 # TiMi ML v5.1 - aggregate-only research-quality endpoint for the Test tab.
 from timi_ml_v51_quality import install_v51_quality
 install_v51_quality(app, timi_ml_v5_archive)
+# TiMi ML MetaFilter v0.1 — read-only approval API (ML disabled by default).
+# Existing Binance WebSocket, rule-based decision and archive are unchanged.
+from timi_ml_metafilter import install_metafilter
+timi_ml_metafilter = install_metafilter(
+    app,
+    get_candles=get_candles,
+    cached_pro=cached_pro,
+    now_ms=now_ms,
+    symbols=SYMBOLS,
+    root=ROOT,
+)
+
 
 origins = [x.strip() for x in os.getenv('TIMI_ORIGINS', '').split(',') if x.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins,
