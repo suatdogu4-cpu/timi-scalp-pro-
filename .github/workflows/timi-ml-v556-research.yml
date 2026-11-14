@@ -1,0 +1,131 @@
+name: TiMi ML v5.5.6 - 50 Strategy Diagnostics and Meta Learning
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_month:
+        description: 'First FULLY published month YYYY-MM'
+        required: true
+        default: '2026-05'
+      to_month:
+        description: 'Last FULLY published month YYYY-MM'
+        required: true
+        default: '2026-10'
+      funding_mode:
+        description: 'Optional settled USD-M funding; no fictional fills'
+        required: true
+        type: choice
+        default: optional
+        options:
+          - optional
+          - off
+          - required
+      fee_bps:
+        description: 'Assumed trading commission PER SIDE (basis points)'
+        required: true
+        default: '10'
+      slippage_bps:
+        description: 'Assumed slippage PER SIDE (basis points)'
+        required: true
+        default: '2'
+      diagnostics_only:
+        description: 'Run all label diagnostics; skip LightGBM model training'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: timi-v556-historical-read-only
+  cancel-in-progress: false
+
+jobs:
+  historical_research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout read-only source
+        uses: actions/checkout@v4
+      - name: Use Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install scientific research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.2,<3' 'scikit-learn>=1.5,<2' 'lightgbm>=4.3,<5' 'pytest>=8,<10'
+      - name: Check required files and compile new research engine
+        run: |
+          for file in \
+            timi_ml_v54_history_train.py \
+            timi_ml_v55_research.py \
+            timi_ml_v551_research.py \
+            timi_ml_v552_research.py \
+            timi_ml_v553_scalp.py \
+            timi_ml_v554_scalp.py \
+            timi_ml_v555_meta.py \
+            timi_ml_v556_research.py \
+            test_v552_research.py \
+            test_v553_scalp.py \
+            test_v554_scalp.py \
+            test_v555_meta.py \
+            test_v556_research.py; do
+              test -f "$file" || { echo "MISSING REQUIRED FILE: $file"; exit 1; }
+          done
+          python -m py_compile timi_ml_v556_research.py test_v556_research.py
+      - name: Run regression and v5.5.6 correctness tests
+        run: |
+          python -m pytest -q \
+            test_v552_research.py test_v553_scalp.py test_v554_scalp.py \
+            test_v555_meta.py test_v556_research.py
+      - name: Run public historical research ONLY (never place orders)
+        env:
+          FROM_MONTH: ${{ inputs.from_month }}
+          TO_MONTH: ${{ inputs.to_month }}
+          FUNDING_MODE: ${{ inputs.funding_mode }}
+          FEE_BPS: ${{ inputs.fee_bps }}
+          SLIPPAGE_BPS: ${{ inputs.slippage_bps }}
+          DIAGNOSTICS_ONLY: ${{ inputs.diagnostics_only }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          opts=()
+          if [[ "$DIAGNOSTICS_ONLY" == "true" ]]; then
+            opts+=(--diagnostics-only)
+          fi
+          python -u timi_ml_v556_research.py \
+            --from-month "$FROM_MONTH" \
+            --to-month "$TO_MONTH" \
+            --funding-mode "$FUNDING_MODE" \
+            --fee-bps "$FEE_BPS" \
+            --slippage-bps "$SLIPPAGE_BPS" \
+            --output timi_v556_artifacts "${opts[@]}"
+      - name: Verify machine-readable diagnostic outputs
+        if: success()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=Path('timi_v556_artifacts')
+          report=json.loads((d/'report.json').read_text(encoding='utf8'))
+          strategies=json.loads((d/'strategy_comparison.json').read_text(encoding='utf8'))
+          labels=json.loads((d/'label_diagnostics.json').read_text(encoding='utf8'))
+          quality=json.loads((d/'data_quality.json').read_text(encoding='utf8'))
+          assert len(strategies)==50 and len(labels)==50
+          assert quality['timezone']=='UTC'
+          assert quality['synthetic_candles_added']==0
+          assert report['orders_enabled'] is False
+          assert report['live_inference_enabled'] is False
+          assert report['reused_research_period_not_independent_oos'] is True
+          print('Verified 50 diagnostic experiments; live/orders OFF.')
+          PY
+      - name: Preserve read-only research reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-ml-v556-research-${{ github.run_number }}
+          path: timi_v556_artifacts/
+          retention-days: 14
+          if-no-files-found: ignore
