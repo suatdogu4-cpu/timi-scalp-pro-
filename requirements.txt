@@ -6,3 +6,4 @@ pydantic>=2,<3
 numpy>=1.26,<3
 pandas>=2.2,<3
 pandas-ta-classic>=0.3.59,<1
+asyncpg>=0.30,<1
