@@ -1,0 +1,81 @@
+
+name: TiMi ML v5.5.1 - CVD Regime Funding Research
+
+on:
+  workflow_dispatch:
+    inputs:
+      from_month:
+        description: 'First completed historical month YYYY-MM'
+        required: true
+        default: '2026-05'
+      to_month:
+        description: 'Last completed historical month YYYY-MM'
+        required: true
+        default: '2026-10'
+      funding_mode:
+        description: 'Funding API unavailable: skip or require'
+        type: choice
+        required: true
+        default: optional
+        options:
+          - optional
+          - off
+          - required
+
+permissions:
+  contents: read
+
+concurrency:
+  group: timi-ml-v551-research
+  cancel-in-progress: false
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'numpy>=1.26,<3' 'pandas>=2.2,<3' 'scikit-learn>=1.5,<2' 'lightgbm>=4.3,<5' 'pytest>=8,<10'
+
+      - name: Validate files
+        run: |
+          test -f timi_ml_v54_history_train.py
+          test -f timi_ml_v55_research.py
+          test -f timi_ml_v551_research.py
+          python -m py_compile timi_ml_v54_history_train.py timi_ml_v55_research.py timi_ml_v551_research.py
+
+      - name: Run correctness tests
+        run: |
+          python -m pytest -q test_v551_research.py
+
+      - name: Train and compare historical models
+        env:
+          FROM_MONTH: ${{ inputs.from_month }}
+          TO_MONTH: ${{ inputs.to_month }}
+          FUNDING_MODE: ${{ inputs.funding_mode }}
+        run: |
+          python timi_ml_v551_research.py \
+            --from-month "$FROM_MONTH" \
+            --to-month "$TO_MONTH" \
+            --funding-mode "$FUNDING_MODE" \
+            --output timi_v551_artifacts
+
+      - name: Save research results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-ml-v551-research-${{ github.run_number }}
+          path: timi_v551_artifacts/
+          retention-days: 14
+          if-no-files-found: ignore
