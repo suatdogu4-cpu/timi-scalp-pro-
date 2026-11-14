@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from timi_ml_v556_research import (Config, HORIZONS, causal_features,
+from timi_ml_v556_research import (Config, HORIZONS, EXTRA_COLS, causal_features,
     label_events, label_funnel, chronological_folds, align_closes)
 
 
@@ -209,3 +209,24 @@ def test_body_wick_and_range_are_price_invariant():
     b=causal_features(scaled,features(scaled))
     for col in ("range_over_close","body_over_range","upper_wick_over_close","lower_wick_over_close"):
         np.testing.assert_allclose(a[col],b[col],rtol=1e-9,atol=1e-12)
+
+
+def test_production_upstream_feature_name_collision_does_not_create_suffixes():
+    """Regression: v5.4 already includes two of the new feature names."""
+    raw = candles(370)
+    x = np.arange(len(raw))
+    raw["close"] = 100 + x * .001 + .2 * np.sin(x / 8)
+    raw["open"] = raw.close - .01
+    raw["high"] = raw.close + .03
+    raw["low"] = raw.open - .04
+    raw["volume"] = 20 + .03*x + np.sin(x / 7)
+    raw["taker_buy_volume"] = raw.volume * .51
+    upstream = features(raw)
+    upstream["volume_ratio20"] = -12345.0
+    upstream["macd_hist_pct"] = -12345.0
+    result = causal_features(raw, upstream)
+    assert len(result) > 100
+    assert result.columns.is_unique
+    assert all(name in result.columns for name in EXTRA_COLS)
+    assert not any(str(col).endswith(("_x","_y")) for col in result.columns)
+    assert not np.any(result[["volume_ratio20", "macd_hist_pct"]].to_numpy() == -12345.)
