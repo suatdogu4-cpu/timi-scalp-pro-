@@ -16,10 +16,10 @@ on:
         required: true
         type: choice
         options:
-          - off
+          - "off"
           - optional
           - required
-        default: off
+        default: "off"
       fee_bps:
         description: 'Commission basis points PER SIDE'
         required: true
