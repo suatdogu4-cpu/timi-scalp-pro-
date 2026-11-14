@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#08111e"><title>TiMi SCALP PRO v1.8.4</title>
 <style>
-:root{--bg:#08111e;--panel:#142338;--line:#2b4059;--text:#eef5ff;--muted:#9eb1c9;--green:#22d3a0;--red:#ff6682;--gold:#f7c65c}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Arial}header{position:sticky;top:0;z-index:5;background:#0c192a;border-bottom:1px solid var(--line);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px}.logo{font-weight:900;font-size:22px;letter-spacing:-.6px}.logo b{color:var(--gold)}small,.muted{color:var(--muted)}.badge{font-size:11px;border:1px solid var(--line);border-radius:25px;padding:7px 9px;white-space:nowrap}.green{color:var(--green)!important}.red{color:var(--red)!important}.gold{color:var(--gold)!important}main{max-width:1100px;margin:auto;padding:12px 12px 95px}.card{background:linear-gradient(140deg,#17283e,#111d2d);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px;min-width:0}.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.row>*{min-width:0}.price{font-size:clamp(30px,8vw,46px);font-weight:900;margin:10px 0;overflow-wrap:anywhere}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.metric{background:#1b3048;border-radius:10px;padding:10px;min-width:0}.metric strong{display:block;margin-top:6px;overflow-wrap:anywhere}.metric small{font-size:11px}.stat{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #2a3e53;padding:10px 0}.stat:last-child{border:0}.stat strong{text-align:right;overflow-wrap:anywhere}.big{font-size:29px;font-weight:900}h3{font-size:16px;margin:0 0 12px}.note{color:var(--muted);font-size:12px;line-height:1.55}.warning{color:var(--gold);font-size:12px}.bar{height:12px;border-radius:12px;background:var(--red);overflow:hidden}.bar div{height:100%;background:var(--green);width:50%}select,input,button{font:inherit}select,input,.btn{color:var(--text);background:#1b3047;border:1px solid var(--line);border-radius:9px;padding:10px}.btn{cursor:pointer}.btn.active{background:#225745;color:#b6ffe3}.tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:8px}.tabs button{white-space:nowrap}.section{display:none}.section.active{display:block}.foot{position:fixed;bottom:0;left:0;right:0;z-index:8;display:flex;background:#101d30;border-top:1px solid var(--line);padding:7px 0 max(7px,env(safe-area-inset-bottom))}.foot button{flex:1;border:0;background:none;color:var(--muted);padding:8px 2px;font-size:12px}.foot button.active{color:var(--gold);font-weight:800}.bookhead,.bookrow,.trade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;font-size:12px;padding:7px 0;border-bottom:1px solid #27394d;font-variant-numeric:tabular-nums}.bookhead{color:var(--muted)}.bookrow span:not(:first-child),.trade span:not(:first-child),.bookhead span:not(:first-child){text-align:right}.twocol{display:grid;gap:12px}.mtf{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.mtf .metric{padding:11px 8px;text-align:center}.mtf strong{font-size:13px;overflow-wrap:anywhere}.mtf small{font-size:11px;display:block}.mtf .extra{font-size:10px;color:var(--muted);margin-top:5px;line-height:1.5}.wall-list{display:grid;gap:8px;margin:8px 0 12px}.wall{background:#1b3048;border:1px solid #314961;border-radius:10px;padding:10px}.wall .wall-top{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-variant-numeric:tabular-nums}.wall .wall-sub{color:var(--muted);font-size:11px;margin-top:5px;line-height:1.5}.muted-value{color:var(--muted);font-size:12px}.stat .secondary{color:var(--muted);font-size:12px}.health-note{display:block;color:var(--muted);font-size:11px;margin-top:4px}.section-sub{font-size:12px;color:var(--muted);margin:2px 0 10px}canvas{width:100%;height:270px;display:block}.reasons{padding-left:20px;line-height:1.7}.reasons li{margin-bottom:5px}#toast{position:fixed;bottom:76px;left:12px;right:12px;background:#263e57;padding:12px;border-radius:10px;z-index:10;display:none;text-align:center}.foot button{min-width:0}.audit-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.audit-panel{min-width:0;background:#1b3048;border:1px solid var(--line);border-radius:12px;padding:10px}.audit-panel h3{margin:0 0 5px;font-size:14px}.audit-panel .big{font-size:24px}.audit-panel .stat{display:block;padding:8px 0}.audit-panel .stat span{display:block;font-size:11px;color:var(--muted)}.audit-panel .stat strong{display:block;text-align:left;margin-top:4px}.audit-header,.audit-row{display:grid;grid-template-columns:minmax(0,1.8fr) repeat(2,minmax(0,1fr));gap:8px;padding:9px 0;border-bottom:1px solid #27394d;font-variant-numeric:tabular-nums}.audit-header{font-size:11px;color:var(--muted)}.audit-row>div{min-width:0;overflow-wrap:anywhere}.audit-row small{display:block;color:var(--muted);font-size:10px;margin-top:3px}.audit-row strong{font-size:12px}.audit-row .status{font-size:11px}.audit-rows{min-height:40px}.audit-panel .badge{font-size:10px;padding:5px}.model-tag{display:inline-block}input{width:100%;margin:8px 0}@media(min-width:760px){.twocol{grid-template-columns:1fr 1fr}.mtf{grid-template-columns:repeat(4,minmax(0,1fr))}}
+:root{--bg:#08111e;--panel:#142338;--line:#2b4059;--text:#eef5ff;--muted:#9eb1c9;--green:#22d3a0;--red:#ff6682;--gold:#f7c65c}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Arial}header{position:sticky;top:0;z-index:5;background:#0c192a;border-bottom:1px solid var(--line);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px}.logo{font-weight:900;font-size:22px;letter-spacing:-.6px}.logo b{color:var(--gold)}small,.muted{color:var(--muted)}.badge{font-size:11px;border:1px solid var(--line);border-radius:25px;padding:7px 9px;white-space:nowrap}.green{color:var(--green)!important}.red{color:var(--red)!important}.gold{color:var(--gold)!important}main{max-width:1100px;margin:auto;padding:12px 12px 95px}.card{background:linear-gradient(140deg,#17283e,#111d2d);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px;min-width:0}.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.row>*{min-width:0}.price{font-size:clamp(30px,8vw,46px);font-weight:900;margin:10px 0;overflow-wrap:anywhere}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.metric{background:#1b3048;border-radius:10px;padding:10px;min-width:0}.metric strong{display:block;margin-top:6px;overflow-wrap:anywhere}.metric small{font-size:11px}.stat{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #2a3e53;padding:10px 0}.stat:last-child{border:0}.stat strong{text-align:right;overflow-wrap:anywhere}.big{font-size:29px;font-weight:900}h3{font-size:16px;margin:0 0 12px}.note{color:var(--muted);font-size:12px;line-height:1.55}.warning{color:var(--gold);font-size:12px}.bar{height:12px;border-radius:12px;background:var(--red);overflow:hidden}.bar div{height:100%;background:var(--green);width:50%}select,input,button{font:inherit}select,input,.btn{color:var(--text);background:#1b3047;border:1px solid var(--line);border-radius:9px;padding:10px}.btn{cursor:pointer}.btn.active{background:#225745;color:#b6ffe3}.tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:8px}.tabs button{white-space:nowrap}.section{display:none}.section.active{display:block}.foot{position:fixed;bottom:0;left:0;right:0;z-index:8;display:flex;background:#101d30;border-top:1px solid var(--line);padding:7px 0 max(7px,env(safe-area-inset-bottom))}.foot button{flex:1;border:0;background:none;color:var(--muted);padding:8px 2px;font-size:12px}.foot button.active{color:var(--gold);font-weight:800}.bookhead,.bookrow,.trade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;font-size:12px;padding:7px 0;border-bottom:1px solid #27394d;font-variant-numeric:tabular-nums}.bookhead{color:var(--muted)}.bookrow span:not(:first-child),.trade span:not(:first-child),.bookhead span:not(:first-child){text-align:right}.twocol{display:grid;gap:12px}.mtf{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.mtf .metric{padding:11px 8px;text-align:center}.mtf strong{font-size:13px;overflow-wrap:anywhere}.mtf small{font-size:11px;display:block}.mtf .extra{font-size:10px;color:var(--muted);margin-top:5px;line-height:1.5}.wall-list{display:grid;gap:8px;margin:8px 0 12px}.wall{background:#1b3048;border:1px solid #314961;border-radius:10px;padding:10px}.wall .wall-top{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-variant-numeric:tabular-nums}.wall .wall-sub{color:var(--muted);font-size:11px;margin-top:5px;line-height:1.5}.muted-value{color:var(--muted);font-size:12px}.stat .secondary{color:var(--muted);font-size:12px}.health-note{display:block;color:var(--muted);font-size:11px;margin-top:4px}.section-sub{font-size:12px;color:var(--muted);margin:2px 0 10px}canvas{width:100%;height:270px;display:block}.reasons{padding-left:20px;line-height:1.7}.reasons li{margin-bottom:5px}#toast{position:fixed;bottom:76px;left:12px;right:12px;background:#263e57;padding:12px;border-radius:10px;z-index:10;display:none;text-align:center}.foot button{min-width:0}.model-tag{display:inline-block}input{width:100%;margin:8px 0}@media(min-width:760px){.twocol{grid-template-columns:1fr 1fr}.mtf{grid-template-columns:repeat(4,minmax(0,1fr))}}
 /* TiMi SCALP PRO — additive v1.8.4 indicator cockpit. All styles scoped. */
 .timi-ind{--timi-fg:#eef5ff;--timi-dim:#a0b3c9;--timi-edge:#2b4966;--timi-accent:#f7c65c;background:linear-gradient(154deg,#172a42,#101d30 66%,#11213a);border-color:#335571;box-shadow:0 14px 38px #020b1533;padding:14px}
 .timi-ind *{box-sizing:border-box}.timi-ind-head{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}.timi-ind-title{font-size:17px;font-weight:850;letter-spacing:-.2px}.timi-ind-title:before{content:'▥';color:var(--gold);padding-right:9px}.timi-ind-sub{font-size:11px;color:var(--timi-dim);margin-top:3px}.timi-ind-state{font-size:10px;line-height:1.4;color:#b7c7db;border:1px solid var(--timi-edge);border-radius:14px;padding:5px 8px;max-width:100%}
@@ -28,59 +28,6 @@
 @media(min-width:690px){.timi-ind-grids{grid-template-columns:repeat(2,minmax(0,1fr))}.timi-ind-summary{grid-template-columns:repeat(3,1fr)}.timi-ind-sum{padding:13px}.timi-ind-title{font-size:18px}.timi-ind-colhead,.timi-ind-entry{font-size:12px}}
 @media(max-width:390px){.timi-ind{padding:11px}.timi-ind-colhead,.timi-ind-entry{grid-template-columns:minmax(0,1.4fr) minmax(0,.7fr) 48px}.timi-ind-entry{font-size:11px}.timi-ind-summary{gap:5px}.timi-ind-tfs button{padding:8px}}
 
-/* TiMi ML v5.1 — TEST panel only; no chart, navigation or trading changes. */
-.timi-ml51{background:linear-gradient(155deg,#15283f,#0e1d32);border-color:#30516b;box-shadow:0 12px 34px #020c1930}
-.timi-ml51 *{box-sizing:border-box}
-.timi-ml51-head{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
-.timi-ml51-head h3{font-size:18px;margin:0;line-height:1.3}
-.timi-ml51-sub{font-size:12px;line-height:1.65;color:#b1c4dd;margin:8px 0 14px}
-.timi-ml51-badge{border:1px solid #6a5971;border-radius:22px;padding:6px 10px;color:#f7c65c;font-weight:750;font-size:11px;line-height:1.2}
-.timi-ml51-badge.good{color:#51e7b5;border-color:#1a976d;background:#0c493323}
-.timi-ml51-badge.bad{color:#ff8197;border-color:#aa4e67;background:#622b3a22}
-.timi-ml51-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-.timi-ml51-toolbar select,.timi-ml51-toolbar button{background:#132b42;color:#e8f2ff;border:1px solid #3f5974;border-radius:10px;padding:9px 10px;font-size:13px;font-weight:700}
-.timi-ml51-toolbar button{background:#203d5b;cursor:pointer}
-.timi-ml51-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.timi-ml51-stat{border:1px solid #36506b;background:#152c44;border-radius:12px;padding:12px 10px;min-width:0}
-.timi-ml51-stat small{display:block;font-size:11px;color:#b3c6dc;margin-bottom:8px}
-.timi-ml51-stat strong{font-size:21px;display:block;font-weight:850;line-height:1.15;font-variant-numeric:tabular-nums;word-wrap:break-word}
-.timi-ml51-stat strong.good{color:#39dca6}.timi-ml51-stat strong.bad{color:#ff708d}
-.timi-ml51-kicker{font-weight:750;font-size:13px;color:#e7f0fc;margin:16px 0 9px}
-.timi-ml51-bar{height:8px;border-radius:16px;background:#2b3b52;overflow:hidden}
-.timi-ml51-bar>span{display:block;height:100%;background:linear-gradient(90deg,#f7c65c,#1fd4a0);border-radius:16px;max-width:100%;transition:width .2s}
-.timi-ml51-meterline{font-size:12px;color:#a9bed8;margin:6px 0 12px;line-height:1.6}
-.timi-ml51-row{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #30485f;padding:9px 0;font-size:12px}
-.timi-ml51-row span{color:#c6d7ed}.timi-ml51-row strong{font-variant-numeric:tabular-nums;white-space:nowrap}
-.timi-ml51-days{display:flex;flex-direction:column;gap:7px}
-.timi-ml51-day{display:grid;grid-template-columns:76px minmax(0,1fr) 90px;gap:6px;align-items:center;font-size:11px}
-.timi-ml51-day span{color:#bcd0e8}.timi-ml51-day b{text-align:right;color:#e8f5ff;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:10px}
-.timi-ml51-day-track{height:9px;border-radius:8px;background:#263d58;overflow:hidden}
-.timi-ml51-day-track i{display:block;background:#20c997;height:100%;border-radius:8px}
-.timi-ml51-foot{font-size:11px;line-height:1.65;color:#a9bdd5;margin:13px 0 2px}
-.timi-ml51-link{display:inline-block;color:#f7c65c;font-size:12px;font-weight:750;margin:8px 0}
-@media(max-width:375px){.timi-ml51-stat strong{font-size:18px}.timi-ml51-day{grid-template-columns:68px minmax(0,1fr) 72px}}
-
-
-/* TiMi ML v5.2: observation entry references. These are NOT trades or ML predictions. */
-.timi-v52-sub{color:#a9bed6;font-size:12px;line-height:1.65;margin:8px 0 13px}
-.timi-v52-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.timi-v52-label{border:1px solid #425a72;border-radius:999px;padding:5px 9px;color:#f5c973;font-size:11px;font-weight:750;white-space:nowrap}
-.timi-v52-state{border:1px solid #40536c;background:#14253b;padding:12px;border-radius:12px;margin:12px 0}
-.timi-v52-state strong{display:block;color:#f6c767;font-size:17px;margin:4px 0}
-.timi-v52-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
-.timi-v52-box{border:1px solid #344a66;border-radius:12px;background:#12263c;padding:11px;min-width:0}
-.timi-v52-box small{display:block;color:#b1c5df;font-size:11px;line-height:1.3}
-.timi-v52-box strong{display:block;margin-top:6px;font-size:16px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
-.timi-v52-box .green,.timi-v52-row .green{color:#2bd4a0}
-.timi-v52-box .red,.timi-v52-row .red{color:#ff708d}
-.timi-v52-list{display:flex;flex-direction:column;gap:7px;margin:10px 0}
-.timi-v52-row{border:1px solid #344a66;border-radius:11px;padding:10px 11px;background:#172b43}
-.timi-v52-row-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:12px}
-.timi-v52-row-bottom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:8px;font-size:12px}
-.timi-v52-row-bottom span{color:#b2c6dc;display:block;font-size:10px;margin-bottom:2px}
-.timi-v52-row-bottom b{font-variant-numeric:tabular-nums}
-.timi-v52-small{font-size:11px;line-height:1.6;color:#adbed5;margin:8px 0 2px}
-@media(max-width:360px){.timi-v52-box strong{font-size:14px}}
 </style><style id="timi-pro-cockpit-style">
 /* TiMi PRO Decision Cockpit: additive styles, existing application style remains unchanged. */
 .timi-pro{position:relative;background:linear-gradient(145deg,#172a43 0%,#0d192b 94%);border-color:#37516e;padding:14px;overflow:hidden}
@@ -255,75 +202,13 @@
 
 </section>
 <section id="flow" class="section"><div class="twocol"><div class="card"><h3>Order Book · 20 seviye</h3><div class="bookhead"><span>Fiyat</span><span>Miktar</span><span>Kümülatif</span></div><div id="asks"></div><div class="stat"><strong id="mid">—</strong><small>En iyi alış / satış</small></div><div id="bids"></div></div><div class="card"><h3>Time &amp; Sales</h3><div class="bookhead"><span>Saat</span><span>Fiyat</span><span>Miktar</span></div><div id="trades"></div></div></div></section>
-<section id="performance" class="section">
-<div class="card timi-ml51" id="timiMl51Panel" aria-label="TiMi ML v5.1 veri kalitesi ve eğitim hazırlığı">
- <div class="timi-ml51-head"><h3>▥ TiMi ML v5.1 · Veri Kontrol Merkezi</h3><span class="timi-ml51-badge" id="ml51Connection">Kontrol ediliyor</span></div>
- <p class="timi-ml51-sub">PostgreSQL'deki <strong>gerçek arşiv kayıtları</strong> ve 26 gösterge + MTF + Order Flow kalite denetimleri. Bu bölüm eğitim yapmaz; başarı yüzdesi veya işlem sinyali üretmez.</p>
- <div class="timi-ml51-toolbar"><label for="ml51Symbol" class="muted">Arşiv paritesi</label><select id="ml51Symbol"><option value="BTCUSDT">BTCUSDT</option></select><button type="button" id="ml51Reload">↻ Yenile</button><small id="ml51Updated" class="muted">—</small></div>
- <div class="timi-ml51-grid">
-  <div class="timi-ml51-stat"><small>PostgreSQL toplam kayıt</small><strong id="ml51Total">—</strong></div>
-  <div class="timi-ml51-stat"><small>ML açısından uygun kayıt</small><strong class="good" id="ml51Eligible">—</strong></div>
-  <div class="timi-ml51-stat"><small>Eksik kalite koşulu olan</small><strong id="ml51Invalid">—</strong></div>
-  <div class="timi-ml51-stat"><small>Uygun kayıt oranı</small><strong id="ml51Rate">—</strong></div>
- </div>
- <div class="timi-ml51-kicker">İlk araştırma veri miktarı göstergesi</div>
- <div class="timi-ml51-bar"><span id="ml51Progress" style="width:0%"></span></div>
- <p class="timi-ml51-meterline" id="ml51Readiness">Henüz ölçülmedi · 10.080 uygun kayıt / en az 7 ayrı UTC gün yalnızca örnek takip eşiğidir.</p>
- <div class="timi-ml51-kicker">Arşiv sağlığı ve eksik kayıtlar</div>
- <div class="timi-ml51-row"><span>Eksik dakika / boşluk olayı</span><strong id="ml51Gaps">—</strong></div>
- <div class="timi-ml51-row"><span>Son kayıt ve geçen süre</span><strong id="ml51Last">—</strong></div>
- <div class="timi-ml51-row"><span>Bu sunucuda reddedilen / hata</span><strong id="ml51Errors">—</strong></div>
- <div class="timi-ml51-kicker">Kaydedilen gözlemlerin kalite testleri</div>
- <div id="ml51QualityFlags">—</div>
- <div class="timi-ml51-kicker">Günlere göre veri arşivi (UTC, son 14 gün)</div>
- <div id="ml51Days" class="timi-ml51-days">Kayıt bekleniyor.</div>
- <p class="timi-ml51-foot" id="ml51Message">Model eğitimi kapalı. Veri toplanırken hatalı veya gecikmiş örnekler eğitim dışında tutulacak.</p>
- <a class="timi-ml51-link" href="https://github.com/suatdogu4-cpu/timi-scalp-pro-/actions/workflows/export_ml_v51.yml" target="_blank" rel="noopener noreferrer">↗ Elle veri dışa aktarma (GitHub Actions)</a>
- <p class="timi-ml51-foot">Yedek yalnızca ayrıca yapılandırılıp elle çalıştırılır; bu düğme otomatik yedek almaz. Render Free PostgreSQL son tarihi: 14 Aralık 2026. Rapor ham işlem geçmişi, kâr veya ML başarı oranı değildir.</p>
-</div>
-
-
- <div class="card" id="ml52Panel" aria-label="TiMi ML v5.2 sinyal giriş referansları">
-  <div class="timi-v52-hd"><h3>▤ TiMi ML v5.2 · Giriş Fiyatı Takibi</h3><span class="timi-v52-label">ML eğitimi bekleniyor</span></div>
-  <p class="timi-v52-sub">Model henüz AL / SAT / BEKLE kararı üretmiyor. Aşağıdaki fiyatlar <strong>mevcut kural tabanlı motorun</strong> zaman damgalı LONG/SHORT sinyalleri sırasında gözlemlenen <strong>referans fiyatlardır</strong>; hiçbir emir veya işlem açılmamıştır.</p>
-  <div class="timi-v52-state"><small class="muted">LightGBM v5.2 model kararı</small><strong id="ml52MlDecision">EĞİTİM BEKLENİYOR</strong><small class="muted">ML olasılığı, ML giriş fiyatı, ML TP ve ML SL: —</small></div>
-  <div class="timi-v52-grid">
-   <div class="timi-v52-box"><small>En son kural tabanlı AL / SAT sinyali</small><strong id="ml52LastSide">—</strong></div>
-   <div class="timi-v52-box"><small>Sinyal anı referans giriş fiyatı (USDT)</small><strong id="ml52EntryPrice">—</strong></div>
-   <div class="timi-v52-box"><small>Sinyal oluşma saati (Türkiye)</small><strong id="ml52EntryTime">—</strong></div>
-   <div class="timi-v52-box"><small>1m / 5m ölçülen sonuç</small><strong id="ml52LastOutcome">—</strong></div>
-  </div>
-  <div class="timi-ml51-kicker">Son LONG / SHORT sinyalleri ve referans giriş fiyatları</div>
-  <div id="ml52EntryRows" class="timi-v52-list">Henüz sinyal gözlemi yok.</div>
-  <p id="ml52EntryInfo" class="timi-v52-small">Sinyaller yalnızca bu sunucu çalışırken bellekte tutulur; yeniden başlatıldığında silinir.</p>
-  <p class="timi-v52-small">Sonuçlar yönlü fiyat değişimini gösterir; kâr, doldurulmuş emir, garanti giriş, TP/SL gerçekleşmesi veya ML tahmini değildir. Spread, komisyon ve fiyat kayması düşülmez. BEKLE kararında giriş fiyatı oluşturulmaz.</p>
- </div>
-
- <div class="card">
-  <div class="row"><h3>İleriye dönük sinyal performansı</h3><span class="badge" id="auditStatus">Kontrol ediliyor</span></div>
-  <p class="note">Sunucunun gerçekten ürettiği LONG/SHORT/BEKLE gözlemleri. LONG ve SHORT için 1 ve 5 dakika sonraki fiyat yönü ölçülür. <strong>Bu gerçek işlem, sanal emir veya geçmişe dönük test değildir.</strong></p>
-  <div class="row" style="gap:8px;flex-wrap:wrap;margin:12px 0"><small id="auditLast">Son gözlem: —</small><button class="btn" id="refreshAudit" type="button">Verileri yenile</button></div>
-  <div class="metrics">
-   <div class="metric"><small>Toplam gözlem</small><strong id="auditTotal">—</strong></div>
-   <div class="metric"><small>LONG / SHORT</small><strong id="auditSignals">—</strong></div>
-   <div class="metric"><small>BEKLE</small><strong id="auditWait">—</strong></div>
-  </div>
-  <div class="audit-two" style="margin-top:12px">
-   <div class="audit-panel"><div class="row"><h3>1 dakika</h3><span class="badge" id="audit1mN">— sonuç</span></div><div class="big" id="audit1mHit">—</div><small class="muted">Yön isabeti</small><div class="stat"><span>Ortalama işaretli fiyat değişimi</span><strong id="audit1mMean">—</strong></div><div class="stat"><span>Bekleyen / eksik</span><strong id="audit1mQueue">—</strong></div></div>
-   <div class="audit-panel"><div class="row"><h3>5 dakika</h3><span class="badge" id="audit5mN">— sonuç</span></div><div class="big" id="audit5mHit">—</div><small class="muted">Yön isabeti</small><div class="stat"><span>Ortalama işaretli fiyat değişimi</span><strong id="audit5mMean">—</strong></div><div class="stat"><span>Bekleyen / eksik</span><strong id="audit5mQueue">—</strong></div></div>
-  </div>
-  <p class="warning" id="auditSampleNote">100 sonuçlanmış sinyale ulaşılmadan başarı oranı güvenilir bir performans ölçütü değildir.</p>
- </div>
- <div class="card"><h3>Son sinyal gözlemleri</h3><p class="note">Yeşil: ilgili yönde fiyat hareketi · Kırmızı: ters yönde hareket · BEKLE: ölçülecek işlem yönü yok.</p><div class="audit-header"><span>Zaman / yön</span><span>1m</span><span>5m</span></div><div id="auditRows" class="audit-rows">Henüz veri yok</div><p id="auditError" class="warning"></p></div>
- <div class="card"><h3>Denetimin sınırları</h3><p class="note">Ölçüm yalnızca BTCUSDT için varsayılan olarak etkin. Kayıtlar Render belleğinde saklanır ve yeniden başlatmada silinebilir. Komisyon, spread, kayma, emir gerçekleşmesi ve risk ayarlı getiri hesaplanmaz. İşaretli fiyat hareketi yatırım kârı değildir.</p></div>
-</section>
 <section id="more" class="section"><div class="card"><h3>TiMi SCALP PRO v1.8.4</h3><p class="note">Canlı Binance Spot fiyat, işlem akışı, 20 seviyeli kısmi emir defteri, 60 saniyelik CVD, EMA, RSI, MACD, Bollinger, ATR, VWAP, çoklu zaman analizi ve LONG/SHORT/BEKLE karar motoru. MTF kapanmış mum denetimi, doğrulanan likidite duvarları, eşzamanlı emir defteri kontrolü ve ileriye dönük sinyal gözlemleri.</p><div class="stat"><span>Gerçek emir</span><strong class="gold">KAPALI</strong></div><div class="stat"><span>Sanal işlem</span><strong class="gold">KALDIRILDI</strong></div><div class="stat"><span>Sunucu sürümü</span><strong id="serverVersion">Kontrol ediliyor</strong></div><div class="stat"><span>Canlı LightGBM</span><strong id="modelStatus" class="gold">Yüklenmedi</strong></div><p class="note" id="modelNote">train_model-1.py ayrı bir araştırma betiğidir. Canlı sinyaller kural tabanlıdır; model eğitimi otomatik başlamaz.</p><div class="stat"><span>Sinyal gözlemi</span><strong id="auditEnabled">Kontrol ediliyor</strong></div><div class="stat"><span>Toplu göstergeler</span><strong id="indicatorCount">Test edilmedi</strong></div><button class="btn" id="testIndicators">5m gösterge sayısını kontrol et</button></div><div class="card"><h3>Gateway adresi</h3><p class="note">Render'da aynı alan adında kullanıyorsan değiştirme. GitHub Pages üzerinden açıyorsan HTTPS Render adresini gir.</p><input id="gateway" placeholder="https://timi-scalp-pro.onrender.com"><button class="btn" id="saveGateway">Kaydet ve bağlan</button></div></section></main>
-<nav class="foot"><button class="active" data-page="overview">▦<div>Özet</div></button><button data-page="chart">▥<div>Grafik</div></button><button data-page="flow">≋<div>Akış</div></button><button data-page="performance">◉<div>Test</div></button><button data-page="more">☰<div>Menü</div></button></nav><div id="toast"></div>
+<nav class="foot"><button class="active" data-page="overview">▦<div>Özet</div></button><button data-page="chart">▥<div>Grafik</div></button><button data-page="flow">≋<div>Akış</div></button><button data-page="more">☰<div>Menü</div></button></nav><div id="toast"></div>
 <script>
 'use strict';const $=id=>document.getElementById(id),fmt=(v,d=2)=>v!==null&&v!==undefined&&Number.isFinite(Number(v))?Number(v).toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
 let symbol='BTCUSDT',tf='1m',gateway=localStorage.getItem('timi_scalp_gateway')||location.origin,ws=null,retry=null,epoch=0,market={},lastTrade=0,lastBook=0,analysis=null,analysisAt=0,candles=[],chartReq=0,analysisReq=0,renderPending=false,analysisBusy=false,lastKline=0,klineStream=false,lastKlineClosed=null,chartDrawPending=false,lastLiveCandle=null;const DEFAULT_GATEWAY='https://timi-scalp-pro.onrender.com';if(!/^https?:/.test(gateway))gateway=DEFAULT_GATEWAY;$('gateway').value=gateway;
 function api(p){return gateway.replace(/\/$/,'')+p}function wsUrl(){return gateway.replace(/^http/,'ws').replace(/\/$/,'')+'/ws/'+symbol}function age(t){return t?Math.max(0,Date.now()-t):Infinity}function toast(t){$('toast').textContent=t;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',3500)}async function get(p){const r=await fetch(api(p),{cache:'no-store'});let j=await r.json();if(!r.ok)throw Error(j.detail||'Sunucu hatası');return j}
-function setPage(p){document.querySelectorAll('.section').forEach(e=>e.classList.toggle('active',e.id===p));document.querySelectorAll('.foot button').forEach(e=>e.classList.toggle('active',e.dataset.page===p));if(p==='chart')draw();if(p==='performance')loadAudit()};document.querySelectorAll('.foot button').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
+function setPage(p){document.querySelectorAll('.section').forEach(e=>e.classList.toggle('active',e.id===p));document.querySelectorAll('.foot button').forEach(e=>e.classList.toggle('active',e.dataset.page===p));if(p==='chart')draw();};document.querySelectorAll('.foot button').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
 function connect(){const id=++epoch;clearTimeout(retry);if(ws){ws.onclose=null;ws.close()}market={};lastTrade=0;lastBook=0;analysis=null;analysisAt=0;lastKline=0;klineStream=false;lastKlineClosed=null;lastLiveCandle=null;candles=[];updateCandleStatus();render();$('wsState').textContent='Bağlanıyor';try{ws=new WebSocket(wsUrl());ws.onopen=()=>{$('wsState').textContent='Gateway açık'};ws.onmessage=e=>{if(id!==epoch)return;let m=JSON.parse(e.data);if(m.type==='snapshot'){market=m.data||{};lastTrade=market.last_trade_ms||0;lastBook=market.last_book_ms||0}else if(m.type==='trade'){market.price=m.price;lastTrade=m.ts;market.trades=[m.trade,...(market.trades||[])].slice(0,100)}else if(m.type==='depth'){Object.assign(market,{bids:m.bids,asks:m.asks,bid:m.bid,ask:m.ask,book_valid:true,book_error:null});lastBook=m.ts}else if(m.type==='depth_invalid'){Object.assign(market,{bids:[],asks:[],bid:null,ask:null,book_valid:false,book_error:m.reason});lastBook=0}else if(m.type==='kline'&&m.interval==='1m'&&m.candle){let k=m.candle;if(Number.isFinite(k.t)&&[k.o,k.h,k.l,k.c,k.v].every(Number.isFinite)){lastKline=Date.now();klineStream=true;lastKlineClosed=!!k.closed;lastLiveCandle={...k};if(tf==='1m'){let ix=candles.findIndex(x=>x.t===k.t);if(ix>=0)candles[ix]=k;else{candles.push(k);candles.sort((a,b)=>a.t-b.t);candles=candles.slice(-150)}scheduleChartDraw()}updateCandleStatus();if(k.closed)window.dispatchEvent(new CustomEvent('timi-closed-kline',{detail:{symbol,interval:'1m'}}))}}else if(m.type==='ticker'){Object.assign(market,{change:m.change,volume:m.volume,high:m.high,low:m.low})}else if(m.type==='heartbeat'&&!m.upstream_connected){$('wsState').textContent='Kaynak bağlantısı kopuk'}renderSoon()};ws.onclose=()=>{if(id!==epoch)return;$('wsState').textContent='Bağlantı yok';render();retry=setTimeout(()=>{if(id===epoch)connect()},3000)};ws.onerror=()=>{$('wsState').textContent='WebSocket hatası'}}catch(e){toast(e.message)}}
 function scheduleChartDraw(){if(chartDrawPending)return;chartDrawPending=true;setTimeout(()=>{chartDrawPending=false;if(tf==='1m'&&$('chart').classList.contains('active'))draw()},200)}function updateCandleStatus(){let live=tf==='1m'&&klineStream&&ws&&ws.readyState===1&&age(lastKline)<5000;let label=tf==='1m'?(live?(lastKlineClosed?'CANLI · Son mum kapandı':'CANLI · Açık mum'):'1m WebSocket bekleniyor / gecikmeli'):'REST · '+tf+' (60 sn yenileme)';$('candleStatus').textContent=label;$('candleStatus').className='badge '+(live?'green':'gold');$('candleStamp').textContent='Son mum: '+(candles.length?new Date(candles[candles.length-1].t).toLocaleTimeString('tr-TR'):'—')}function renderSoon(){if(renderPending)return;renderPending=true;setTimeout(()=>{renderPending=false;render()},180)}
 function render(){let p=market.price,bookOk=market.book_valid===true,fresh=!!(ws&&ws.readyState===1&&bookOk&&age(lastTrade)<5000&&age(lastBook)<5000),bids=bookOk?(market.bids||[]):[],asks=bookOk?(market.asks||[]):[];$('price').textContent=p?fmt(p,p<1?6:2)+' USDT':'—';$('change').textContent='24s: '+fmt(market.change)+'%';$('change').className=(market.change||0)<0?'red':'green';$('volume').textContent=market.volume!=null?fmt(market.volume/1e6)+' Mn':'—';$('high').textContent=fmt(market.high);$('low').textContent=fmt(market.low);$('feed').textContent=fresh?'CANLI':'GECİKMELİ';$('feed').className='badge '+(fresh?'green':'gold');$('health').textContent=fresh?'● Canlı':'● Veri bekleniyor';$('health').className='badge '+(fresh?'green':'gold');$('stamp').textContent='Son işlem: '+(lastTrade?new Date(lastTrade).toLocaleTimeString('tr-TR'):'—');$('tradeAge').textContent=Number.isFinite(age(lastTrade))?fmt(age(lastTrade)/1000,1)+' sn':'—';$('bookAge').textContent=Number.isFinite(age(lastBook))?fmt(age(lastBook)/1000,1)+' sn':'—';$('bookStatus').textContent=bookOk&&age(lastBook)<5000?'Geçerli ve güncel':(bookOk?'Gecikmeli':market.book_error||'Bekleniyor');$('bookStatus').className=bookOk&&age(lastBook)<5000?'green':'red';let bn=bids.reduce((s,x)=>s+x[0]*x[1],0),an=asks.reduce((s,x)=>s+x[0]*x[1],0),pct=bn+an?bn/(bn+an)*100:50;$('ratio').textContent=bn+an?fmt(pct,1)+'% / '+fmt(100-pct,1)+'%':'—';$('ratioBar').style.width=pct+'%';let sp=bookOk&&market.ask>market.bid?(market.ask-market.bid)/((market.ask+market.bid)/2)*100:null;$('spread').textContent=sp!=null?'Spread: '+fmt(sp,6)+'%':'Spread: —';$('mid').textContent=bookOk?fmt(market.bid,market.bid<1?6:2)+' / '+fmt(market.ask,market.ask<1?6:2):'—';function book(rows,side){let total=0;return rows.slice(0,12).map(x=>{total+=x[1];return `<div class="bookrow"><span class="${side}">${fmt(x[0],x[0]<1?6:2)}</span><span>${fmt(x[1],4)}</span><span>${fmt(total,4)}</span></div>`}).join('')};$('asks').innerHTML=book([...asks].reverse(),'red');$('bids').innerHTML=book(bids,'green');updateCandleStatus();$('trades').innerHTML=(market.trades||[]).slice(0,40).map(t=>`<div class="trade"><span>${new Date(t.ts).toLocaleTimeString('tr-TR')}</span><span class="${t.side==='buy'?'green':'red'}">${fmt(t.price,t.price<1?6:2)}</span><span>${fmt(t.qty,5)}</span></div>`).join('');renderAnalysis(fresh)}
@@ -421,115 +306,6 @@ function draw(){
 }
 $('symbol').onchange=()=>{symbol=$('symbol').value;analysisReq++;chartReq++;connect();loadCandles();loadAnalysis()};$('saveGateway').onclick=()=>{let v=$('gateway').value.trim().replace(/\/$/,'');if(!/^https:\/\//.test(v))return toast('HTTPS adresi girin');gateway=v;localStorage.setItem('timi_scalp_gateway',v);analysisReq++;chartReq++;connect();loadCandles();loadAnalysis()};$('testIndicators').onclick=async()=>{let btn=$('testIndicators');btn.disabled=true;$('indicatorCount').textContent='Hesaplanıyor';try{let x=await get('/api/indicators-all/'+symbol+'?interval=5m');$('indicatorCount').textContent=x.feature_count+' geçerli özellik'}catch(e){$('indicatorCount').textContent='Hata';toast(e.message)}finally{btn.disabled=false}};
 
-// v1.8.4: read-only forward signal audit; no order or training actions.
-let auditRequestId=0, auditData=null, auditDataSymbol=null, auditFetchedAt=0;
-function numOrNull(value){return value===null||value===undefined||!Number.isFinite(Number(value))?null:Number(value)}
-function pctSigned(value,d=4){const n=numOrNull(value);return n===null?'—':(n>0?'+':'')+fmt(n,d)+'%'}
-function formatAuditTime(ts){const n=numOrNull(ts);return n===null?'—':new Date(n).toLocaleTimeString('tr-TR')}
-
-function formatAuditPrice(price){
- const n=numOrNull(price);
- if(n===null||n<=0)return '—';
- return n.toLocaleString('tr-TR',{minimumFractionDigits:n<1?5:2,maximumFractionDigits:n<1?8:Math.abs(n)<100?5:2});
-}
-function clearMl52Entries(message='Sinyal gözlemi bekleniyor'){
- for(const id of ['ml52LastSide','ml52EntryPrice','ml52EntryTime','ml52LastOutcome'])$(id).textContent='—';
- $('ml52EntryRows').textContent=message;
- $('ml52EntryInfo').textContent='Bu veriler kural tabanlı sinyal gözlemleridir. LightGBM henüz karar vermiyor.';
-}
-function renderMl52Entries(data){
- if(!data?.enabled){clearMl52Entries('Bu parite için sinyal gözlemi kapalı.');return}
- const all=Array.isArray(data.observations)?data.observations:[],trades=all.filter(r=>['LONG','SHORT'].includes(r.direction)&&numOrNull(r.entry_reference_price)>0);
- if(!trades.length){clearMl52Entries('Henüz LONG/SHORT gözlemi yok. BEKLE için işlem girişi üretilmez.');return}
- const last=trades[0],side=last.direction==='LONG'?'AL / LONG':'SAT / SHORT';
- const sideNode=$('ml52LastSide');sideNode.textContent=side;sideNode.className=last.direction==='LONG'?'green':'red';
- $('ml52EntryPrice').textContent=formatAuditPrice(last.entry_reference_price);
- $('ml52EntryTime').textContent=formatAuditTime(last.observed_at_ms);
- const result=(key)=>{const o=last.outcomes?.[key];return o?.status==='measured'?pctSigned(o.signed_price_change_pct,4):o?.status==='pending'?'Bekliyor':o?.status==='missing_data'?'Veri eksik':'—'};
- $('ml52LastOutcome').textContent=result('1m')+' / '+result('5m');
- const root=$('ml52EntryRows');root.replaceChildren();
- trades.slice(0,8).forEach(x=>{
-  const row=document.createElement('div');row.className='timi-v52-row';
-  const top=document.createElement('div');top.className='timi-v52-row-top';
-  const name=document.createElement('b');name.textContent=x.direction==='LONG'?'AL / LONG':'SAT / SHORT';name.className=x.direction==='LONG'?'green':'red';
-  const time=document.createElement('small');time.textContent=formatAuditTime(x.observed_at_ms)+' · skor '+(x.score??'—');
-  top.append(name,time);
-  const bottom=document.createElement('div');bottom.className='timi-v52-row-bottom';
-  const left=document.createElement('div'),lt=document.createElement('span'),lv=document.createElement('b');lt.textContent='Giriş referansı (USDT)';lv.textContent=formatAuditPrice(x.entry_reference_price);left.append(lt,lv);
-  const right=document.createElement('div'),rt=document.createElement('span'),rv=document.createElement('b');rt.textContent='1m / 5m yönlü değişim';
-  function outText(h){const o=x.outcomes?.[h];return o?.status==='measured'?pctSigned(o.signed_price_change_pct,4):o?.status==='pending'?'Bekliyor':o?.status==='missing_data'?'Eksik':'—'}
-  rv.textContent=outText('1m')+' / '+outText('5m');right.append(rt,rv);bottom.append(left,right);row.append(top,bottom);root.append(row);
- });
- $('ml52EntryInfo').textContent='Listelenen '+Math.min(8,trades.length)+' / '+trades.length+' LONG/SHORT gözlemi · parite: '+data.symbol+' · Referanslar sunucu belleğinden gelir.';
-}
-
-function auditOutcome(outcome){
- const span=document.createElement('div'),s=outcome?.status;
- span.className='status';
- if(!outcome){span.textContent='—';return span}
- if(s==='measured'){
-   const n=numOrNull(outcome.signed_price_change_pct);
-   span.textContent=pctSigned(n);span.className='status '+(n>0?'green':n<0?'red':'gold');
- } else if(s==='pending')span.textContent='Bekliyor';
- else if(s==='missing_data')span.textContent='Veri eksik';
- else span.textContent='—';
- return span;
-}
-function resetAuditDisplay(message='Veri bekleniyor'){
- auditData=null;auditDataSymbol=null;auditFetchedAt=0;
- for(const id of ['auditTotal','auditSignals','auditWait','audit1mN','audit5mN','audit1mHit','audit5mHit','audit1mMean','audit5mMean','audit1mQueue','audit5mQueue'])$(id).textContent='—';
- $('auditLast').textContent='Son gözlem: —';$('auditStatus').textContent=message;
- $('auditStatus').className='badge gold';$('auditRows').textContent=message;
- clearMl52Entries(message);
- $('auditSampleNote').textContent='100 sonuçlanmış LONG/SHORT sinyali olmadan performans değerlendirmesi güvenilir değildir.';
- $('auditError').textContent='';
-}
-function renderAudit(data){
- auditData=data;auditDataSymbol=data.symbol;auditFetchedAt=Date.now();
- if(data.enabled!==true){
-  resetAuditDisplay('Takip kapalı');$('auditRows').textContent='Bu sembolde otomatik sinyal gözlemi etkin değil. Varsayılan takip BTCUSDT içindir.';
-  $('auditStatus').textContent='Takip kapalı';return;
- }
- const sum=data.summary||{}, horizons=sum.horizons||{}, rows=Array.isArray(data.observations)?data.observations:[];
- renderMl52Entries(data);
- $('auditStatus').textContent='Gözlem açık';$('auditStatus').className='badge green';
- $('auditTotal').textContent=String(sum.total_observations??0);
- $('auditSignals').textContent=(sum.long??0)+' / '+(sum.short??0);
- $('auditWait').textContent=String(sum.wait??0);
- $('auditLast').textContent='Son gözlem: '+(rows.length?formatAuditTime(rows[0].observed_at_ms):'Henüz yok');
- for(const h of ['1m','5m']){
-  const d=horizons[h]||{}, measured=d.measured??0;
-  $('audit'+h+'N').textContent=measured+' sonuç';
-  const hit=numOrNull(d.directional_hit_rate_pct);
-  $('audit'+h+'Hit').textContent=hit===null?'—':fmt(hit,1)+'%';
-  $('audit'+h+'Hit').className='big '+(measured<100?'gold':hit>=50?'green':'red');
-  $('audit'+h+'Mean').textContent=pctSigned(d.mean_signed_price_change_pct,5);
-  $('audit'+h+'Queue').textContent=(d.pending??0)+' / '+(d.missing??0);
- }
- const counts=(horizons['1m']?.measured??0),counts5=(horizons['5m']?.measured??0);
- $('auditSampleNote').textContent='Örnek sayısı: 1m '+counts+'/100, 5m '+counts5+'/100. '+(counts<100||counts5<100?'Henüz güvenilir başarı oranı çıkarılamaz.':'100 örnek eşiği geçildi; bağımsız doğrulama ve maliyet analizi yine gerekir.');
- const root=$('auditRows');root.replaceChildren();
- if(!rows.length)root.textContent='Henüz gözlem kaydı oluşmadı.';
- rows.slice(0,20).forEach(x=>{
-  const r=document.createElement('div'),left=document.createElement('div'),name=document.createElement('strong'),stamp=document.createElement('small');
-  r.className='audit-row';name.textContent=x.direction||'BEKLE';name.className=x.direction==='LONG'?'green':x.direction==='SHORT'?'red':'gold';
-  stamp.textContent=formatAuditTime(x.observed_at_ms)+' · Skor '+(x.score??'—');
-  left.append(name,stamp);r.append(left,auditOutcome(x.outcomes?.['1m']),auditOutcome(x.outcomes?.['5m']));root.append(r);
- });
- $('auditError').textContent=data.last_sampling_error?'Gözlem sırasında hata: '+String(data.last_sampling_error):'';
-}
-async function loadAudit(){
- const s=symbol,g=gateway,id=++auditRequestId;
- $('auditStatus').textContent='Yükleniyor';
- try{
-  const d=await get('/api/signal-audit/'+encodeURIComponent(s)+'?limit=30');
-  if(id!==auditRequestId||s!==symbol||g!==gateway)return;
-  renderAudit(d);
- }catch(e){
-  if(id!==auditRequestId||s!==symbol||g!==gateway)return;
-  resetAuditDisplay('Bağlantı hatası');$('auditError').textContent='Sinyal denetimi: '+String(e.message||e);
- }
-}
 async function loadHealth(){
  const g=gateway;
  try{
@@ -542,12 +318,8 @@ async function loadHealth(){
   $('auditEnabled').textContent=d.signal_audit_forward_enabled?'Etkin ('+(d.signal_audit_symbols||[]).join(', ')+')':'Kapalı';
  }catch(e){$('serverVersion').textContent='Erişim yok';$('modelStatus').textContent='Doğrulanamadı';$('modelStatus').className='gold';$('auditEnabled').textContent='Doğrulanamadı';}
 }
-$('refreshAudit').onclick=loadAudit;
-// Symbol/gateway change invalidates all existing audit requests, including slow responses.
-$('symbol').addEventListener('change',()=>{auditRequestId++;resetAuditDisplay();if($('performance').classList.contains('active'))loadAudit()});
-$('saveGateway').addEventListener('click',()=>{auditRequestId++;resetAuditDisplay();loadHealth();if($('performance').classList.contains('active'))loadAudit()});
 loadHealth();setInterval(loadHealth,60000);
-setInterval(()=>{if($('performance').classList.contains('active'))loadAudit()},20000);
+
 
 connect();loadCandles();loadAnalysis();setInterval(render,1500);setInterval(loadAnalysis,3000);setInterval(loadCandles,60000);window.addEventListener('resize',()=>{if($('chart').classList.contains('active'))draw()});
 </script>
@@ -868,88 +640,8 @@ connect();loadCandles();loadAnalysis();setInterval(render,1500);setInterval(load
  window.addEventListener('timi-closed-kline',()=>setTimeout(inspect,280));
  window.timiTpInspect=inspect;setInterval(inspect,2000);
 })();
-</script><script>/* TiMi ML v5.1 quality TEST UI — read-only, no trade calls. */
-(()=>{
- 'use strict';
- const E=id=>document.getElementById(id), n=x=>Number(x||0).toLocaleString('tr-TR'),
-       stamp=ms=>!ms?'—':new Date(Number(ms)).toLocaleString('tr-TR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
- const LABELS={closed_candle_verified:'Kaynak onaylı kapanmış mum',
-   pro_analysis_matches_candle:'Ana analiz aynı kapanmış muma ait',
-   flow_fresh:'Canlı işlem ve emir defteri güncel',
-   snapshot_time_fresh:'Analiz anı güncel',
-   mtf_all_four_fresh:'Dört zaman dilimi doğrulandı',
-   ml_eligible:'Tüm kalite koşullarını geçen'};
- let seq=0, prevKey='', refreshed=0;
- function msg(t){E('ml51Message').textContent=t}
- function reset(){
-  for(const id of ['ml51Total','ml51Eligible','ml51Invalid','ml51Rate','ml51Gaps','ml51Last','ml51Errors'])E(id).textContent='—';
-  E('ml51Progress').style.width='0%';E('ml51QualityFlags').textContent='—';E('ml51Days').textContent='—';E('ml51Readiness').textContent='Veri kontrol ediliyor.';
- }
- function render(d){
-  const connected=d.database_status==='connected',b=E('ml51Connection');
-  b.textContent=connected?'● PostgreSQL bağlı':d.database_status==='disabled'?'● Arşiv kapalı':'● Bağlantı sorunu';
-  b.className='timi-ml51-badge '+(connected?'good':'bad');
-  if(!connected){reset();msg(d.message||'Arşiv istatistikleri okunamadı. Sunucu dosyalarını ve Render loglarını kontrol et.');return;}
-  const m=d.statistics||{},r=m.readiness||{},p=d.process_observations||{};
-  E('ml51Total').textContent=n(m.total_records);
-  E('ml51Eligible').textContent=n(m.eligible_records);
-  E('ml51Invalid').textContent=n(m.ineligible_records);
-  E('ml51Rate').textContent=m.eligible_pct==null?'—':'%'+Number(m.eligible_pct).toLocaleString('tr-TR',{maximumFractionDigits:2});
-  E('ml51Gaps').textContent=n(m.missing_minute_slots)+' dk / '+n(m.gap_events)+' boşluk';
-  E('ml51Last').textContent=m.last_observed_ms?stamp(m.last_observed_ms)+' · '+Number(m.last_record_age_minutes).toLocaleString('tr-TR',{maximumFractionDigits:1})+' dk':'Henüz yok';
-  E('ml51Errors').textContent=n(p.rejected)+' / '+n(p.errors);
-  const progress=Math.max(0,Math.min(100,Number(r.progress_pct)||0));E('ml51Progress').style.width=progress+'%';
-  E('ml51Readiness').textContent=n(m.eligible_records)+' / '+n(r.descriptive_minimum_eligible_records||10080)+' uygun kayıt · '+(r.at_least_7_distinct_utc_days_in_recent_14?'7 günlük kapsama var':'7 ayrı gün gerekli')+'. Bu eşik modelin hazır olduğunu kanıtlamaz.';
-  const flags=E('ml51QualityFlags');flags.replaceChildren();
-  Object.entries(LABELS).forEach(([key,label])=>{
-   const row=document.createElement('div');row.className='timi-ml51-row';
-   const name=document.createElement('span');name.textContent=label;
-   const value=document.createElement('strong');value.textContent=n((m.quality_pass_counts||{})[key])+' / '+n(m.total_records);
-   row.append(name,value);flags.append(row);
-  });
-  const days=E('ml51Days');days.replaceChildren();let records=Array.isArray(m.daily)?m.daily:[];
-  if(!records.length)days.textContent='Arşivde henüz kayıt bulunmuyor.';
-  const max=Math.max(1,...records.map(x=>Number(x.records)||0));
-  records.forEach(d=>{
-   const line=document.createElement('div');line.className='timi-ml51-day';
-   const date=document.createElement('span');date.textContent=d.day_utc;
-   const track=document.createElement('div');track.className='timi-ml51-day-track';
-   const fill=document.createElement('i');fill.style.width=(100*Number(d.records||0)/max)+'%';track.append(fill);
-   const val=document.createElement('b');val.textContent=n(d.eligible)+' / '+n(d.records);
-   line.append(date,track,val);days.append(line);
-  });
-  msg('Kayıtlar kapalı 1m mumlardan ve gerçek gözlem zamanından oluşuyor. Uygun olmayan örnekler ML eğitimine alınmamalı. ML canlı kararlarına bağlı değil.');
- }
- async function load(force=false){
-  if(!E('performance')?.classList.contains('active'))return;
-  const s=E('ml51Symbol').value, g=typeof gateway==='string'?gateway:'',key=g+'|'+s;
-  if(!force&&prevKey===key&&Date.now()-refreshed<20000)return;
-  const id=++seq;prevKey=key;E('ml51Connection').textContent='Kontrol ediliyor';
-  try{
-   const result=await get('/api/ml-v51/quality?symbol='+encodeURIComponent(s));
-   if(id!==seq||g!==gateway||s!==E('ml51Symbol').value)return;
-   refreshed=Date.now();E('ml51Updated').textContent='Son sorgu: '+stamp(refreshed);
-   render(result);
-   if(Array.isArray(result.tracked_symbols)&&result.tracked_symbols.length){
-    const current=E('ml51Symbol').value,opts=E('ml51Symbol');
-    if(opts.options.length!==result.tracked_symbols.length||!result.tracked_symbols.every(x=>[...opts.options].some(y=>y.value===x))){
-     opts.replaceChildren();result.tracked_symbols.forEach(x=>{const o=document.createElement('option');o.value=x;o.textContent=x;opts.append(o)});
-     opts.value=result.tracked_symbols.includes(current)?current:result.tracked_symbols[0];
-    }
-   }
-  }catch(e){
-   if(id!==seq||g!==gateway||s!==E('ml51Symbol').value)return;
-   const b=E('ml51Connection');b.textContent='● Arşiv kontrol edilemedi';b.className='timi-ml51-badge bad';
-   reset();msg('Bağlantı hatası: '+String(e.message||e)+'. Eski sunucu sürümüyse /api/ml-v51/quality adresi bulunmaz.');
-  }
- }
- E('ml51Reload')?.addEventListener('click',()=>load(true));
- E('ml51Symbol')?.addEventListener('change',()=>{refreshed=0;load(true)});
- document.querySelector('nav [data-page="performance"]')?.addEventListener('click',()=>setTimeout(()=>load(true),50));
- E('saveGateway')?.addEventListener('click',()=>{seq++;refreshed=0;setTimeout(()=>load(true),100)});
- setInterval(()=>load(false),30000);
-})();
-</script><!-- TiMi MetaFilter v0.1: 26 indikatörlü, salt okunur ML paneli -->
+</script>
+<!-- TiMi MetaFilter v0.1: 26 indikatörlü, salt okunur ML paneli -->
 <script id="timi-meta-widget-inline">
 /* TiMi MetaFilter v0.1, passive panel. Does not change the existing cockpit.
    The original browser cockpit remains the final directional veto. */
