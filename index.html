@@ -60,6 +60,27 @@
 .timi-ml51-link{display:inline-block;color:#f7c65c;font-size:12px;font-weight:750;margin:8px 0}
 @media(max-width:375px){.timi-ml51-stat strong{font-size:18px}.timi-ml51-day{grid-template-columns:68px minmax(0,1fr) 72px}}
 
+
+/* TiMi ML v5.2: observation entry references. These are NOT trades or ML predictions. */
+.timi-v52-sub{color:#a9bed6;font-size:12px;line-height:1.65;margin:8px 0 13px}
+.timi-v52-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.timi-v52-label{border:1px solid #425a72;border-radius:999px;padding:5px 9px;color:#f5c973;font-size:11px;font-weight:750;white-space:nowrap}
+.timi-v52-state{border:1px solid #40536c;background:#14253b;padding:12px;border-radius:12px;margin:12px 0}
+.timi-v52-state strong{display:block;color:#f6c767;font-size:17px;margin:4px 0}
+.timi-v52-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.timi-v52-box{border:1px solid #344a66;border-radius:12px;background:#12263c;padding:11px;min-width:0}
+.timi-v52-box small{display:block;color:#b1c5df;font-size:11px;line-height:1.3}
+.timi-v52-box strong{display:block;margin-top:6px;font-size:16px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.timi-v52-box .green,.timi-v52-row .green{color:#2bd4a0}
+.timi-v52-box .red,.timi-v52-row .red{color:#ff708d}
+.timi-v52-list{display:flex;flex-direction:column;gap:7px;margin:10px 0}
+.timi-v52-row{border:1px solid #344a66;border-radius:11px;padding:10px 11px;background:#172b43}
+.timi-v52-row-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:12px}
+.timi-v52-row-bottom{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:8px;font-size:12px}
+.timi-v52-row-bottom span{color:#b2c6dc;display:block;font-size:10px;margin-bottom:2px}
+.timi-v52-row-bottom b{font-variant-numeric:tabular-nums}
+.timi-v52-small{font-size:11px;line-height:1.6;color:#adbed5;margin:8px 0 2px}
+@media(max-width:360px){.timi-v52-box strong{font-size:14px}}
 </style><style id="timi-pro-cockpit-style">
 /* TiMi PRO Decision Cockpit: additive styles, existing application style remains unchanged. */
 .timi-pro{position:relative;background:linear-gradient(145deg,#172a43 0%,#0d192b 94%);border-color:#37516e;padding:14px;overflow:hidden}
@@ -261,6 +282,23 @@
  <p class="timi-ml51-foot">Yedek yalnızca ayrıca yapılandırılıp elle çalıştırılır; bu düğme otomatik yedek almaz. Render Free PostgreSQL son tarihi: 14 Aralık 2026. Rapor ham işlem geçmişi, kâr veya ML başarı oranı değildir.</p>
 </div>
 
+
+ <div class="card" id="ml52Panel" aria-label="TiMi ML v5.2 sinyal giriş referansları">
+  <div class="timi-v52-hd"><h3>▤ TiMi ML v5.2 · Giriş Fiyatı Takibi</h3><span class="timi-v52-label">ML eğitimi bekleniyor</span></div>
+  <p class="timi-v52-sub">Model henüz AL / SAT / BEKLE kararı üretmiyor. Aşağıdaki fiyatlar <strong>mevcut kural tabanlı motorun</strong> zaman damgalı LONG/SHORT sinyalleri sırasında gözlemlenen <strong>referans fiyatlardır</strong>; hiçbir emir veya işlem açılmamıştır.</p>
+  <div class="timi-v52-state"><small class="muted">LightGBM v5.2 model kararı</small><strong id="ml52MlDecision">EĞİTİM BEKLENİYOR</strong><small class="muted">ML olasılığı, ML giriş fiyatı, ML TP ve ML SL: —</small></div>
+  <div class="timi-v52-grid">
+   <div class="timi-v52-box"><small>En son kural tabanlı AL / SAT sinyali</small><strong id="ml52LastSide">—</strong></div>
+   <div class="timi-v52-box"><small>Sinyal anı referans giriş fiyatı (USDT)</small><strong id="ml52EntryPrice">—</strong></div>
+   <div class="timi-v52-box"><small>Sinyal oluşma saati (Türkiye)</small><strong id="ml52EntryTime">—</strong></div>
+   <div class="timi-v52-box"><small>1m / 5m ölçülen sonuç</small><strong id="ml52LastOutcome">—</strong></div>
+  </div>
+  <div class="timi-ml51-kicker">Son LONG / SHORT sinyalleri ve referans giriş fiyatları</div>
+  <div id="ml52EntryRows" class="timi-v52-list">Henüz sinyal gözlemi yok.</div>
+  <p id="ml52EntryInfo" class="timi-v52-small">Sinyaller yalnızca bu sunucu çalışırken bellekte tutulur; yeniden başlatıldığında silinir.</p>
+  <p class="timi-v52-small">Sonuçlar yönlü fiyat değişimini gösterir; kâr, doldurulmuş emir, garanti giriş, TP/SL gerçekleşmesi veya ML tahmini değildir. Spread, komisyon ve fiyat kayması düşülmez. BEKLE kararında giriş fiyatı oluşturulmaz.</p>
+ </div>
+
  <div class="card">
   <div class="row"><h3>İleriye dönük sinyal performansı</h3><span class="badge" id="auditStatus">Kontrol ediliyor</span></div>
   <p class="note">Sunucunun gerçekten ürettiği LONG/SHORT/BEKLE gözlemleri. LONG ve SHORT için 1 ve 5 dakika sonraki fiyat yönü ölçülür. <strong>Bu gerçek işlem, sanal emir veya geçmişe dönük test değildir.</strong></p>
@@ -388,6 +426,43 @@ let auditRequestId=0, auditData=null, auditDataSymbol=null, auditFetchedAt=0;
 function numOrNull(value){return value===null||value===undefined||!Number.isFinite(Number(value))?null:Number(value)}
 function pctSigned(value,d=4){const n=numOrNull(value);return n===null?'—':(n>0?'+':'')+fmt(n,d)+'%'}
 function formatAuditTime(ts){const n=numOrNull(ts);return n===null?'—':new Date(n).toLocaleTimeString('tr-TR')}
+
+function formatAuditPrice(price){
+ const n=numOrNull(price);
+ if(n===null||n<=0)return '—';
+ return n.toLocaleString('tr-TR',{minimumFractionDigits:n<1?5:2,maximumFractionDigits:n<1?8:Math.abs(n)<100?5:2});
+}
+function clearMl52Entries(message='Sinyal gözlemi bekleniyor'){
+ for(const id of ['ml52LastSide','ml52EntryPrice','ml52EntryTime','ml52LastOutcome'])$(id).textContent='—';
+ $('ml52EntryRows').textContent=message;
+ $('ml52EntryInfo').textContent='Bu veriler kural tabanlı sinyal gözlemleridir. LightGBM henüz karar vermiyor.';
+}
+function renderMl52Entries(data){
+ if(!data?.enabled){clearMl52Entries('Bu parite için sinyal gözlemi kapalı.');return}
+ const all=Array.isArray(data.observations)?data.observations:[],trades=all.filter(r=>['LONG','SHORT'].includes(r.direction)&&numOrNull(r.entry_reference_price)>0);
+ if(!trades.length){clearMl52Entries('Henüz LONG/SHORT gözlemi yok. BEKLE için işlem girişi üretilmez.');return}
+ const last=trades[0],side=last.direction==='LONG'?'AL / LONG':'SAT / SHORT';
+ const sideNode=$('ml52LastSide');sideNode.textContent=side;sideNode.className=last.direction==='LONG'?'green':'red';
+ $('ml52EntryPrice').textContent=formatAuditPrice(last.entry_reference_price);
+ $('ml52EntryTime').textContent=formatAuditTime(last.observed_at_ms);
+ const result=(key)=>{const o=last.outcomes?.[key];return o?.status==='measured'?pctSigned(o.signed_price_change_pct,4):o?.status==='pending'?'Bekliyor':o?.status==='missing_data'?'Veri eksik':'—'};
+ $('ml52LastOutcome').textContent=result('1m')+' / '+result('5m');
+ const root=$('ml52EntryRows');root.replaceChildren();
+ trades.slice(0,8).forEach(x=>{
+  const row=document.createElement('div');row.className='timi-v52-row';
+  const top=document.createElement('div');top.className='timi-v52-row-top';
+  const name=document.createElement('b');name.textContent=x.direction==='LONG'?'AL / LONG':'SAT / SHORT';name.className=x.direction==='LONG'?'green':'red';
+  const time=document.createElement('small');time.textContent=formatAuditTime(x.observed_at_ms)+' · skor '+(x.score??'—');
+  top.append(name,time);
+  const bottom=document.createElement('div');bottom.className='timi-v52-row-bottom';
+  const left=document.createElement('div'),lt=document.createElement('span'),lv=document.createElement('b');lt.textContent='Giriş referansı (USDT)';lv.textContent=formatAuditPrice(x.entry_reference_price);left.append(lt,lv);
+  const right=document.createElement('div'),rt=document.createElement('span'),rv=document.createElement('b');rt.textContent='1m / 5m yönlü değişim';
+  function outText(h){const o=x.outcomes?.[h];return o?.status==='measured'?pctSigned(o.signed_price_change_pct,4):o?.status==='pending'?'Bekliyor':o?.status==='missing_data'?'Eksik':'—'}
+  rv.textContent=outText('1m')+' / '+outText('5m');right.append(rt,rv);bottom.append(left,right);row.append(top,bottom);root.append(row);
+ });
+ $('ml52EntryInfo').textContent='Listelenen '+Math.min(8,trades.length)+' / '+trades.length+' LONG/SHORT gözlemi · parite: '+data.symbol+' · Referanslar sunucu belleğinden gelir.';
+}
+
 function auditOutcome(outcome){
  const span=document.createElement('div'),s=outcome?.status;
  span.className='status';
@@ -405,6 +480,7 @@ function resetAuditDisplay(message='Veri bekleniyor'){
  for(const id of ['auditTotal','auditSignals','auditWait','audit1mN','audit5mN','audit1mHit','audit5mHit','audit1mMean','audit5mMean','audit1mQueue','audit5mQueue'])$(id).textContent='—';
  $('auditLast').textContent='Son gözlem: —';$('auditStatus').textContent=message;
  $('auditStatus').className='badge gold';$('auditRows').textContent=message;
+ clearMl52Entries(message);
  $('auditSampleNote').textContent='100 sonuçlanmış LONG/SHORT sinyali olmadan performans değerlendirmesi güvenilir değildir.';
  $('auditError').textContent='';
 }
@@ -415,6 +491,7 @@ function renderAudit(data){
   $('auditStatus').textContent='Takip kapalı';return;
  }
  const sum=data.summary||{}, horizons=sum.horizons||{}, rows=Array.isArray(data.observations)?data.observations:[];
+ renderMl52Entries(data);
  $('auditStatus').textContent='Gözlem açık';$('auditStatus').className='badge green';
  $('auditTotal').textContent=String(sum.total_observations??0);
  $('auditSignals').textContent=(sum.long??0)+' / '+(sum.short??0);
