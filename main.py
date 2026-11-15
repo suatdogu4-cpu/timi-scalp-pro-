@@ -165,6 +165,7 @@ async def relay():
                                  'ts': v.get('T', now), 'id': trade_id}
                         m.trades.appendleft(trade)
                         m.tape.append((now, side, qty, price))
+                        v2_live.record_trade(symbol, side, qty, price, now)
                         _audit_on_trade(symbol, price, now)
                         while m.tape and m.tape[0][0] < now - 60000:
                             m.tape.popleft()
@@ -1137,5 +1138,9 @@ async def live(ws: WebSocket, symbol: str):
     finally:
         if item in clients:
             clients.remove(item)
+
+# TiMi PRO v2.0 - bounded in-memory public market analytics only.
+from timi_v20_backend import install_v20
+v2_live = install_v20(app, markets, status, now_ms, lambda: http_client)
 
 # Read-only analytics. No paper orders, real orders, credentials or training endpoints.
