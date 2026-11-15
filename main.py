@@ -1,4 +1,4 @@
-"""TiMi SCALP PRO v1.8.5 — read-only Binance Spot analytics.
+"""TiMi SCALP PRO v1.8.6 — read-only Binance Spot analytics.
 Developer: Suat DOĞU. No order endpoints or model training on request path.
 """
 import asyncio
@@ -24,7 +24,7 @@ from fastapi.responses import FileResponse
 logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger('timi')
 ROOT = Path(__file__).resolve().parent
-VERSION = '1.8.5'
+VERSION = '1.8.6'
 SYMBOLS = ('BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT')
 TF = ('1m', '3m', '5m', '15m', '30m', '1h', '4h', '1d')
 MTF = ('1m', '3m', '5m', '15m')
@@ -140,6 +140,13 @@ def reset_stream_state():
         m.book_valid, m.book_error = False, 'Upstream reconnecting'
         m.live_candle = None
         m.last_candle_ms = m.last_closed_candle = None
+    # A disconnected stream cannot certify a future simulated entry/exit.
+    try:
+        timi_forward.on_stream_reset()
+    except Exception as exc:
+        LOG.warning('Forward observation reset: %s', type(exc).__name__)
+        # Fail closed: old pending entries can never be settled in a new session.
+        timi_forward.pending = {s: {} for s in timi_forward.symbols}
     analysis_cache.clear()
     v2_live.reset_all()
     v23_live.reset_all()
@@ -191,6 +198,11 @@ async def relay():
                         v2_live.record_trade(symbol, side, qty, price, now)
                         v23_live.record_trade(symbol, side, qty, price, now)
                         _audit_on_trade(symbol, price, now)
+                        # Optional monitoring never interrupts the primary stream.
+                        try:
+                            timi_forward.on_trade(symbol, price, now, m)
+                        except Exception as exc:
+                            LOG.warning('Forward trade evaluation %s: %s', symbol, type(exc).__name__)
                         while m.tape and m.tape[0][0] < now - 60000:
                             m.tape.popleft()
                         event = {'type': 'trade', 'symbol': symbol, 'trade': trade,
@@ -705,6 +717,14 @@ signal_audit_log = {symbol: deque(maxlen=AUDIT_LOG_MAX) for symbol in SYMBOLS}
 signal_audit_pending = {symbol: [] for symbol in SYMBOLS}
 signal_audit_errors = {symbol: None for symbol in SYMBOLS}
 
+# Forward-only evaluator shares the original 1m audit signal clock and stream.
+from timi_forward_performance import ForwardTracker
+_timi_fp_fee_bps = os.getenv('TIMI_FORWARD_FEE_BPS', '10')
+_timi_fp_slippage_bps = os.getenv('TIMI_FORWARD_SLIPPAGE_BPS', '2')
+timi_forward = ForwardTracker(
+    SYMBOLS, now_ms=now_ms, enabled_symbols=AUDIT_SYMBOLS,
+    fee_bps=_timi_fp_fee_bps, slippage_bps=_timi_fp_slippage_bps)
+
 
 def _audit_observe(symbol, pro, sampled_ms=None):
     """Take one timestamped observation; never create an order or position.
@@ -750,6 +770,11 @@ def _audit_observe(symbol, pro, sampled_ms=None):
     signal_audit_log[symbol].append(observation)
     if observation['outcomes']:
         signal_audit_pending[symbol].append(observation)
+        # Optional monitoring must NEVER affect the original signal engine.
+        try:
+            timi_forward.on_signal(observation)
+        except Exception as exc:
+            LOG.warning('Forward signal observation %s: %s', symbol, type(exc).__name__)
     return observation
 
 
@@ -836,6 +861,7 @@ async def lifespan(app):
     global http_client
     http_client = httpx.AsyncClient(timeout=12)
     await bootstrap()
+    await timi_forward.start()  # PostgreSQL optional; never blocks live mode on errors.
     task = asyncio.create_task(relay())
     audit_task = asyncio.create_task(_signal_audit_monitor()) if AUDIT_SYMBOLS else None
     try:
@@ -846,9 +872,11 @@ async def lifespan(app):
             audit_task.cancel()
         await asyncio.gather(*(t for t in (task, audit_task) if t is not None),
                              return_exceptions=True)
+        await timi_forward.stop()  # bounded best-effort persistence flush
         await http_client.aclose()
 
 app = FastAPI(title='TiMi SCALP PRO', version=VERSION, lifespan=lifespan)
+timi_forward.install_routes(app)
 # TiMi ML v5 — optional persistent research-only market observation archive.
 # It remains DISABLED until TIMI_V5_DATABASE_URL (external PostgreSQL) is set.
 # No trading, no ML inference, no changes to existing WebSocket/decision logic.

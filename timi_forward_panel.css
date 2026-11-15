@@ -1,0 +1,21 @@
+/* TiMi forward-only signal performance panel. Existing sections remain unchanged. */
+#timiForwardPerformance{border-color:#2f566f;background:linear-gradient(135deg,#142c45,#0f2237)}
+#timiForwardPerformance .timi-fp-head{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:8px}
+#timiForwardPerformance .timi-fp-head h3{margin:0;font-size:15px}
+#timiForwardPerformance .timi-fp-head .badge{font-size:10px;white-space:nowrap}
+#timiForwardPerformance .timi-fp-switch{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0}
+#timiForwardPerformance .timi-fp-switch button{flex:1;min-width:86px;border:1px solid #3d5873;border-radius:10px;background:#1d3850;color:#c5daed;font-size:12px;font-weight:700;padding:10px 6px;cursor:pointer}
+#timiForwardPerformance .timi-fp-switch button.active{border-color:#29b993;background:#145042;color:#acffe1}
+#timiForwardPerformance .timi-fp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+#timiForwardPerformance .timi-fp-grid .metric{min-width:0;min-height:72px}
+#timiForwardPerformance .timi-fp-grid strong{display:block;font-size:clamp(17px,4vw,22px);overflow-wrap:anywhere;margin-top:5px}
+#timiForwardPerformance .timi-fp-states{display:flex;flex-wrap:wrap;gap:5px 12px;margin:8px 0;color:#b9d0e5;font-size:11px}
+#timiForwardPerformance .timi-fp-warning{color:#f4c67d;padding:7px 0}
+#timiForwardPerformance .timi-fp-details{border:1px solid #34536e;border-radius:10px;background:#152d45;padding:9px 10px;margin:8px 0}
+#timiForwardPerformance .timi-fp-details summary{cursor:pointer;color:#d8e9f8;font-size:12px;font-weight:700}
+#timiForwardPerformance .timi-fp-record{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #324d66;font-size:11px;line-height:1.45}
+#timiForwardPerformance .timi-fp-record strong{font-size:11px;font-weight:650;flex:1;min-width:0}
+#timiForwardPerformance .timi-fp-record span{text-align:right;flex:0 0 auto;max-width:43%}
+#timiForwardPerformance .timi-fp-record:last-child{border-bottom:0}
+#timiForwardPerformance .timi-fp-note{margin-top:10px;line-height:1.55}
+@media(min-width:700px){#timiForwardPerformance .timi-fp-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}

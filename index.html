@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#08111e"><title>TiMi SCALP PRO v1.8.5</title>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#08111e"><title>TiMi SCALP PRO v1.8.6</title>
 <style>
 :root{--bg:#08111e;--panel:#142338;--line:#2b4059;--text:#eef5ff;--muted:#9eb1c9;--green:#22d3a0;--red:#ff6682;--gold:#f7c65c}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Arial}header{position:sticky;top:0;z-index:5;background:#0c192a;border-bottom:1px solid var(--line);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px}.logo{font-weight:900;font-size:22px;letter-spacing:-.6px}.logo b{color:var(--gold)}small,.muted{color:var(--muted)}.badge{font-size:11px;border:1px solid var(--line);border-radius:25px;padding:7px 9px;white-space:nowrap}.green{color:var(--green)!important}.red{color:var(--red)!important}.gold{color:var(--gold)!important}main{max-width:1100px;margin:auto;padding:12px 12px 95px}.card{background:linear-gradient(140deg,#17283e,#111d2d);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px;min-width:0}.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.row>*{min-width:0}.price{font-size:clamp(30px,8vw,46px);font-weight:900;margin:10px 0;overflow-wrap:anywhere}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.metric{background:#1b3048;border-radius:10px;padding:10px;min-width:0}.metric strong{display:block;margin-top:6px;overflow-wrap:anywhere}.metric small{font-size:11px}.stat{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #2a3e53;padding:10px 0}.stat:last-child{border:0}.stat strong{text-align:right;overflow-wrap:anywhere}.big{font-size:29px;font-weight:900}h3{font-size:16px;margin:0 0 12px}.note{color:var(--muted);font-size:12px;line-height:1.55}.warning{color:var(--gold);font-size:12px}.bar{height:12px;border-radius:12px;background:var(--red);overflow:hidden}.bar div{height:100%;background:var(--green);width:50%}select,input,button{font:inherit}select,input,.btn{color:var(--text);background:#1b3047;border:1px solid var(--line);border-radius:9px;padding:10px}.btn{cursor:pointer}.btn.active{background:#225745;color:#b6ffe3}.tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:8px}.tabs button{white-space:nowrap}.section{display:none}.section.active{display:block}.foot{position:fixed;bottom:0;left:0;right:0;z-index:8;display:flex;background:#101d30;border-top:1px solid var(--line);padding:7px 0 max(7px,env(safe-area-inset-bottom))}.foot button{flex:1;border:0;background:none;color:var(--muted);padding:8px 2px;font-size:12px}.foot button.active{color:var(--gold);font-weight:800}.bookhead,.bookrow,.trade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;font-size:12px;padding:7px 0;border-bottom:1px solid #27394d;font-variant-numeric:tabular-nums}.bookhead{color:var(--muted)}.bookrow span:not(:first-child),.trade span:not(:first-child),.bookhead span:not(:first-child){text-align:right}.twocol{display:grid;gap:12px}.mtf{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.mtf .metric{padding:11px 8px;text-align:center}.mtf strong{font-size:13px;overflow-wrap:anywhere}.mtf small{font-size:11px;display:block}.mtf .extra{font-size:10px;color:var(--muted);margin-top:5px;line-height:1.5}.wall-list{display:grid;gap:8px;margin:8px 0 12px}.wall{background:#1b3048;border:1px solid #314961;border-radius:10px;padding:10px}.wall .wall-top{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-variant-numeric:tabular-nums}.wall .wall-sub{color:var(--muted);font-size:11px;margin-top:5px;line-height:1.5}.muted-value{color:var(--muted);font-size:12px}.stat .secondary{color:var(--muted);font-size:12px}.health-note{display:block;color:var(--muted);font-size:11px;margin-top:4px}.section-sub{font-size:12px;color:var(--muted);margin:2px 0 10px}canvas{width:100%;height:270px;display:block}.reasons{padding-left:20px;line-height:1.7}.reasons li{margin-bottom:5px}#toast{position:fixed;bottom:76px;left:12px;right:12px;background:#263e57;padding:12px;border-radius:10px;z-index:10;display:none;text-align:center}.foot button{min-width:0}.model-tag{display:inline-block}input{width:100%;margin:8px 0}@media(min-width:760px){.twocol{grid-template-columns:1fr 1fr}.mtf{grid-template-columns:repeat(4,minmax(0,1fr))}}
 /* TiMi SCALP PRO — additive v1.8.4 indicator cockpit. All styles scoped. */
@@ -212,6 +212,29 @@ body.timi-ui-v21.timi-ui-contrast .foot button:not(.active){color:#d5e6f7}
 @media(min-width:700px){body.timi-ui-v21 #timiUiQuickNav{grid-template-columns:repeat(3,170px)}body.timi-ui-v21 .foot{left:50%;transform:translateX(-50%);max-width:650px;border-left:1px solid #345773;border-right:1px solid #345773;border-radius:15px 15px 0 0}body.timi-ui-v21 main{padding:16px 19px 108px}}
 @media(prefers-reduced-motion:reduce){body.timi-ui-v21 *,body.timi-ui-v21 *::before,body.timi-ui-v21 *::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 </style>
+<style id="timi-forward-css">
+/* TiMi forward-only signal performance panel. Existing sections remain unchanged. */
+#timiForwardPerformance{border-color:#2f566f;background:linear-gradient(135deg,#142c45,#0f2237)}
+#timiForwardPerformance .timi-fp-head{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:8px}
+#timiForwardPerformance .timi-fp-head h3{margin:0;font-size:15px}
+#timiForwardPerformance .timi-fp-head .badge{font-size:10px;white-space:nowrap}
+#timiForwardPerformance .timi-fp-switch{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0}
+#timiForwardPerformance .timi-fp-switch button{flex:1;min-width:86px;border:1px solid #3d5873;border-radius:10px;background:#1d3850;color:#c5daed;font-size:12px;font-weight:700;padding:10px 6px;cursor:pointer}
+#timiForwardPerformance .timi-fp-switch button.active{border-color:#29b993;background:#145042;color:#acffe1}
+#timiForwardPerformance .timi-fp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+#timiForwardPerformance .timi-fp-grid .metric{min-width:0;min-height:72px}
+#timiForwardPerformance .timi-fp-grid strong{display:block;font-size:clamp(17px,4vw,22px);overflow-wrap:anywhere;margin-top:5px}
+#timiForwardPerformance .timi-fp-states{display:flex;flex-wrap:wrap;gap:5px 12px;margin:8px 0;color:#b9d0e5;font-size:11px}
+#timiForwardPerformance .timi-fp-warning{color:#f4c67d;padding:7px 0}
+#timiForwardPerformance .timi-fp-details{border:1px solid #34536e;border-radius:10px;background:#152d45;padding:9px 10px;margin:8px 0}
+#timiForwardPerformance .timi-fp-details summary{cursor:pointer;color:#d8e9f8;font-size:12px;font-weight:700}
+#timiForwardPerformance .timi-fp-record{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #324d66;font-size:11px;line-height:1.45}
+#timiForwardPerformance .timi-fp-record strong{font-size:11px;font-weight:650;flex:1;min-width:0}
+#timiForwardPerformance .timi-fp-record span{text-align:right;flex:0 0 auto;max-width:43%}
+#timiForwardPerformance .timi-fp-record:last-child{border-bottom:0}
+#timiForwardPerformance .timi-fp-note{margin-top:10px;line-height:1.55}
+@media(min-width:700px){#timiForwardPerformance .timi-fp-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style>
 </head><body>
 <header><div><div class="logo">TiMi <b>SCALP PRO</b></div><small>v1.8.4 · Suat DOĞU · Salt okunur analiz</small></div><span id="health" class="badge">● Bağlanıyor</span></header>
 <main><div class="row" style="margin-bottom:12px"><select id="symbol"><option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option><option>BNBUSDT</option><option>XRPUSDT</option><option>DOGEUSDT</option><option>ADAUSDT</option><option>AVAXUSDT</option></select><small id="stamp">Son işlem: —</small></div>
@@ -296,7 +319,7 @@ body.timi-ui-v21.timi-ui-contrast .foot button:not(.active){color:#d5e6f7}
 
 </section>
 <section id="flow" class="section"><div class="twocol"><div class="card"><h3>Order Book · 20 seviye</h3><div class="bookhead"><span>Fiyat</span><span>Miktar</span><span>Kümülatif</span></div><div id="asks"></div><div class="stat"><strong id="mid">—</strong><small>En iyi alış / satış</small></div><div id="bids"></div></div><div class="card"><h3>Time &amp; Sales</h3><div class="bookhead"><span>Saat</span><span>Fiyat</span><span>Miktar</span></div><div id="trades"></div></div></div></section>
-<section id="more" class="section"><div class="card"><h3>TiMi SCALP PRO v1.8.5</h3><p class="note">Canlı Binance Spot fiyat, işlem akışı, 20 seviyeli kısmi emir defteri, 60 saniyelik CVD, EMA, RSI, MACD, Bollinger, ATR, VWAP, çoklu zaman analizi ve LONG/SHORT/BEKLE karar motoru. MTF kapanmış mum denetimi, doğrulanan likidite duvarları, eşzamanlı emir defteri kontrolü ve ileriye dönük sinyal gözlemleri.</p><div class="stat"><span>Gerçek emir</span><strong class="gold">KAPALI</strong></div><div class="stat"><span>Sanal işlem</span><strong class="gold">KALDIRILDI</strong></div><div class="stat"><span>Sunucu sürümü</span><strong id="serverVersion">Kontrol ediliyor</strong></div><div class="stat"><span>Canlı LightGBM</span><strong id="modelStatus" class="gold">Yüklenmedi</strong></div><p class="note" id="modelNote">train_model-1.py ayrı bir araştırma betiğidir. Canlı sinyaller kural tabanlıdır; model eğitimi otomatik başlamaz.</p><div class="stat"><span>Sinyal gözlemi</span><strong id="auditEnabled">Kontrol ediliyor</strong></div><div class="stat"><span>Toplu göstergeler</span><strong id="indicatorCount">Test edilmedi</strong></div><button class="btn" id="testIndicators">5m gösterge sayısını kontrol et</button></div><div class="card"><h3>Gateway adresi</h3><p class="note">Render'da aynı alan adında kullanıyorsan değiştirme. GitHub Pages üzerinden açıyorsan HTTPS Render adresini gir.</p><input id="gateway" placeholder="https://timi-scalp-pro.onrender.com"><button class="btn" id="saveGateway">Kaydet ve bağlan</button></div></section></main>
+<section id="more" class="section"><div class="card"><h3>TiMi SCALP PRO v1.8.6</h3><p class="note">Canlı Binance Spot fiyat, işlem akışı, 20 seviyeli kısmi emir defteri, 60 saniyelik CVD, EMA, RSI, MACD, Bollinger, ATR, VWAP, çoklu zaman analizi ve LONG/SHORT/BEKLE karar motoru. MTF kapanmış mum denetimi, doğrulanan likidite duvarları, eşzamanlı emir defteri kontrolü ve ileriye dönük sinyal gözlemleri.</p><div class="stat"><span>Gerçek emir</span><strong class="gold">KAPALI</strong></div><div class="stat"><span>Sanal işlem</span><strong class="gold">KALDIRILDI</strong></div><div class="stat"><span>Sunucu sürümü</span><strong id="serverVersion">Kontrol ediliyor</strong></div><div class="stat"><span>Canlı LightGBM</span><strong id="modelStatus" class="gold">Yüklenmedi</strong></div><p class="note" id="modelNote">train_model-1.py ayrı bir araştırma betiğidir. Canlı sinyaller kural tabanlıdır; model eğitimi otomatik başlamaz.</p><div class="stat"><span>Sinyal gözlemi</span><strong id="auditEnabled">Kontrol ediliyor</strong></div><div class="stat"><span>Toplu göstergeler</span><strong id="indicatorCount">Test edilmedi</strong></div><button class="btn" id="testIndicators">5m gösterge sayısını kontrol et</button></div><div class="card"><h3>Gateway adresi</h3><p class="note">Render'da aynı alan adında kullanıyorsan değiştirme. GitHub Pages üzerinden açıyorsan HTTPS Render adresini gir.</p><input id="gateway" placeholder="https://timi-scalp-pro.onrender.com"><button class="btn" id="saveGateway">Kaydet ve bağlan</button></div></section></main>
 <nav class="foot"><button class="active" data-page="overview">▦<div>Özet</div></button><button data-page="chart">▥<div>Grafik</div></button><button data-page="more">☰<div>Menü</div></button></nav><div id="toast"></div>
 <script>
 'use strict';const $=id=>document.getElementById(id),fmt=(v,d=2)=>v!==null&&v!==undefined&&Number.isFinite(Number(v))?Number(v).toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
@@ -3725,5 +3748,121 @@ return {STEPS,bars,mean,atr,ema,adx,regime,smc,breakout,vwap,volumeProfile,analy
 </script>
 <!-- TiMi Intelligence v1 END -->
 
+<script id="timi-forward-panel">
+/* TiMi v1.8.6 — Forward-only, cost-adjusted observation panel.
+ * Additive and read-only. No trading buttons, orders or ML training.
+ */
+(()=>{
+ 'use strict';
+ if(window.__timiForwardPanelReady)return;
+ window.__timiForwardPanelReady=true;
+ const $=id=>document.getElementById(id);
+ const state={tf:'1m',busy:false,seq:0,lastKey:'',timer:null};
+ const fmt=(v,n=2)=>typeof v==='number'&&Number.isFinite(v)?v.toLocaleString('tr-TR',{minimumFractionDigits:n,maximumFractionDigits:n}):'—';
+ const dt=ms=>Number.isFinite(Number(ms))?new Date(Number(ms)).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—';
+ const root=()=>{try{return(typeof gateway==='string'?gateway:($('gateway')?.value||location.origin)).replace(/\/$/,'');}catch(_){return location.origin;}};
+ const symbol=()=>($('symbol')?.value||'BTCUSDT').toUpperCase();
+ const visible=()=>document.visibilityState==='visible'&&$('overview')?.classList.contains('active');
+ const note=(message)=>{$('timiFpStatus').textContent=message;};
+ function label(id,text,cls){const node=$(id);node.textContent=text;if(cls)node.className=cls;}
+ function build(){
+  const page=$('overview');if(!page)return;
+  const card=document.createElement('div');card.className='card timi-fp';card.id='timiForwardPerformance';
+  card.innerHTML=`<div class="row timi-fp-head"><h3>📊 İleriye Dönük Sinyal Performansı</h3><span class="badge">Canlı gözlem · emir yok</span></div>
+   <div class="timi-fp-switch"><button type="button" data-fp-tf="1m" class="active">1 dakika</button><button type="button" data-fp-tf="5m">5 dakika</button><button type="button" id="timiFpRefresh">⟳ Güncelle</button></div>
+   <div id="timiFpStatus" class="note" aria-live="polite">Canlı kayıt durumu sorgulanıyor…</div>
+   <div class="timi-fp-grid">
+    <div class="metric"><small>Ölçülmüş sinyal</small><strong id="timiFpMeasured">—</strong></div>
+    <div class="metric"><small>Net doğru / yanlış</small><strong id="timiFpCorrectWrong">—</strong></div>
+    <div class="metric"><small>Maliyet sonrası pozitif</small><strong id="timiFpPositive">—</strong></div>
+    <div class="metric"><small>Ortalama net değişim</small><strong id="timiFpMean">—</strong></div>
+    <div class="metric"><small>Medyan net değişim</small><strong id="timiFpMedian">—</strong></div>
+   </div>
+   <div class="timi-fp-states"><span id="timiFpLong">LONG: —</span><span id="timiFpShort">SHORT: —</span><span id="timiFpPending">Bekleyen: —</span><span id="timiFpMissing">Eksik: —</span><span id="timiFpStorage">Kayıt: —</span></div>
+   <div id="timiFpWarning" class="note timi-fp-warning">En az 100 ölçüm olmadan sonuçlar ön değerlendirmedir.</div>
+   <details class="timi-fp-details"><summary>Son 20 sinyalin ayrıntıları</summary><div id="timiFpRows" class="timi-fp-rows">Henüz kayıt yok.</div></details>
+   <div class="note timi-fp-note">Yalnız ana TiMi motorunun canlı LONG/SHORT sinyalleri. Sinyalden <b>sonraki</b> dakika açılışı ve ileride gözlenen alış/satış kotasyonları esas alınır. Alış-satış farkı, çift yönlü komisyon ve kayma hesaba katılır. Eksik veri sonucu başarıya dahil edilmez. Bu, gerçekleşmiş işlem kârı veya başarı garantisi değildir.</div>`;
+  page.firstElementChild?.insertAdjacentElement('afterend',card);
+  if(!card.isConnected)page.prepend(card);
+  card.querySelectorAll('button[data-fp-tf]').forEach(btn=>btn.addEventListener('click',()=>{
+   state.tf=btn.dataset.fpTf;
+   card.querySelectorAll('button[data-fp-tf]').forEach(b=>b.classList.toggle('active',b===btn));
+   void refresh(true);
+  }));
+  $('timiFpRefresh').addEventListener('click',()=>void refresh(true));
+  $('symbol')?.addEventListener('change',()=>void refresh(true));
+  $('saveGateway')?.addEventListener('click',()=>setTimeout(()=>void refresh(true),100));
+ }
+ function showRows(rows){
+  const container=$('timiFpRows');if(!container)return;
+  container.replaceChildren();
+  if(!rows.length){container.textContent='Henüz LONG/SHORT sinyali kaydedilmedi.';return;}
+  rows.forEach(row=>{
+   const outcome=row.outcomes?.[state.tf];
+   if(!outcome)return;
+   const status=outcome.status==='measured'?'Ölçüldü':outcome.status==='missing_data'?'Eksik veri':'Beklemede';
+   const line=document.createElement('div');line.className='timi-fp-record';
+   const head=document.createElement('strong');head.textContent=`${dt(row.observed_at_ms)} · ${row.direction||'?'} · Skor ${row.score??'—'}`;
+   const value=document.createElement('span');
+   value.textContent=outcome.status==='measured'?`${fmt(outcome.net_pct,4)}% net · ${Number(outcome.net_pct)>0?'Pozitif':'Pozitif değil'}`:status;
+   value.className=outcome.status==='measured'?(Number(outcome.net_pct)>0?'green':'red'):'gold';
+   line.append(head,value);container.append(line);
+  });
+ }
+ async function refresh(force=false){
+  if(!visible()&&!force)return;
+  if(state.busy)return;
+  const k=root()+'|'+symbol()+'|'+state.tf;
+  if(!force&&k===state.lastKey&&Date.now()-Number($('timiForwardPerformance')?.dataset.last||0)<15000)return;
+  const seq=++state.seq;state.busy=true;
+  note('Canlı performans verileri okunuyor…');
+  try{
+   const url=root()+'/api/forward-performance/'+encodeURIComponent(symbol())+'?limit=20';
+   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),11000);
+   let response;
+   try{response=await fetch(url,{cache:'no-store',signal:controller.signal});}
+   finally{clearTimeout(timeout);}
+   if(!response.ok)throw Error('HTTP '+response.status);
+   const data=await response.json();
+   if(seq!==state.seq||data.symbol!==symbol())return;
+   state.lastKey=k;
+   $('timiForwardPerformance').dataset.last=Date.now();
+   const m=data.horizons?.[state.tf];if(!m)throw Error('Performans alanı yok');
+   label('timiFpMeasured',String(m.measured));
+   label('timiFpCorrectWrong',String(m.net_positive)+' / '+String(m.net_not_positive));
+   for(const [dir,id] of [['LONG','timiFpLong'],['SHORT','timiFpShort']]){
+    const part=m.by_direction?.[dir];
+    label(id,dir+': '+(part?part.net_positive+'/'+part.measured:'—')+' net pozitif');
+   }
+   label('timiFpPositive',m.net_positive_pct==null?'—':fmt(m.net_positive_pct)+'%',m.net_positive_pct>=50?'green':'gold');
+   label('timiFpMean',m.mean_net_pct==null?'—':fmt(m.mean_net_pct,4)+'%',m.mean_net_pct>0?'green':'red');
+   label('timiFpMedian',m.median_net_pct==null?'—':fmt(m.median_net_pct,4)+'%',m.median_net_pct>0?'green':'red');
+   label('timiFpPending','Bekleyen: '+m.pending);
+   label('timiFpMissing','Eksik veri: '+m.missing);
+   const durable=data.storage==='postgresql';
+   label('timiFpStorage','Kayıt: '+(durable?'PostgreSQL':'Geçici / Bellek'));
+   if(data.enabled===false){note('Bu paritede sinyal gözlemi kapalı. Varsayılan BTCUSDT; istenirse Render TIMI_SIGNAL_AUDIT_SYMBOLS ile açılır.');}
+   else if(m.measured===0){note(symbol()+' · Henüz tamamlanan '+state.tf+' LONG/SHORT sinyali yok. BEKLE sonuç sayılmaz.');}
+   else{note(symbol()+' · '+state.tf+' · Gerçekleşmiş piyasa gözlemleri · maliyet sonrası varsayımsal sonuç');}
+   const warning=[];
+   if(m.insufficient_sample)warning.push('Örnek az: '+m.measured+'/100. Geçerli başarı kanıtı değildir.');
+   if(data.storage!=='postgresql')warning.push('Sunucu yeniden başlarsa geçmiş kaybolabilir. Kalıcı saklama için Render PostgreSQL gerekir.');
+   if(data.storage_error)warning.push('Veritabanı: '+data.storage_error);
+   if(data.failed_writes)warning.push('Başarısız kayıt yazımı: '+data.failed_writes);
+   warning.push('Maliyet: '+fmt(data.roundtrip_fee_slippage_pct,2)+'% (gidiş-dönüş komisyon + kayma); alış/satış kotasyon farkı ayrıca fiyata dahildir. SHORT gözlemi spot açığa satış işlemi değildir.');
+   label('timiFpWarning',warning.join(' '));
+   showRows(data.observations||[]);
+  }catch(e){if(seq===state.seq){
+   for(const id of ['timiFpMeasured','timiFpCorrectWrong','timiFpPositive','timiFpMean','timiFpMedian'])label(id,'—');
+   label('timiFpPending','Bekleyen: —');label('timiFpMissing','Eksik: —');
+   label('timiFpStorage','Kayıt durumu doğrulanamadı');
+   note('Performans verisi alınamadı: '+String(e.message||e));
+  }}
+  finally{state.busy=false;}
+ }
+ function boot(){build();void refresh(true);state.timer=setInterval(()=>void refresh(),15000);document.addEventListener('visibilitychange',()=>{if(visible())void refresh(true);});}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+</script>
 </body></html>
 
