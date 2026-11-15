@@ -1,0 +1,288 @@
+name: TiMi - SMC PRO 3.6 Grafik Sadelesme ve 20 Profesyonel Gelistirme
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timi-smc36-visual-research-install
+  cancel-in-progress: false
+
+jobs:
+  install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Backup exact previous SMC and application
+        shell: bash
+        run: |
+          cp index.html index_before_smc36.html
+          cp timi_smc_pro_v35.js timi_smc_before_v36.js
+
+      - name: Patch SMC UI safely and preserve old modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          """TiMi SMC PRO 3.6 isolated and SHA-pinned UI patch.
+          No order endpoints, no data collection or persistent signals.
+          """
+          from pathlib import Path
+          import re
+          import subprocess
+
+          EXPECTED = {
+              'index.html': '30dd0c05a00947952ab453a2ab3c372e420a2758',
+              'timi_smc_pro_v35.js': '64c5b74ad668664941d9acc1fa9278a3b9ef8f68',
+          }
+          for fname, expected in EXPECTED.items():
+              actual = subprocess.check_output(['git', 'hash-object', fname], text=True).strip()
+              if actual != expected:
+                  raise SystemExit(f'GUVENLIK DURDURMASI: {fname} SHA degisti: {actual}; kaynaklara dokunulmadi')
+
+          source = Path('timi_smc_pro_v35.js')
+          page = Path('index.html')
+          js = source.read_text(encoding='utf8')
+          html = page.read_text(encoding='utf8')
+          old_html = html
+          pat = re.compile(r'(<script id="timi-smc-v35">\s*\n)(.*?)(\n</script>)', re.S)
+          matches = list(pat.finditer(html))
+          if len(matches) != 1 or matches[0].group(2).strip() != js.strip():
+              raise SystemExit('GUVENLIK DURDURMASI: inline SMC kaynak kodu eslesmiyor')
+
+
+          def exact(old, new, reason):
+              global js
+              count = js.count(old)
+              if count != 1:
+                  raise SystemExit(f'GUVENLIK DURDURMASI: {reason} icin {count} hedef bulundu; degisiklik yok')
+              js = js.replace(old, new, 1)
+
+
+          exact(
+              " const summary=mtf(state.rows),value=summary.aligned?(summary.direction==='LONG'?'3/3 YUKARI':'3/3 AŞAĞI'):`${summary.valid}/3 geçerli`;\n"
+              " if(el('smc35Status'))el('smc35Status').textContent=state.busy?'Hesaplanıyor':value;\n"
+              " if(el('smc35Mtf'))el('smc35Mtf').textContent=summary.description+' · Bu sonuç AL/SAT olasılığı değildir.';",
+              " const summary=mtf(state.rows);\n"
+              " const conflict=summary.valid===3&&summary.directions.includes('LONG')&&summary.directions.includes('SHORT');\n"
+              " const value=summary.aligned?(summary.direction==='LONG'?'3/3 YUKARI':'3/3 AŞAĞI'):\n"
+              "  conflict?'YÖN ÇATIŞMASI':summary.valid<3?'VERİ EKSİK':'YÖN TEYİDİ YOK';\n"
+              " const badge=el('smc35Status');if(badge){badge.textContent=state.busy?'Hesaplanıyor':value;\n"
+              "  badge.classList.toggle('sm35conflict',conflict);badge.classList.toggle('sm35missing',summary.valid<3);}\n"
+              " const directionName={LONG:'YUKARI',SHORT:'AŞAĞI',WAIT:'NÖTR'};\n"
+              " const detailTF=TF_LIST.map(tf=>tf+' '+(state.rows[tf]?.ready?(directionName[state.rows[tf].direction]||'NÖTR'):'VERİ EKSİK')).join(' · ');\n"
+              " if(el('smc35Mtf'))el('smc35Mtf').textContent=value+' · '+detailTF+' · Yapısal değerlendirmedir; AL/SAT başarı olasılığı değildir.';",
+              'MTF yon durum metni',
+          )
+          exact(
+              '  <div class="sm35callout" id="smc35Detail">Hesaplama bekleniyor.</div>',
+              '  <div class="sm35quality" role="note">K = kural tabanlı bölge kalitesi. 100/100, %100 başarı olasılığı veya AL/SAT tavsiyesi değildir.</div>\n'
+              '  <div class="sm35callout" id="smc35Detail">Hesaplama bekleniyor.</div>',
+              'Kalite puani aciklama satiri',
+          )
+          exact(
+              '@media(max-width:390px){#timiSmc35 .sm35body{padding:0 9px 10px}',
+              " #timiSmc35 #smc35Status.sm35conflict{color:#ffd58e}#timiSmc35 #smc35Status.sm35missing{color:#ff99a9}\n"
+              " #timiSmc35 .sm35quality{margin:5px 0 10px;padding:8px;border-left:3px solid #c5a15b;background:#1b3146;color:#e6cda4;font-size:10px;line-height:1.5}\n"
+              " #timiSmc35Legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:7px 0 9px;padding:7px;border-radius:10px;border:1px solid #36516c;background:#102439;color:#c9dceb;font:10px system-ui}\n"
+              " #timiSmc35Legend[hidden]{display:none!important}#timiSmc35Legend .sm36note{flex:1 1 100%;color:#dfc896;font-size:10px}\n"
+              " #timiSmc35Legend .sm36chip{border:1px solid #415c73;border-left:3px solid;border-radius:7px;padding:6px 7px;background:#1b3148;color:#e1effd;max-width:100%;overflow-wrap:anywhere}\n"
+              '@media(max-width:390px){#timiSmc35 .sm35body{padding:0 9px 10px}',
+              'Grafik disi etiket ve kalite CSS',
+          )
+          exact(
+              "function tag(chart,at,value,label,color,groupId){if(!state.showLabels)return;try{chart.createOverlay({name:'simpleTag',groupId,lock:true,points:[{timestamp:at,value}],extendData:label,\n"
+              " styles:{line:{color,size:1},text:{color,size:10}}});}catch(_){}}\n",
+              """// Price-anchored lines stay on the chart. Labels live above the canvas, not on top
+          // of the price-axis or the last candle. Their actual source price is preserved.
+          function hideLegend(){const host=el('timiSmc35Legend');if(host){host.hidden=true;host.replaceChildren();}}
+          function ensureLegend(){const stage=el('timiKlineStage');if(!stage)return null;
+           let host=el('timiSmc35Legend');if(!host){host=d.createElement('div');host.id='timiSmc35Legend';stage.before(host);}
+           return host;}
+          function paintLegend(z,tf){const host=ensureLegend();if(!host)return;
+           host.hidden=!state.showChart||!state.showLabels||!z?.ready;host.replaceChildren();if(host.hidden)return;
+           const intro=d.createElement('small');intro.className='sm36note';intro.textContent=tf+' · K = kural kalitesi, başarı yüzdesi değil';host.append(intro);
+           const items=[];
+           if(state.showOB)for(const x of z.activeOB.slice(0,1))items.push({kind:'OB',k:x.score,price:dec(x.lower,8)+'–'+dec(x.upper,8),color:x.side==='LONG'?'#2bddaa':'#ff7998'});
+           if(state.showFVG)for(const x of z.activeFVG.slice(0,1))items.push({kind:'FVG',k:x.score,price:dec(x.lower,8)+'–'+dec(x.upper,8),color:x.side==='LONG'?'#16cbb4':'#e59878'});
+           if(state.showSweep)for(const x of z.sweeps.slice(0,1))items.push({kind:'SWEEP',k:x.score,price:dec(x.price,8),color:'#ffcc72'});
+           if(!items.length){const empty=d.createElement('span');empty.textContent='Aktif çizim adayı yok';host.append(empty);return;}
+           for(const x of items){const chip=d.createElement('span');chip.className='sm36chip';chip.style.borderLeftColor=x.color;
+            chip.textContent=x.kind+' K'+x.k+' · '+x.price;chip.title=x.kind+' kaydedilmemiş geçici bölge · K sadece kalite puanıdır';host.append(chip);}
+          }
+          """,
+              'Cakisan KLineChart etiketlerinin kaldirilmasi',
+          )
+          exact(
+              "function draw(){const bridge=root.timiKlineSMCBridge?.snapshot?.();const chart=bridge?.chart;\n"
+              " if(!state.showChart){if(state.chart)emptyChart(state.chart);state.chart=null;state.lastDrawKey='';return;}\n"
+              " if(!bridge?.ready||!chart)return;",
+              "function draw(){const bridge=root.timiKlineSMCBridge?.snapshot?.();const chart=bridge?.chart;\n"
+              " if(!state.showChart){if(state.chart)emptyChart(state.chart);state.chart=null;state.lastDrawKey='';hideLegend();return;}\n"
+              " if(!bridge?.ready||!chart){hideLegend();return;}",
+              'Chart gorunurluk durumu',
+          )
+          exact(
+              " if(s!==currentSymbol()||!TF_LIST.includes(tf)||!z?.ready||Date.now()-z.at>2*STEPS[tf]+15000){emptyChart(chart);state.lastDrawKey='';return;}\n"
+              " const bars=bridge.bars||[],lastChartBar=bars.at(-1)?.timestamp;",
+              " if(s!==currentSymbol()||!TF_LIST.includes(tf)||!z?.ready||Date.now()-z.at>2*STEPS[tf]+15000){emptyChart(chart);state.lastDrawKey='';hideLegend();return;}\n"
+              " paintLegend(z,tf);\n"
+              " const bars=bridge.bars||[],lastChartBar=bars.at(-1)?.timestamp;",
+              'Gecikmis veride etiket temizleme',
+          )
+          exact(
+              "  tag(chart,end,ob.upper,'OB '+ob.score+'/100',c,groups[0]);}",
+              ' }', 'OB grafik etiketi',
+          )
+          exact(
+              "  tag(chart,end,f.upper,'FVG '+f.score+'/100',c,groups[1]);}",
+              ' }', 'FVG grafik etiketi',
+          )
+          exact(
+              "  tag(chart,sw.at,sw.price,'Sweep',c,groups[2]);}",
+              ' }', 'Sweep grafik etiketi',
+          )
+          # All patch decisions are based on current user's GitHub file, not guessed versions.
+          if js.count('function paintLegend(')!=1 or "name:'simpleTag'" in js[js.index('// Price-anchored lines'):]:
+              raise SystemExit('GUVENLIK DURDURMASI: chart labels still overlap')
+
+          match = matches[0]
+          new_html = html[:match.start(2)] + js.rstrip('\n') + html[match.end(2):]
+          if old_html.count('<script') != new_html.count('<script') or old_html.count('</script>') != new_html.count('</script>'):
+              raise SystemExit('GUVENLIK DURDURMASI: script sayisi degisti')
+          for marker in ['timi-orderflow-v23','timi-health22-js','timi-v20-ui','timi-smc-1-2','timi-meta-widget-inline']:
+              if marker not in new_html:
+                  raise SystemExit(f'GUVENLIK DURDURMASI: Modul kayboldu {marker}')
+          source.write_text(js, encoding='utf8')
+          page.write_text(new_html, encoding='utf8')
+          print('SMC 3.6: etiketler grafik disi legend, acik yon catismasi ve puan aciklamasi eklendi.')
+          print('Mevcut piyasa verisi, ML, WebSocket, SMC motoru ve AL/SAT sinyal kurallari korunuyor.')
+          PY
+
+      - name: Write professional development research and 20 ideas
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > TiMi_Profesyonel_Gelistirme_v36_TR.md <<'MD'
+          # TiMi SCALP PRO — Profesyonel Platform Karşılaştırması ve 20 Geliştirme Fırsatı
+
+          **Tarih:** 15 Kasım 2026  
+          **Geliştirici:** Suat DOĞU  
+          **Kapsam:** Android/PWA, salt okunur, Binance Spot + desteklenen Futures kaynakları. Gerçek emir, sinyal arşivi, sonradan isabet takibi veya hesap anahtarı eklenmez.
+
+          ## Mevcut TiMi'deki doğrulanmış altyapı
+
+          - Binance Spot WebSocket canlı işlemler (`@trade`), kısmi 20-kademe depth (`@depth20`) ve 1m mumlar.
+          - Order Flow PRO 3.0, 15/60/300 sn Delta, fiyat kademeli akış; veri sağlığı ve kaynak kısıtı denetimi.
+          - SMC PRO 3.5: kapanmış mum BOS/CHoCH, FVG, OB kalite, sweep, 1m/5m/15m; KLineChart.
+          - Futures ve ML modülleri mevcut; kaynak yoksa veriler uydurulmamalı ve kapsamları ayrıştırılmalı.
+
+          ## Bugün eklenen SMC 3.6 kullanılabilirlik güncellemesi
+
+          - MTF yönleri 1m/5m/15m ayrı yazılır. 3/3 veri geçerli ama zıt yön varsa `YÖN ÇATIŞMASI` görünür; veri eksikse ayrı uyarı.
+          - FVG/OB/Sweep çizgilerinin fiyat seviyeleri aynı kalır; sağ yığılmış `simpleTag` etiketleri kaldırılır, grafiğin üstünde en güncel aday başına bir kısa `K` kalite etiketi çıkar.
+          - 100/100 puanı yalnız kural tabanlı bölge kalitesidir; doğrulanmış başarı yüzdesi, tahmin olasılığı veya emir önerisi değildir.
+
+          ## 20 uygulanabilir geliştirme (öncelik sırasıyla)
+
+          | Sıra | Geliştirme | TiMi'ye katkısı | Gereken veri/önkoşul | Durum |
+          |---|---|---|---|---|
+          | 1 | Çakışmasız SMC etiket/katman sistemi | Grafik daha okunaklı | Mevcut KLineChart/SMC | **SMC 3.6 paketinde** |
+          | 2 | Belirgin MTF yön çatışması ve eksik veri rozeti | Yanlış 3/3 yorumunu önler | Mevcut SMC 1/5/15m | **SMC 3.6 paketinde** |
+          | 3 | Kaynak kökeni/güncellik matrisi | `Hangi borsa? Kaç sn gecikme?` | Gateway health | Öncelikli |
+          | 4 | İşlem kaynaklı gerçek Footprint (agresif alış/satış) | Fiyat seviyelerinde baskı | Eksiksiz gözlemlenen trade akışı | Öncelikli, *yalnız canlı pencere* |
+          | 5 | Gözlemlenen seans CVD + sıfırlama | Delta ile fiyat çelişkisi | Trade zaman/dedup | Öncelikli, kalıcı kayıt yok |
+          | 6 | Gerçek işlem hacmi Volume Profile/POC | İşlemin yoğunlaştığı fiyat aralığı | Canlı trade dağılımı | Orta |
+          | 7 | Session / Anchored VWAP | Ortalama işlemlenen fiyat referansı | Doğru zaman/quote/volume | Orta |
+          | 8 | Tarih içinde 20-kademe likidite ısı haritası | Görünen pasif likidite değişimi | Snapshot zaman matrisi | Orta; 20 seviyenin ötesi yok |
+          | 9 | Büyük işlem baloncukları | Gerçekleşmiş yüksek notional işlemler | Trade ve sembol bazlı eşik | Orta |
+          | 10 | Emir defteri yenilenme/çekilme adayları | Likidite davranışı | Aynı fiyat seviyesi güncellemeleri | Mevcut motor güçlendirme; spoof/iceberg kanıtı değil |
+          | 11 | Cross-venue Spot fiyat farkı | Binance/OKX/Bitget uyuşmazlığı | Ayrı piyasa tanımları ve zaman eşleme | Orta |
+          | 12 | Futures funding/OI/basis güvenilirlik kontrolü | Spekülasyon baskısını daha iyi yorumlama | Borsa bazında birim, timestamp, sözleşme | Öncelikli, erişim kısıtı olabilir |
+          | 13 | Spot vs Futures yön ayrışması | Spot işlemler ile türev baskısı ayrımı | Senkronize zaman ve piyasa | Orta |
+          | 14 | SMC bölgesi yaşam döngüsü | OB/FVG ilk temas, dolum, iptal | Kapanmış mum geçmişi | Mevcut 3.5 genişletme |
+          | 15 | Likidite sweep + gerçek trade tepki kontrolü | Tek başına fitil yerine teyit | Spot trade + kapanmış mum | Orta |
+          | 16 | İşlem maliyet/risk kalkanı | Spread, kayma, ücret uyarısı | Anlık spread ve varsayımlar | Öncelikli; emir yok |
+          | 17 | Alarm eşik ve cooldown (sadece kullanıcı açıkken) | Ekranda uyarı selini önler | Canlı olay ve zaman kontrolü | Orta; bildirim opt-in |
+          | 18 | Grafik katman yöneticisi / tek tuşla sade görünüm | Mobil ekranı kalabalıklaştırmaz | KLineChart çizim grupları | Orta |
+          | 19 | Veri bağlantısı kesinti/fallback testleri | Sahte canlı etiketleri önler | WS bağlantı-durum makineleri | Öncelikli |
+          | 20 | Ayrı araştırma modunda OOS/walk-forward duyarlılık testleri | Parametre aşırı uyumunu azaltır | Kullanıcının ayrıca sağladığı tarihsel veri | Sonraki faz; **sinyal loglama yok** |
+
+          ## En yüksek getirili sıradaki üç proje
+
+          1. **Flow Verisi Doğruluğu v3.1:** Trade/delta kaynak kökeni, kapsama süresi, kayıp gözlem, yeniden bağlanma; borsa farklılıklarını karıştırmama.
+          2. **Footprint + CVD v1.0:** Kısmi canlı oturumda gerçekleşen işlemlerden; eksik geçmişi asla sıfır veya tam grafik gibi göstermeme.
+          3. **Likidite Heatmap Lite:** 20 seviye kısmi defterde gözlemlenen değişimi görselleştir; tarihsel tam L2/L3 ve tasfiye verisi varmış gibi iddia etme.
+
+          ## İncelenen somut kaynaklar
+
+          - Flowsurface — https://github.com/flowsurface-rs/flowsurface — DOM/Footprint/heatmap/CVD; GPL-3.0-or-later.
+          - EdgeDepth — https://github.com/edgedepthhq/edgedepth-terminal — CVD, piyasa yeniden oynatma, veri kapsamı; AGPL-3.0 (gateway MIT).
+          - Depth — https://github.com/ChloePike/depth — çoklu borsa endeksi, alarm, vadeli veri, ortak görünüm; GPLv3.
+          - FlowMap — https://github.com/nazmiefearmutcu/flowmap — L2 heatmap ile veri kaynağı ayrımı.
+          - LuxAlgo Order Flow — https://docs.luxalgo.com/platform/charts/order-flow/introduction — gerçek trade-derived footprint, eksik veri boşluğu.
+          - GoCharting — https://gocharting.com/docs — footprint, VWAP, market/volume profile, simülatör.
+          - NautilusTrader — https://github.com/nautechsystems/nautilus_trader — L1/L2/L3 veri ayrımı ve deterministik analiz mimarisi.
+          - Reddit /r/algotrading (2026) — https://www.reddit.com/r/algotrading/comments/1xko987/what_is_your_simplest_useful_check_against/ — parametre kararlılığı ve kör test tartışması.
+          - Reddit /r/algotrading (2026) — https://www.reddit.com/r/algotrading/comments/1t70xws/problem_with_overfitting/ — walk-forward, duyarlılık ve maliyet uyarıları.
+
+          **Lisans notu:** Yukarıdaki projelerden GPL/AGPL kod kopyalanmadı; yalnızca tasarım/analiz fikirleri referans alındı. Bir bağımlılık veya kod taşınacaksa lisansı ayrıca doğrulanmalıdır.
+
+          **Ölçüm uyarısı:** Gerçek trade ile mumdan tahmin edilen buy/sell hacmini, kısmi depth ile tam L2 order book'u, basit ısı haritasıyla gerçek tasfiye haritasını karıştırmıyoruz. Aday/puanlar kazanma olasılığı değildir.
+          MD
+          sed -i 's/[[:blank:]]*$//' TiMi_Profesyonel_Gelistirme_v36_TR.md
+
+      - name: Run SMC compatibility and visual integration checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check timi_smc_pro_v35.js
+          node test_timi_smc_pro_v35.js
+          node - <<'NODE'
+          const assert=require('node:assert/strict'),fs=require('node:fs');
+          const mod=require('./timi_smc_pro_v35.js');
+          const sample={ '1m':{ready:true,direction:'SHORT'},'5m':{ready:true,direction:'LONG'},'15m':{ready:true,direction:'LONG'} };
+          const r=mod.mtf(sample);assert.equal(r.valid,3);assert.equal(r.aligned,false);
+          const source=fs.readFileSync('timi_smc_pro_v35.js','utf8');
+          const html=fs.readFileSync('index.html','utf8');
+          assert(source.includes('YÖN ÇATIŞMASI'));
+          assert(source.includes('function paintLegend('));
+          assert(source.includes('100/100, %100 başarı olasılığı'));
+          assert(!source.includes("createOverlay({name:'simpleTag',groupId"));
+          const m=html.match(/<script id="timi-smc-v35">\s*\n([\s\S]*?)\n<\/script>/);
+          assert(m&&m[1].trim()===source.trim());
+          assert.equal((html.match(/<script/g)||[]).length,(html.match(/<\/script>/g)||[]).length);
+          console.log('PASS MTF conflict, no overlapping right-edge labels, score disclaimer, inline JS parity');
+          NODE
+          git diff --check
+
+      - name: Save rollback copies for 30 days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-before-smc36-${{ github.run_number }}
+          path: |
+            index_before_smc36.html
+            timi_smc_before_v36.js
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Commit only safe SMC UI plus development roadmap
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html timi_smc_pro_v35.js TiMi_Profesyonel_Gelistirme_v36_TR.md
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "$(printf 'TiMi_Profesyonel_Gelistirme_v36_TR.md\nindex.html\ntimi_smc_pro_v35.js')"
+          git commit -m 'TiMi SMC 3.6 declutter chart labels and clarify MTF conflict'
+          git push origin HEAD:main
