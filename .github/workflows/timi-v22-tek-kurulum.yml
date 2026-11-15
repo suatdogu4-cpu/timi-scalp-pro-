@@ -1,0 +1,86 @@
+name: TiMi v2.2 - 20 Gelistirme Yol Haritasi ve Veri Guven Merkezi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timi-v22-health-install
+  cancel-in-progress: false
+
+jobs:
+  install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Back up current interface
+        shell: bash
+        run: cp index.html index_before_timi_v22.html
+      - name: Build v2.2 source and patch HTML
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,zlib,re
+          from pathlib import Path
+          sources={
+            'timi_22_health.js': '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',
+            'TiMi_20_Gelistirme_Plani_TR.md': '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',
+          }
+          for name,encoded in sources.items():
+              Path(name).write_bytes(zlib.decompress(base64.b64decode(encoded)))
+          page=Path('index.html')
+          old=page.read_bytes()
+          git_blob=hashlib.sha1(b'blob '+str(len(old)).encode()+b'\0'+old).hexdigest()
+          expected='213aeb889573892a318e898a215b6bf3bae8c241'
+          if git_blob != expected:
+              raise ValueError('index.html kaynak surumu degismis. Islem otomatik durduruldu; mevcut verileri koruyun.')
+          html=old.decode('utf-8')
+          if 'id="timi-health22-js"' in html:
+              raise ValueError('v2.2 zaten entegre edilmis')
+          for marker in ['id="overview"','id="chart"','id="more"',
+                         'id="timi-meta-widget-inline"','id="timi-kline-10-1-0"',
+                         'id="timi-smc-1-2"','id="timi-pro-suite-v14"',
+                         'id="timi-pro-v15"','id="timi-v20-ui"','id="timi-ui-v21-js"']:
+              if marker not in html:raise ValueError('Beklenen modül eksik: '+marker)
+          js=Path('timi_22_health.js').read_text(encoding='utf-8')
+          if '</script' in js.lower():
+              raise ValueError('Kaynak kodunda script kapanis etiketi var')
+          closing=re.search(r'</body>\s*</html>\s*$',html,re.I)
+          if not closing:raise ValueError('HTML kapanisi bulunamadi')
+          added=('<!-- TiMi v2.2 - Veri Guven Merkezi: READ ONLY -->\n'
+                 '<script id="timi-health22-js">\n'+js.rstrip()+'\n</script>\n')
+          result=html[:closing.start()]+added+html[closing.start():]
+          assert result.count('<script')==result.count('</script>'), 'Script tag mismatch'
+          assert result.count('<style')==result.count('</style>'), 'Style tag mismatch'
+          assert result.count('id="timi-health22-js"')==1
+          page.write_text(result,encoding='utf-8')
+          print('Installed read-only source-quality center and 20-item roadmap; no backend changes.')
+          PY
+          node --check timi_22_health.js
+          git diff --check
+      - name: Save original interface for 30 days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-before-v22-${{ github.run_number }}
+          path: index_before_timi_v22.html
+          retention-days: 30
+          if-no-files-found: error
+      - name: Commit only UI extension and roadmap
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html timi_22_health.js TiMi_20_Gelistirme_Plani_TR.md
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "$(printf 'TiMi_20_Gelistirme_Plani_TR.md\nindex.html\ntimi_22_health.js')"
+          git commit -m 'TiMi v2.2 add read-only market source health panel and 20-feature roadmap'
+          git push origin HEAD:main
