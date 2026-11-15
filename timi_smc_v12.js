@@ -127,6 +127,13 @@
   }
   const exportsObj={analyzeClosedBars,onlyClosed,STEP};
   if(typeof module==='object'&&module.exports)module.exports=exportsObj;
+  // Public, read-only SMC analyzer for the three-tab research suite.
+  if(root && root.document && !root.timiSmcReadOnly){
+    root.timiSmcReadOnly=Object.freeze({
+      analyzeClosedBars: (bars,tf)=>analyzeClosedBars(bars,tf),
+      onlyClosed: (bars,tf,time)=>onlyClosed(bars,tf,time)
+    });
+  }
   if(!root||!root.document)return;
 
   const d=root.document;
