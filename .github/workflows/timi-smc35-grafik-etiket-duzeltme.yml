@@ -1,0 +1,131 @@
+
+name: TiMi - SMC PRO 3.5 Grafik Etiket ve Guncellik Duzeltmesi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timi-smc35-chart-label-fix
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Save original files
+        shell: bash
+        run: |
+          cp index.html index_before_smc35_chart_fix.html
+          cp timi_smc_pro_v35.js timi_smc_before_chart_fix.js
+
+      - name: Apply safe SMC PRO 3.5 chart and label fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+
+          EXPECTED = {
+              'index.html': '2752a7611b778ebd8c6a68a11ff19ce935eff365',
+              'timi_smc_pro_v35.js': 'cb1952a65ea32616ff90a5b18ed28cad1ed0b2f9',
+          }
+          for path, sha in EXPECTED.items():
+              actual = subprocess.check_output(['git', 'hash-object', path], text=True).strip()
+              if actual != sha:
+                  raise SystemExit(f'GUVENLIK DURDURMASI: {path} beklenen SHA farkli: {actual}. Mevcut dosya korunuyor.')
+
+          js = Path('timi_smc_pro_v35.js').read_text(encoding='utf-8')
+          html = Path('index.html').read_text(encoding='utf-8')
+          pattern = re.compile(r'(<script id="timi-smc-v35">\s*\n)(.*?)(\n</script>)',re.S)
+          found = list(pattern.finditer(html))
+          if len(found) != 1 or found[0].group(2).strip() != js.strip():
+              raise SystemExit('GUVENLIK DURDURMASI: index.html icindeki SMC 3.5 kodu mevcut kaynakla uyusmuyor')
+
+          changes = [
+              (
+                  "function active(){return el('proLab')?.classList.contains('active')&&el('proSmc')?.hidden===false;}",
+                  "function active(){return (el('proLab')?.classList.contains('active')&&el('proSmc')?.hidden===false)||(state.showChart&&el('chart')?.classList.contains('active'));}"
+              ),
+              (
+                  '#timiSmc35 button.active{border-color:#2dbc91;background:#155444;color:#d1ffe9}',
+                  '#proLab #timiSmc35 button.active{border-color:#2dbc91;background:#155444;color:#d1ffe9}'
+              ),
+              (
+                  '  </div>\n  <div class="sm35callout" id="smc35Detail">Hesaplama bekleniyor.</div>',
+                  '  </div>\n  <div id="smc35DrawInfo" style="font-size:10px;color:#9fbdd2;padding:4px 1px" aria-live="polite">Grafik: KAPALI · Etiketler: KAPALI</div>\n  <div class="sm35callout" id="smc35Detail">Hesaplama bekleniyor.</div>'
+              ),
+              (
+                  " if(el('smc35Mtf'))el('smc35Mtf').textContent=summary.description+' · Bu sonuç AL/SAT olasılığı değildir.';",
+                  " if(el('smc35Mtf'))el('smc35Mtf').textContent=summary.description+' · Bu sonuç AL/SAT olasılığı değildir.';\n if(el('smc35DrawInfo'))el('smc35DrawInfo').textContent='Grafik: '+(state.showChart?'AÇIK':'KAPALI')+' · Etiketler: '+(state.showLabels?'AÇIK':'KAPALI')+' · Zaman dilimi: '+state.tf;"
+              ),
+          ]
+          patched=js
+          for old,new in changes:
+              count=patched.count(old)
+              if count!=1:
+                  raise SystemExit(f'GUVENLIK DURDURMASI: eslestirme sayisi {count}; degisiklik yapilmadi')
+              patched=patched.replace(old,new,1)
+
+          Path('timi_smc_pro_v35.js').write_text(patched,encoding='utf-8')
+          match=found[0]
+          new_html=html[:match.start(2)] + patched.rstrip('\n') + html[match.end(2):]
+          Path('index.html').write_text(new_html,encoding='utf-8')
+          assert new_html.count('<script id="timi-smc-v35">')==1
+          assert new_html.count('<script')==html.count('<script')
+          assert new_html.count('</script>')==html.count('</script>')
+          for marker in ['timi-orderflow-v23','timi-health22-js','timi-v20-ui','timi-smc-1-2','timi-meta-widget-inline']:
+              assert marker in new_html, marker
+          print('SMC 3.5: grafik yenileme, etiket durum bilgisi ve aktif buton rengi duzeltildi.')
+          print('Mevcut moduller ve Binance WebSocket degistirilmedi.')
+          PY
+
+      - name: Validate JavaScript and previous SMC tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check timi_smc_pro_v35.js
+          node test_timi_smc_pro_v35.js
+          git diff --check
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('index.html').read_text(encoding='utf8')
+          src=Path('timi_smc_pro_v35.js').read_text(encoding='utf8')
+          m=re.search(r'<script id="timi-smc-v35">\s*\n(.*?)\n</script>',s,re.S)
+          assert m and m.group(1).strip()==src.strip()
+          print('Index inline JS ve harici SMC JS uyumlu.')
+          PY
+
+      - name: Keep 30-day backup
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-before-smc35-chart-fix-${{ github.run_number }}
+          path: |
+            index_before_smc35_chart_fix.html
+            timi_smc_before_chart_fix.js
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Commit only two changed SMC files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html timi_smc_pro_v35.js
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "$(printf 'index.html\ntimi_smc_pro_v35.js')"
+          git commit -m 'TiMi SMC 3.5 fix chart refresh and button label visibility'
+          git push origin HEAD:main
