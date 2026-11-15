@@ -1,0 +1,466 @@
+name: TiMi SCALP PRO - Kritik Veri ve Sinyal Duzeltme v1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timi-scalp-critical-safe-fix
+  cancel-in-progress: false
+
+jobs:
+  guarded_fix:
+    name: Yedekle - Duzelt - Test Et - Guvenli Commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout current working main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Backup working code before any modification
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p timi_backup_before_critical_fix
+          for f in main.py index.html timi_v20_backend.py timi_intel_core.js timi_intel_ui.js test_timi_intel.js; do
+            test -s "$f" || { echo "REQUIRED SOURCE MISSING: $f"; exit 1; }
+            cp "$f" timi_backup_before_critical_fix/
+          done
+          echo "Backup created before patch. No source modifications yet."
+
+      - name: Apply guarded fixes to reviewed source anchors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          #!/usr/bin/env python3
+          """TiMi SCALP PRO guarded hotfix installer (GitHub Actions / local checkout).
+          
+          Applies only to the reviewed 2026-11-15 source shape. Fails closed if any
+          anchor differs. Does not change real-order or paper-order availability.
+          """
+          from __future__ import annotations
+          from pathlib import Path
+          import re
+          
+          ROOT = Path.cwd()
+          changed = {}
+          
+          
+          def get(filename):
+              return changed.get(filename, (ROOT / filename).read_text(encoding='utf-8'))
+          
+          
+          def set_text(filename, value):
+              changed[filename] = value
+          
+          
+          def replace(filename, old, new, label):
+              source = get(filename)
+              count = source.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{filename} {label}: expected 1 anchor, got {count}; no files written')
+              set_text(filename, source.replace(old, new, 1))
+          
+          # 1. Reconnect: discard stale market state from previous upstream connection.
+          replace('main.py', '''async def relay():
+          ''', '''def reset_stream_state():
+              """Purge previous Binance connection data before consuming a new session."""
+              for m in markets.values():
+                  m.price = m.change = m.volume = m.high = m.low = None
+                  m.bid = m.ask = None
+                  m.bids, m.asks = [], []
+                  m.trades.clear()
+                  m.tape.clear()
+                  m.book_history.clear()
+                  m.depth_snapshots.clear()
+                  m.wall_seen = {'bid': {}, 'ask': {}}
+                  m.last_trade_ms = m.last_book_ms = m.last_ticker_ms = None
+                  m.last_trade_id = m.last_book_update_id = None
+                  m.book_valid, m.book_error = False, 'Upstream reconnecting'
+                  m.live_candle = None
+                  m.last_candle_ms = m.last_closed_candle = None
+              analysis_cache.clear()
+              v2_live.reset_all()
+              v23_live.reset_all()
+          
+          
+          async def relay():
+          ''', 'upstream purge helper')
+          replace('main.py', '''                # Never match snapshots retained from a previous connection.
+                          for existing_market in markets.values():
+                              existing_market.depth_snapshots.clear()
+                          v23_live.reset_all()  # discard all stale observations after a reconnect
+          ''', '''                # A fresh upstream connection must not inherit trade/depth evidence.
+                          reset_stream_state()
+          ''', 'relay purge call')
+          replace('main.py', "VERSION = '1.8.4'", "VERSION = '1.8.5'", 'health version bump')
+          replace('main.py', 'TiMi SCALP PRO v1.8.4 — read-only Binance Spot analytics.', 'TiMi SCALP PRO v1.8.5 — read-only Binance Spot analytics.', 'docstring version bump')
+          replace('index.html', '<title>TiMi SCALP PRO v1.8.4</title>', '<title>TiMi SCALP PRO v1.8.5</title>', 'browser title version bump')
+          replace('index.html', '<h3>TiMi SCALP PRO v1.8.4</h3>', '<h3>TiMi SCALP PRO v1.8.5</h3>', 'information tab version bump')
+          # Clear ALL browser clients on upstream reset, not only when their own socket reconnects.
+          replace('main.py', '''                reset_stream_state()
+                          async for raw in ws:
+          ''', '''                reset_stream_state()
+                          for market_symbol in SYMBOLS:
+                              await broadcast(market_symbol, {'type': 'upstream_reset',
+                                                              'symbol': market_symbol, 'ts': now_ms()})
+                          async for raw in ws:
+          ''', 'notify clients on a new upstream session')
+          replace('main.py', '''            LOG.warning('Binance stream disconnected: %s', exc)
+                      await asyncio.sleep(delay)
+          ''', '''            for market_symbol in SYMBOLS:
+                          await broadcast(market_symbol, {'type': 'upstream_down',
+                                                          'symbol': market_symbol, 'ts': now_ms()})
+                      LOG.warning('Binance stream disconnected: %s', exc)
+                      await asyncio.sleep(delay)
+          ''', 'notify clients on upstream failure')
+          replace('index.html', "}else if(m.type==='heartbeat'&&!m.upstream_connected){", "}else if(m.type==='upstream_down'||m.type==='upstream_reset'){market={};lastTrade=0;lastBook=0;analysis=null;analysisAt=0;lastKline=0;klineStream=false;lastLiveCandle=null}else if(m.type==='heartbeat'&&!m.upstream_connected){", 'browser stale state reset')
+          replace('timi_v20_backend.py', '''    def record_trade(self, symbol, side, qty, price, received_ms):
+          ''', '''    def reset_all(self):
+                  """Drop observations from an upstream connection that has ended."""
+                  for rows in self.buckets.values():
+                      rows.clear()
+          
+              def record_trade(self, symbol, side, qty, price, received_ms):
+          ''', 'legacy 5m flow purge')
+          
+          # 2. Closed-candle validation: reject gaps/duplicates, malformed values, misaligned bars.
+          replace('main.py', '''def feature_frame(candles, all_indicators=False):
+              closed = [x for x in candles if x['closed']]
+              if len(closed) < 60:
+                  return None
+          ''', '''def closed_candles_valid(closed, interval):
+              """Fail closed on malformed, duplicate or gapped Binance UTC candles."""
+              steps = {'1m': 60000, '3m': 180000, '5m': 300000, '15m': 900000,
+                       '30m': 1800000, '1h': 3600000, '4h': 14400000, '1d': 86400000}
+              step = steps.get(interval)
+              if not step or len(closed) < 60:
+                  return False
+              previous = None
+              for row in closed:
+                  try:
+                      stamp = int(row['t'])
+                      op, hi, lo, cl, vol = (float(row[k]) for k in ('o', 'h', 'l', 'c', 'v'))
+                      if row['closed'] is not True or stamp % step != 0:
+                          return False
+                      if not all(math.isfinite(v) for v in (op, hi, lo, cl, vol)):
+                          return False
+                      if lo <= 0 or vol < 0 or hi < max(op, cl, lo) or lo > min(op, cl):
+                          return False
+                      if previous is not None and stamp - previous != step:
+                          return False
+                      previous = stamp
+                  except (KeyError, TypeError, ValueError, OverflowError):
+                      return False
+              return True
+          
+          
+          def feature_frame(candles, all_indicators=False, interval='1m'):
+              closed = [x for x in candles if x['closed']]
+              if not closed_candles_valid(closed, interval):
+                  return None
+          ''', 'closed candle validator')
+          replace('main.py', '''def indicators(candles):
+              df = feature_frame(candles)
+          ''', '''def indicators(candles, interval='1m'):
+              df = feature_frame(candles, interval=interval)
+          ''', 'indicator interval contract')
+          replace('main.py', '''ind = await asyncio.to_thread(indicators, await get_candles(symbol, tf, 250))''', '''ind = await asyncio.to_thread(indicators, await get_candles(symbol, tf, 250), tf)''', 'MTF interval validation')
+          replace('main.py', '''ind = await asyncio.to_thread(indicators, await get_candles(symbol, interval, 250))''', '''ind = await asyncio.to_thread(indicators, await get_candles(symbol, interval, 250), interval)''', 'analysis interval validation')
+          replace('main.py', '''asyncio.to_thread(feature_frame, candles, True), timeout=45''', '''asyncio.to_thread(feature_frame, candles, True, interval), timeout=45''', 'all indicators interval validation')
+          replace('main.py', '''    if interval == '1m' and (now_ms() - (ind['last_closed_t'] + 60000) > 120000):
+                  return wait('Son kapanmış 1m mum güncel değil')
+          ''', '''    interval_ms = {'1m': 60000, '3m': 180000, '5m': 300000,
+                             '15m': 900000, '30m': 1800000, '1h': 3600000,
+                             '4h': 14400000, '1d': 86400000}.get(interval)
+              candle_age = now_ms() - (ind['last_closed_t'] + interval_ms) if interval_ms else None
+              if candle_age is None or candle_age < -5000 or candle_age > 2 * interval_ms:
+                  return wait('Son kapanmış mum güncel değil')
+          ''', 'multi-timeframe stale candle veto')
+          
+          # 3. Snapshot order: await candles BEFORE taking order-flow freshness snapshot.
+          replace('main.py', '''    m = markets[symbol]
+              flow = orderflow(m)
+              try:
+                  ind = await asyncio.to_thread(indicators, await get_candles(symbol, interval, 250), interval)
+              except HTTPException:
+                  ind = None
+              return {'symbol': symbol, 'interval': interval, 'ts': now_ms(),
+          ''', '''    m = markets[symbol]
+              try:
+                  ind = await asyncio.to_thread(indicators, await get_candles(symbol, interval, 250), interval)
+              except HTTPException:
+                  ind = None
+              # Sample flow AFTER awaited I/O so decision checks the actual latest age.
+              flow = orderflow(m)
+              return {'symbol': symbol, 'interval': interval, 'ts': now_ms(),
+          ''', 'post-fetch orderflow snapshot')
+          
+          # 4. Historical entry must be at the first AVAILABLE open following signal close.
+          replace('timi_intel_core.js', '''const take=1.2*a,stop=1.0*a,entry=b[k].c;let outcome=0;''', '''const take=1.2*a,stop=1.0*a,entry=b[k+1].o;let outcome=0;''', 'ML study next-open label')
+          replace('timi_intel_core.js', '''const a=atr(b,14,i),entry=b[i].c;if(!f(a)||a<=0)continue;''', '''const a=atr(b,14,i),entry=b[i+1].o;if(!f(a)||a<=0||!f(entry)||entry<=0)continue;''', 'backtest next-open entry')
+          replace('timi_intel_core.js', '''ambiguous:records.filter(x=>x.ambiguous).length,feeBps,experimental:true''', '''ambiguous:records.filter(x=>x.ambiguous).length,feeBps,experimental:true,entryConvention:'next_open_after_closed_signal' ''', 'backtest entry disclosure')
+          replace('timi_intel_core.js', ''' if(flow?.ready&&((side==='LONG'&&flow.ratio<-.23)||(side==='SHORT'&&flow.ratio>.23))){''', ''' if(!flow?.ready){reasons.push('Gerçekleşmiş işlem akışı teyidi yok');return {direction:'BEKLE',reason:reasons.join(' · '),reasons};}
+           if((side==='LONG'&&flow.ratio<-.23)||(side==='SHORT'&&flow.ratio>.23)){''', 'require observed flow before Intel direction')
+          replace('timi_intel_core.js', '''if(!f(p)||p<=0||!f(spot)||spot<=0||!f(stamp)||now-stamp>120000||now<stamp-10000)return {ready:false,reason:'Zaman uyumlu Futures verisi yok'};''', '''const spotStamp=number(info?.spotTimestamp);if(!f(p)||p<=0||!f(spot)||spot<=0||!f(stamp)||now-stamp>120000||now<stamp-10000||(f(spotStamp)&&Math.abs(spotStamp-stamp)>15000))return {ready:false,reason:'Zaman uyumlu Futures verisi yok'};''', 'Futures timestamp gap guard')
+          
+          # 5. Single Gateway WebSocket: do not open a redundant direct Binance socket.
+          #    Reuse the original gateway event feed for the add-on Intelligence panel.
+          replace('index.html', '''renderSoon()};ws.onclose=()=>{''', '''try{window.dispatchEvent(new CustomEvent('timi-gateway-event',{detail:m}))}catch(_){}renderSoon()};ws.onclose=()=>{''', 'shared gateway event hook')
+          
+          ui = get('timi_intel_ui.js')
+          start = ui.index(' function stopFeed(){')
+          end = ui.index(' async function request(tf,context,seq)', start)
+          if start < 0 or end <= start:
+              raise RuntimeError('Intelligence feed replacement anchors missing; no files written')
+          new_feed = ''' function stopFeed(){state.feedOn=false;state.lastDepth=null;state.lastDepthAt=0;state.lastTrade=0;state.trades=[];update();}
+           function startFeed(){stopFeed();state.feedOn=true;state.error='';update();}
+           function reset(){const sym=getSymbol(),gw=getGateway();if(sym===state.symbol&&gw===state.gateway)return;stopFeed();state.symbol=sym;state.gateway=gw;state.series={};state.at=0;state.futures=null;state.cache=null;state.run++;state.error='';startFeed();void refresh(true);}
+           function onGatewayMessage(event){
+            const m=event?.detail,now=Date.now();if(!m)return;
+            const symbol=String(m.symbol||m.data?.symbol||'').toUpperCase();
+            if(symbol!==state.symbol)return;
+            // A new server session cannot reuse prior book, tape or footprint observations.
+            if(m.type==='snapshot'||m.type==='upstream_reset'||m.type==='upstream_down'||(m.type==='heartbeat'&&m.upstream_connected===false)){
+             state.trades=[];state.lastTrade=0;state.lastDepth=null;state.lastDepthAt=0;return;
+            }
+            if(!state.feedOn)return;
+            if(m.type==='trade'&&m.trade){const t=Number(m.trade.ts),p=Number(m.trade.price),q=Number(m.trade.qty);
+             const side=m.trade.side==='buy'?'BUY':m.trade.side==='sell'?'SELL':null;
+             if(side&&Number.isFinite(t)&&Math.abs(now-t)<60000&&Number.isFinite(p)&&Number.isFinite(q)&&p>0&&q>0){
+              state.trades.push({t,p,q,aggressor:side});state.lastTrade=now;
+              if(state.trades.length>2500)state.trades.splice(0,state.trades.length-2500);
+              state.trades=state.trades.filter(x=>now-x.t<=300000);
+             }
+            }
+            if(m.type==='depth'&&m.book_valid===true&&Array.isArray(m.bids)&&Array.isArray(m.asks)){
+              state.lastDepth={bids:m.bids,asks:m.asks};state.lastDepthAt=now;
+            }
+            if(m.type==='depth_invalid'){
+              state.lastDepth=null;state.lastDepthAt=0;
+            }
+           }
+           function liveSpot(){try{const p=Number(market?.price),t=Number(lastTrade);
+             return typeof ws!=='undefined'&&ws?.readyState===1&&Number.isFinite(p)&&p>0&&Number.isFinite(t)&&Date.now()-t<5000?{price:p,timestamp:t}:null;
+            }catch(_){return null;}}
+           async function requestFutures(){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+            try{const res=await fetch(state.gateway+'/api/v2/futures/'+encodeURIComponent(state.symbol),{cache:'no-store',signal:controller.signal});
+             if(!res.ok)throw Error('Futures '+res.status);
+             const data=await res.json(),b=data?.binance;
+             if(data?.symbol!==state.symbol||!b||b.available!==true)return null;
+             const price=Number(b.mark_price),timestamp=Number(b.data_time_ms);
+             if(!Number.isFinite(price)||price<=0||!Number.isFinite(timestamp)||Date.now()-timestamp>120000)return null;
+             return {symbol:state.symbol,price,timestamp,oi:b.open_interest_quantity==null?null:Number(b.open_interest_quantity),
+              funding:b.funding_rate_pct==null?null:Number(b.funding_rate_pct)/100,source:'Binance USD-M perpetual'};
+            }catch(_){return null;}finally{clearTimeout(timer);}
+           }
+          '''
+          ui = ui[:start] + new_feed + ui[end:]
+          set_text('timi_intel_ui.js', ui)
+          replace('timi_intel_ui.js', '''const result=await Promise.allSettled(['1m','5m','15m'].map(tf=>request(tf,context,seq)));if(seq!==state.run||context!==key())return;
+             state.series=Object.fromEntries(['1m','5m','15m'].map((tf,i)=>[tf,result[i].status==='fulfilled'?result[i].value:{ok:false,reason:String(result[i].reason?.message||'Bağlantı hatası'),data:[]}]));state.at=Date.now();update();''', '''const result=await Promise.allSettled([...['1m','5m','15m'].map(tf=>request(tf,context,seq)),requestFutures()]);if(seq!==state.run||context!==key())return;
+             state.series=Object.fromEntries(['1m','5m','15m'].map((tf,i)=>[tf,result[i].status==='fulfilled'?result[i].value:{ok:false,reason:String(result[i].reason?.message||'Bağlantı hatası'),data:[]}]));
+             state.futures=result[3].status==='fulfilled'?result[3].value:null;state.at=Date.now();update();''', 'existing read-only futures adapter')
+          replace('timi_intel_ui.js', '''  const {r,s,q,r5,r15,vw,meta}=state.cache,flow=Date.now()-state.lastTrade<18000?C.analyzeFlow(state.trades):{ready:false,reason:'Anlık trade akışı yok'},dep=Date.now()-state.lastDepthAt<10000?C.depthProxy(state.lastDepth):{ready:false,reason:'Güncel depth snapshot yok'},fu=C.futures(b.at(-1).c,state.futures),mtf=(r5.ready&&r15.ready&&r5.direction===r15.direction)?r5.direction:'WAIT';
+            const raw=C.decision(r,s,q,flow,fu);const decision=raw.direction!=='BEKLE'&&mtf!==raw.direction?{direction:'BEKLE',reason:'5m/15m rejim uyumsuzluğu',provisional:false}:raw;
+          ''', '''  const {r,s,q,r5,r15,vw,meta}=state.cache,flow=state.feedOn&&Date.now()-state.lastTrade<18000?C.analyzeFlow(state.trades):{ready:false,reason:'Anlık Gateway trade akışı yok'},dep=state.feedOn&&Date.now()-state.lastDepthAt<10000?C.depthProxy(state.lastDepth):{ready:false,reason:'Güncel depth snapshot yok'};
+            const spot=liveSpot(),fu=C.futures(spot?.price??NaN,spot&&state.futures?{...state.futures,spotTimestamp:spot.timestamp}:null),mtf=(r5.ready&&r15.ready&&r5.direction===r15.direction)?r5.direction:'WAIT';
+            const raw=C.decision(r,s,q,flow,fu),authority=mainAuthority();
+            const decision=authority==='BEKLE'?{direction:'BEKLE',reason:'Ana TiMi motoru BEKLE veya verisi güncel değil',provisional:false}:
+              raw.direction!==authority?{direction:'BEKLE',reason:'Intelligence ve ana motor yönleri uyumsuz / teyit eksik',provisional:false}:
+              mtf!==raw.direction?{direction:'BEKLE',reason:'5m/15m rejim uyumsuzluğu',provisional:false}:raw;
+          ''', 'single authoritative main signal veto')
+          replace('timi_intel_ui.js', ''' function current(){const one=state.series['1m'],five=state.series['5m'],fifteen=state.series['15m'];''', ''' function mainAuthority(){try{
+             const a=typeof analysis!=='undefined'?analysis:null,at=typeof analysisAt==='number'?analysisAt:0;
+             if(!a||a.symbol!==state.symbol||Date.now()-at>10000||!a.flow?.fresh||
+                typeof ws==='undefined'||ws?.readyState!==1)return 'BEKLE';
+             const direction=a.signal?.decision;
+             if(direction!=='LONG'&&direction!=='SHORT')return 'BEKLE';
+             // The original visible cockpit is an additional veto when active.
+             if(el('chart')?.classList.contains('active')){
+               const screen=(el('timiProDecision')?.textContent||'BEKLE').trim().toUpperCase();
+               if(screen!==(direction==='LONG'?'AL':'SAT'))return 'BEKLE';
+             }
+             return direction;
+            }catch(_){return 'BEKLE';}}
+           function current(){const one=state.series['1m'],five=state.series['5m'],fifteen=state.series['15m'];''', 'authority function')
+          replace('timi_intel_ui.js', ''' · CVD ${fmt(flow.cvd,4)} · Delta ${pct(flow.ratio)}.''', ''' · CVD ${fmt(flow.cvd,4)} baz varlık · Delta ${pct(flow.ratio)}.''', 'base-asset CVD unit')
+          replace('timi_intel_ui.js', '''  d.addEventListener('visibilitychange',()=>{if(d.visibilityState==='hidden')stopFeed();});}''', '''  d.addEventListener('visibilitychange',()=>{if(d.visibilityState==='hidden')stopFeed();else startFeed();});}''', 'foreground restart')
+          replace('timi_intel_ui.js', '''state.symbol=getSymbol();state.gateway=getGateway();void refresh(true);setInterval(()=>{if(d.visibilityState==='visible'){if(state.symbol!==getSymbol()||state.gateway!==getGateway())reset();else void refresh(false);if(state.tradeSocket)update();}},5000);''', '''state.symbol=getSymbol();state.gateway=getGateway();d.addEventListener('timi-gateway-event',onGatewayMessage);startFeed();void refresh(true);setInterval(()=>{if(d.visibilityState==='visible'){if(state.symbol!==getSymbol()||state.gateway!==getGateway())reset();else void refresh(false);if(state.feedOn)update();}},5000);''', 'observe Gateway shared stream by default')
+          replace('timi_intel_ui.js', '''<div class="ti-int-note">İşlemler tarayıcı belleğinde en fazla son 5 dakika tutulur. 20 kademe kısmi derinlik gerçek OFI değildir. Bağlantı kapalıyken eski veri gösterilmez.</div>''', '''<div class="ti-int-note">Mevcut TiMi Gateway WebSocket paylaşılır; Binance'e ikinci bağlantı açılmaz. İşlemler tarayıcı belleğinde en fazla son 5 dakika tutulur. 20 kademe kısmi derinlik gerçek OFI değildir. Bağlantı kapalıyken eski veri gösterilmez.</div>''', 'shared socket note')
+          replace('timi_intel_ui.js', '''<div class="ti-int-note">Komisyon + kayma için varsayılan 8 baz puan / yön maliyet kullanılır.''', '''<div class="ti-int-note">Sinyal kapandıktan sonraki mumun açılışı varsayımsal giriş fiyatıdır. Komisyon + kayma için varsayılan 8 baz puan / yön maliyet kullanılır.''', 'backtest execution caveat')
+          
+          # 5b. Extend existing deterministic JS tests with the new safety contracts.
+          replace('test_timi_intel.js', "if(r.ready)A.ok(r.winRate>=0&&r.winRate<=1);", "if(r.ready){A.ok(r.winRate>=0&&r.winRate<=1);A.equal(r.entryConvention,'next_open_after_closed_signal');}", 'historical next-open disclosure test')
+          replace('test_timi_intel.js', "const no=core.decision({ready:false},{ready:true},{ready:true},null,null);A.equal(no.direction,'BEKLE');", """const no=core.decision({ready:false},{ready:true},{ready:true},null,null);A.equal(no.direction,'BEKLE');
+          const withoutFlow=core.decision({ready:true,kind:'TREND',direction:'LONG'},{ready:true,chain:true,direction:'LONG'},{ready:true,confirmed:'LONG',failed:'WAIT'},null,null);
+          A.equal(withoutFlow.direction,'BEKLE');
+          A.equal(core.futures(100,{price:101,source:'test',timestamp:now-1000,spotTimestamp:now-50000},now).ready,false);""", 'missing flow and unmatched futures tests')
+          
+          # 6. Synchronize both standalone JS sources with their previously inline copies.
+          html = get('index.html')
+          for name in ('timi_intel_core', 'timi_intel_ui'):
+              standalone = get(name + '.js')
+              tag = '<script id="timi-intel-' + name + '">'
+              beg = html.find(tag)
+              if beg < 0 or html.find(tag, beg + 1) >= 0:
+                  raise RuntimeError('Expected one embedded ' + name)
+              inner_start = beg + len(tag)
+              inner_end = html.find('</script>', inner_start)
+              if inner_end < 0:
+                  raise RuntimeError('Missing embedded script close: ' + name)
+              html = html[:inner_start] + '\n' + standalone.strip() + '\n' + html[inner_end:]
+          set_text('index.html', html)
+          
+          # 7. Add targeted regression tests (run after patch; no network calls).
+          test = '''"""TiMi main.py data-quality and reconnect regression tests; no Binance calls."""
+          import time
+          import main
+          
+          
+          def bars(n=251, interval_ms=60000):
+              start = (int(time.time() * 1000)//interval_ms - n - 1)*interval_ms
+              return [{'t': start+i*interval_ms, 'o':100+i*.01, 'h':100+i*.01+.1,
+                       'l':100+i*.01-.1, 'c':100+i*.01+.02, 'v':100., 'closed':True}
+                      for i in range(n)]
+          
+          
+          def test_valid_closed_candles_pass():
+              c=bars()
+              assert main.closed_candles_valid(c,'1m')
+              assert main.feature_frame(c, interval='1m') is not None
+          
+          
+          def test_gap_duplicate_and_invalid_candles_fail_closed():
+              c=bars()
+              c.pop(90)
+              assert not main.closed_candles_valid(c,'1m')
+              assert main.feature_frame(c, interval='1m') is None
+              c=bars()
+              c[90]['t']=c[89]['t']
+              assert not main.closed_candles_valid(c,'1m')
+              c=bars()
+              c[120]['h']=c[120]['l']-1
+              assert not main.closed_candles_valid(c,'1m')
+          
+          
+          def test_mtf_gap_not_accidentally_accepted_as_one_minute():
+              c=bars(251, 300000)
+              assert main.closed_candles_valid(c, '5m')
+              assert not main.closed_candles_valid(c, '1m')
+          
+          
+          def test_reconnect_clears_state_for_every_source():
+              s='BTCUSDT';m=main.markets[s]
+              m.trades.appendleft({'price':1});m.tape.append((main.now_ms(),'buy',1,1))
+              m.book_history.append((main.now_ms(),.9));m.bids=[[1.,1.]]
+              m.last_trade_ms=main.now_ms();m.book_valid=True
+              main.v2_live.record_trade(s,'buy',1,1,main.now_ms())
+              main.v23_live.record_trade(s,'buy',1,1,main.now_ms())
+              main.reset_stream_state()
+              assert not m.trades and not m.tape and not m.book_history and not m.bids
+              assert not m.book_valid and m.last_trade_ms is None
+              assert not main.v2_live.buckets[s] and not main.v23_live.trades[s]
+          '''
+          changed['tests/test_timi_critical_regression.py'] = test
+          
+          # Transactional postconditions: fail without leaving partially modified files.
+          assert get('main.py').count('def reset_stream_state()') == 1
+          assert get('main.py').count('def closed_candles_valid(') == 1
+          assert get('timi_intel_ui.js').count('wss://stream.binance.com') == 0
+          assert get('timi_intel_ui.js').count("'timi-gateway-event'") == 1
+          assert get('index.html').count('<script id="timi-intel-timi_intel_core">') == 1
+          assert get('index.html').count('<script id="timi-intel-timi_intel_ui">') == 1
+          assert get('index.html').count('<script') == get('index.html').count('</script>')
+          for name, source in changed.items():
+              target = ROOT/name
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_text(source, encoding='utf-8')
+              print('PATCHED', name, len(source), 'characters')
+          print('DONE: data-quality + reconnect + authoritative signal + next-open backtest + shared WebSocket')
+          PY
+
+      - name: Install Node.js 22 for JS regression tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Python 3.11 for regression tests
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install live application test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt 'pytest>=8,<10'
+
+      - name: Validate Python syntax and critical tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile main.py timi_v20_backend.py tests/test_timi_critical_regression.py
+          python -m pytest -q tests/test_timi_critical_regression.py
+
+      - name: Validate JavaScript syntax and existing module tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check timi_intel_core.js
+          node --check timi_intel_ui.js
+          node --check test_timi_intel.js
+          node test_timi_intel.js
+          if test -f test_timi_smc_pro_v35.js; then node test_timi_smc_pro_v35.js; fi
+
+      - name: Protect embedded modules and existing UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          html=Path('index.html').read_text(encoding='utf8')
+          assert html.count('<script') == html.count('</script>')
+          for name in ('timi_intel_core.js','timi_intel_ui.js'):
+              original=Path(name).read_text(encoding='utf8').strip()
+              assert original in html, name + ' differs from embedded source'
+          assert 'timi-gateway-event' in html
+          assert '/api/analysis-pro' in html
+          assert 'timiProDecision' in html
+          assert 'wsUrl()' in html
+          assert "wss://stream.binance.com" not in Path('timi_intel_ui.js').read_text()
+          print('Embedded source sync and legacy UI anchors verified')
+          PY
+          git diff --check
+
+      - name: Save pre-installation rollback artifacts even if tests fail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-critical-fix-originals-${{ github.run_number }}
+          path: timi_backup_before_critical_fix/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Commit only reviewed application and regression-test files
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add main.py index.html timi_v20_backend.py timi_intel_core.js timi_intel_ui.js test_timi_intel.js tests/test_timi_critical_regression.py
+          git diff --cached --check
+          if git diff --cached --quiet; then echo 'No changes to commit'; exit 0; fi
+          if git diff --cached --name-only | grep -Ev '^(main.py|index.html|timi_v20_backend.py|timi_intel_core.js|timi_intel_ui.js|test_timi_intel.js|tests/test_timi_critical_regression.py)$'; then
+            echo 'Unexpected file staged! Aborting'; exit 1
+          fi
+          git commit -m 'TiMi critical: candle validation, reconnect reset, signal veto, next-open backtest'
+          git push origin HEAD:main
