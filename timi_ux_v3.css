@@ -1,0 +1,77 @@
+/* TiMi Experience v3 — scoped, UI-only. Keeps all source modules and data controls intact. */
+body.timi-ux-v3 {
+ --ux-bg:#07121f; --ux-surface:#11253a; --ux-surface2:#162d43;
+ --ux-line:#31516b; --ux-text:#edf7ff; --ux-muted:#b0c7db;
+ --ux-accent:#48e3b8; --ux-warn:#ffd27c; --ux-danger:#ff829b;
+ --ux-shadow:0 10px 30px rgba(0,4,16,.23);
+ background:radial-gradient(circle at 12% -3%,rgba(45,116,146,.22),transparent 32%),
+            linear-gradient(180deg,#091827 0%,#07121f 70%);
+ color:var(--ux-text); font-variant-numeric:tabular-nums;
+}
+body.timi-ux-v3 header {
+ background:rgba(8,22,36,.96); border-bottom:1px solid #31516c;
+ box-shadow:0 4px 16px #020a1580;
+}
+body.timi-ux-v3 header .logo {letter-spacing:-.75px;line-height:1.13}
+body.timi-ux-v3 main {max-width:1180px;padding-left:clamp(10px,2vw,18px);padding-right:clamp(10px,2vw,18px)}
+body.timi-ux-v3 .card {
+ border-radius:17px; border-color:var(--ux-line);
+ background:linear-gradient(150deg,#152c44,#102237 70%);
+ box-shadow:var(--ux-shadow);
+}
+body.timi-ux-v3 main>.card {background:linear-gradient(140deg,#19374e,#0f293e 67%,#0e2536);border-color:#44718a}
+body.timi-ux-v3 .price {letter-spacing:-1.3px;line-height:1.13;font-variant-numeric:tabular-nums slashed-zero}
+body.timi-ux-v3 .metric {border:1px solid #34516c;background:#1b3650;border-radius:12px;min-width:0}
+body.timi-ux-v3 .metric strong {font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+body.timi-ux-v3 .stat {align-items:baseline;line-height:1.45;gap:12px;border-bottom-color:#355069}
+body.timi-ux-v3 .stat>span {color:var(--ux-muted)}
+body.timi-ux-v3 .stat>strong {color:#f0f8ff;max-width:54%;line-height:1.5}
+body.timi-ux-v3 h3 {color:#f1f7ff;font-weight:800;letter-spacing:-.15px}
+body.timi-ux-v3 .note,body.timi-ux-v3 .section-sub {color:var(--ux-muted)}
+body.timi-ux-v3 select,body.timi-ux-v3 input,body.timi-ux-v3 .btn {border-color:#46657f;background-color:#19334d;color:#eff8ff}
+body.timi-ux-v3 :is(button,select,input,a,summary):focus-visible {outline:3px solid #7df6d6!important;outline-offset:3px}
+/* Keep a single authoritative decision display prominent; no new signal engine. */
+body.timi-ux-v3 #overview>.card:first-of-type {border:1px solid #657b91;background:linear-gradient(145deg,#1a3750,#10273b 80%);position:relative;overflow:hidden}
+body.timi-ux-v3 #overview>.card:first-of-type::before {content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#30cfa6,#f5c970,transparent)}
+body.timi-ux-v3 #signal {font-size:clamp(32px,8vw,46px);letter-spacing:-1px;margin:8px 0 13px;line-height:1.05}
+body.timi-ux-v3 #reasons {padding-left:0;list-style:none;display:grid;gap:7px}
+body.timi-ux-v3 #reasons li {margin:0;padding:8px 10px 8px 13px;border-radius:9px;border:1px solid #344f68;background:#193349;line-height:1.45;position:relative;color:#d7e9f8;font-size:12px}
+body.timi-ux-v3 #reasons li::before {content:"";position:absolute;left:4px;top:12px;width:3px;height:calc(100% - 24px);min-height:12px;border-radius:6px;background:#55d4b7}
+/* Compact product navigation, inserted after the existing quick-navigation section. */
+body.timi-ux-v3 #timiUxHub {margin:0 0 10px;border:1px solid #3b607c;border-radius:16px;background:linear-gradient(135deg,#122b40,#0e2236);padding:11px 12px;box-shadow:0 9px 27px #0005;min-width:0}
+body.timi-ux-v3 .timi-ux-head {display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+body.timi-ux-v3 .timi-ux-label {display:block;text-transform:uppercase;letter-spacing:1.05px;font-size:9px;font-weight:900;color:#8dacc5}
+body.timi-ux-v3 .timi-ux-title {font-size:14px;font-weight:850;letter-spacing:-.1px;color:#f0f8ff;margin:2px 0 0;line-height:1.3}
+body.timi-ux-v3 .timi-ux-live {font-size:10px;max-width:100%;font-weight:780;border:1px solid #806642;background:#403426;color:#ffd99d;border-radius:99px;padding:6px 10px;display:inline-flex;align-items:center;gap:6px}
+body.timi-ux-v3 .timi-ux-live::before {content:"";width:7px;height:7px;border-radius:50%;background:#ffcc7a;flex:none}
+body.timi-ux-v3 .timi-ux-live[data-state="ok"]{border-color:#298f74;background:#143e37;color:#8df6d5}
+body.timi-ux-v3 .timi-ux-live[data-state="ok"]::before{background:#40e0ae}
+body.timi-ux-v3 .timi-ux-live[data-state="bad"]{border-color:#a84d67;background:#482639;color:#ff9db4}
+body.timi-ux-v3 .timi-ux-live[data-state="bad"]::before{background:#ff829b}
+body.timi-ux-v3 .timi-ux-ticker {font-size:10px;color:#a7c3d9;margin-top:6px;line-height:1.5}
+body.timi-ux-v3 .timi-ux-ticker strong{color:#e7f7ff;font-size:11px}
+body.timi-ux-v3 .timi-ux-shortcuts {display:flex;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;padding:10px 0 3px;scrollbar-width:thin;scroll-snap-type:x proximity}
+body.timi-ux-v3 .timi-ux-shortcuts button {flex:0 0 auto;scroll-snap-align:start;display:inline-flex;align-items:center;gap:6px;background:#1e3b53;border:1px solid #3c6681;color:#e2f2ff;min-height:42px;min-width:72px;padding:9px 11px;border-radius:11px;font-weight:750;font-size:11px;cursor:pointer}
+body.timi-ux-v3 .timi-ux-shortcuts button[aria-pressed="true"]{color:#7ef0ca;background:#12483d;border-color:#35aa85}
+body.timi-ux-v3 .timi-ux-shortcuts button:active{transform:translateY(1px)}
+body.timi-ux-v3 #timiUxHint {color:#abc4d9;font-size:10px;line-height:1.45;margin:7px 0 0}
+/* Earlier v2.1 quick buttons continue to work; make these secondary, compact tools. */
+body.timi-ux-v3 #timiUiQuickNav {margin-bottom:9px;gap:6px}
+body.timi-ux-v3 #timiUiQuickNav button {min-height:40px;border-radius:10px;background:#11293e;font-size:10.5px;padding:8px 4px;color:#cfe7fa;border-color:#355872}
+body.timi-ux-v3 #timiUiQuickNav button:first-child {background:#16473f;border-color:#2b9f80;color:#a2f5d8}
+/* Long sections stay fully visible; they are easier to navigate rather than silently hidden. */
+body.timi-ux-v3 #timiForwardPerformance {border-color:#496a86}
+body.timi-ux-v3 .foot {background:rgba(7,21,36,.985);border-top:1px solid #45647d;box-shadow:0 -5px 22px #020a1680}
+body.timi-ux-v3 .foot button {min-height:58px;border-radius:12px;color:#bbd0e5;touch-action:manipulation}
+body.timi-ux-v3 .foot button.active{background:#144b42;color:#96f5d5;border:1px solid #389c82}
+body.timi-ux-v3 #timiUxTop {position:fixed;right:14px;bottom:calc(83px + env(safe-area-inset-bottom));z-index:16;border:1px solid #50b99a;border-radius:100%;width:44px;height:44px;display:grid;place-items:center;background:#15463c;color:#aefbe2;box-shadow:0 9px 18px #01091288;font-size:21px;cursor:pointer;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .16s,transform .16s}
+body.timi-ux-v3 #timiUxTop.is-shown {opacity:1;pointer-events:auto;transform:none}
+body.timi-ux-v3 .timi-ux-sr {position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:395px){body.timi-ux-v3 .card{padding:11px}body.timi-ux-v3 #timiUxHub{padding:10px}body.timi-ux-v3 main>.card .metrics{gap:5px}body.timi-ux-v3 main>.card .metric{padding:8px 5px}body.timi-ux-v3 main>.card .metric strong{font-size:11.5px}}
+@media(min-width:700px){body.timi-ux-v3 #reasons{grid-template-columns:repeat(2,minmax(0,1fr))}body.timi-ux-v3 #timiUxHub{padding:13px 16px}body.timi-ux-v3 .timi-ux-shortcuts{flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){body.timi-ux-v3 * {scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+@media(prefers-contrast:more){body.timi-ux-v3{--ux-line:#88aec7;--ux-muted:#e0e8f1}body.timi-ux-v3 .card,body.timi-ux-v3 #timiUxHub,body.timi-ux-v3 .metric{border-color:#85b1cb}}
+@media(max-width:650px){
+ body.timi-ux-v3 .timi-ux-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible;gap:6px}
+ body.timi-ux-v3 .timi-ux-shortcuts button{min-width:0;max-width:100%;width:100%;justify-content:center;white-space:nowrap;padding:9px 5px;font-size:10px}
+}

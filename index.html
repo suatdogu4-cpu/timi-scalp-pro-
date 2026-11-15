@@ -235,8 +235,87 @@ body.timi-ui-v21.timi-ui-contrast .foot button:not(.active){color:#d5e6f7}
 #timiForwardPerformance .timi-fp-note{margin-top:10px;line-height:1.55}
 @media(min-width:700px){#timiForwardPerformance .timi-fp-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style>
+<style id="timi-ux-v3-css">
+/* TiMi Experience v3 — scoped, UI-only. Keeps all source modules and data controls intact. */
+body.timi-ux-v3 {
+ --ux-bg:#07121f; --ux-surface:#11253a; --ux-surface2:#162d43;
+ --ux-line:#31516b; --ux-text:#edf7ff; --ux-muted:#b0c7db;
+ --ux-accent:#48e3b8; --ux-warn:#ffd27c; --ux-danger:#ff829b;
+ --ux-shadow:0 10px 30px rgba(0,4,16,.23);
+ background:radial-gradient(circle at 12% -3%,rgba(45,116,146,.22),transparent 32%),
+            linear-gradient(180deg,#091827 0%,#07121f 70%);
+ color:var(--ux-text); font-variant-numeric:tabular-nums;
+}
+body.timi-ux-v3 header {
+ background:rgba(8,22,36,.96); border-bottom:1px solid #31516c;
+ box-shadow:0 4px 16px #020a1580;
+}
+body.timi-ux-v3 header .logo {letter-spacing:-.75px;line-height:1.13}
+body.timi-ux-v3 main {max-width:1180px;padding-left:clamp(10px,2vw,18px);padding-right:clamp(10px,2vw,18px)}
+body.timi-ux-v3 .card {
+ border-radius:17px; border-color:var(--ux-line);
+ background:linear-gradient(150deg,#152c44,#102237 70%);
+ box-shadow:var(--ux-shadow);
+}
+body.timi-ux-v3 main>.card {background:linear-gradient(140deg,#19374e,#0f293e 67%,#0e2536);border-color:#44718a}
+body.timi-ux-v3 .price {letter-spacing:-1.3px;line-height:1.13;font-variant-numeric:tabular-nums slashed-zero}
+body.timi-ux-v3 .metric {border:1px solid #34516c;background:#1b3650;border-radius:12px;min-width:0}
+body.timi-ux-v3 .metric strong {font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+body.timi-ux-v3 .stat {align-items:baseline;line-height:1.45;gap:12px;border-bottom-color:#355069}
+body.timi-ux-v3 .stat>span {color:var(--ux-muted)}
+body.timi-ux-v3 .stat>strong {color:#f0f8ff;max-width:54%;line-height:1.5}
+body.timi-ux-v3 h3 {color:#f1f7ff;font-weight:800;letter-spacing:-.15px}
+body.timi-ux-v3 .note,body.timi-ux-v3 .section-sub {color:var(--ux-muted)}
+body.timi-ux-v3 select,body.timi-ux-v3 input,body.timi-ux-v3 .btn {border-color:#46657f;background-color:#19334d;color:#eff8ff}
+body.timi-ux-v3 :is(button,select,input,a,summary):focus-visible {outline:3px solid #7df6d6!important;outline-offset:3px}
+/* Keep a single authoritative decision display prominent; no new signal engine. */
+body.timi-ux-v3 #overview>.card:first-of-type {border:1px solid #657b91;background:linear-gradient(145deg,#1a3750,#10273b 80%);position:relative;overflow:hidden}
+body.timi-ux-v3 #overview>.card:first-of-type::before {content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#30cfa6,#f5c970,transparent)}
+body.timi-ux-v3 #signal {font-size:clamp(32px,8vw,46px);letter-spacing:-1px;margin:8px 0 13px;line-height:1.05}
+body.timi-ux-v3 #reasons {padding-left:0;list-style:none;display:grid;gap:7px}
+body.timi-ux-v3 #reasons li {margin:0;padding:8px 10px 8px 13px;border-radius:9px;border:1px solid #344f68;background:#193349;line-height:1.45;position:relative;color:#d7e9f8;font-size:12px}
+body.timi-ux-v3 #reasons li::before {content:"";position:absolute;left:4px;top:12px;width:3px;height:calc(100% - 24px);min-height:12px;border-radius:6px;background:#55d4b7}
+/* Compact product navigation, inserted after the existing quick-navigation section. */
+body.timi-ux-v3 #timiUxHub {margin:0 0 10px;border:1px solid #3b607c;border-radius:16px;background:linear-gradient(135deg,#122b40,#0e2236);padding:11px 12px;box-shadow:0 9px 27px #0005;min-width:0}
+body.timi-ux-v3 .timi-ux-head {display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+body.timi-ux-v3 .timi-ux-label {display:block;text-transform:uppercase;letter-spacing:1.05px;font-size:9px;font-weight:900;color:#8dacc5}
+body.timi-ux-v3 .timi-ux-title {font-size:14px;font-weight:850;letter-spacing:-.1px;color:#f0f8ff;margin:2px 0 0;line-height:1.3}
+body.timi-ux-v3 .timi-ux-live {font-size:10px;max-width:100%;font-weight:780;border:1px solid #806642;background:#403426;color:#ffd99d;border-radius:99px;padding:6px 10px;display:inline-flex;align-items:center;gap:6px}
+body.timi-ux-v3 .timi-ux-live::before {content:"";width:7px;height:7px;border-radius:50%;background:#ffcc7a;flex:none}
+body.timi-ux-v3 .timi-ux-live[data-state="ok"]{border-color:#298f74;background:#143e37;color:#8df6d5}
+body.timi-ux-v3 .timi-ux-live[data-state="ok"]::before{background:#40e0ae}
+body.timi-ux-v3 .timi-ux-live[data-state="bad"]{border-color:#a84d67;background:#482639;color:#ff9db4}
+body.timi-ux-v3 .timi-ux-live[data-state="bad"]::before{background:#ff829b}
+body.timi-ux-v3 .timi-ux-ticker {font-size:10px;color:#a7c3d9;margin-top:6px;line-height:1.5}
+body.timi-ux-v3 .timi-ux-ticker strong{color:#e7f7ff;font-size:11px}
+body.timi-ux-v3 .timi-ux-shortcuts {display:flex;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;padding:10px 0 3px;scrollbar-width:thin;scroll-snap-type:x proximity}
+body.timi-ux-v3 .timi-ux-shortcuts button {flex:0 0 auto;scroll-snap-align:start;display:inline-flex;align-items:center;gap:6px;background:#1e3b53;border:1px solid #3c6681;color:#e2f2ff;min-height:42px;min-width:72px;padding:9px 11px;border-radius:11px;font-weight:750;font-size:11px;cursor:pointer}
+body.timi-ux-v3 .timi-ux-shortcuts button[aria-pressed="true"]{color:#7ef0ca;background:#12483d;border-color:#35aa85}
+body.timi-ux-v3 .timi-ux-shortcuts button:active{transform:translateY(1px)}
+body.timi-ux-v3 #timiUxHint {color:#abc4d9;font-size:10px;line-height:1.45;margin:7px 0 0}
+/* Earlier v2.1 quick buttons continue to work; make these secondary, compact tools. */
+body.timi-ux-v3 #timiUiQuickNav {margin-bottom:9px;gap:6px}
+body.timi-ux-v3 #timiUiQuickNav button {min-height:40px;border-radius:10px;background:#11293e;font-size:10.5px;padding:8px 4px;color:#cfe7fa;border-color:#355872}
+body.timi-ux-v3 #timiUiQuickNav button:first-child {background:#16473f;border-color:#2b9f80;color:#a2f5d8}
+/* Long sections stay fully visible; they are easier to navigate rather than silently hidden. */
+body.timi-ux-v3 #timiForwardPerformance {border-color:#496a86}
+body.timi-ux-v3 .foot {background:rgba(7,21,36,.985);border-top:1px solid #45647d;box-shadow:0 -5px 22px #020a1680}
+body.timi-ux-v3 .foot button {min-height:58px;border-radius:12px;color:#bbd0e5;touch-action:manipulation}
+body.timi-ux-v3 .foot button.active{background:#144b42;color:#96f5d5;border:1px solid #389c82}
+body.timi-ux-v3 #timiUxTop {position:fixed;right:14px;bottom:calc(83px + env(safe-area-inset-bottom));z-index:16;border:1px solid #50b99a;border-radius:100%;width:44px;height:44px;display:grid;place-items:center;background:#15463c;color:#aefbe2;box-shadow:0 9px 18px #01091288;font-size:21px;cursor:pointer;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .16s,transform .16s}
+body.timi-ux-v3 #timiUxTop.is-shown {opacity:1;pointer-events:auto;transform:none}
+body.timi-ux-v3 .timi-ux-sr {position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:395px){body.timi-ux-v3 .card{padding:11px}body.timi-ux-v3 #timiUxHub{padding:10px}body.timi-ux-v3 main>.card .metrics{gap:5px}body.timi-ux-v3 main>.card .metric{padding:8px 5px}body.timi-ux-v3 main>.card .metric strong{font-size:11.5px}}
+@media(min-width:700px){body.timi-ux-v3 #reasons{grid-template-columns:repeat(2,minmax(0,1fr))}body.timi-ux-v3 #timiUxHub{padding:13px 16px}body.timi-ux-v3 .timi-ux-shortcuts{flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){body.timi-ux-v3 * {scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+@media(prefers-contrast:more){body.timi-ux-v3{--ux-line:#88aec7;--ux-muted:#e0e8f1}body.timi-ux-v3 .card,body.timi-ux-v3 #timiUxHub,body.timi-ux-v3 .metric{border-color:#85b1cb}}
+@media(max-width:650px){
+ body.timi-ux-v3 .timi-ux-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:visible;gap:6px}
+ body.timi-ux-v3 .timi-ux-shortcuts button{min-width:0;max-width:100%;width:100%;justify-content:center;white-space:nowrap;padding:9px 5px;font-size:10px}
+}
+</style>
 </head><body>
-<header><div><div class="logo">TiMi <b>SCALP PRO</b></div><small>v1.8.4 · Suat DOĞU · Salt okunur analiz</small></div><span id="health" class="badge">● Bağlanıyor</span></header>
+<header><div><div class="logo">TiMi <b>SCALP PRO</b></div><small>v1.8.6 · Suat DOĞU · Salt okunur analiz</small></div><span id="health" class="badge">● Bağlanıyor</span></header>
 <main><div class="row" style="margin-bottom:12px"><select id="symbol"><option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option><option>BNBUSDT</option><option>XRPUSDT</option><option>DOGEUSDT</option><option>ADAUSDT</option><option>AVAXUSDT</option></select><small id="stamp">Son işlem: —</small></div>
 <div class="card"><div class="row"><small>Binance Spot · WebSocket canlı fiyat</small><span id="feed" class="badge">BEKLENİYOR</span></div><div id="price" class="price">—</div><div class="row"><strong id="change">24s: —</strong><small id="spread">Spread: —</small></div><div class="metrics"><div class="metric"><small>24s hacim</small><strong id="volume">—</strong></div><div class="metric"><small>24s yüksek</small><strong id="high">—</strong></div><div class="metric"><small>24s düşük</small><strong id="low">—</strong></div></div></div>
 <section id="overview" class="section active"><div class="card"><div class="row"><h3>Canlı scalping kararı</h3><span class="badge">Kural tabanlı</span></div><div id="signal" class="big gold">BEKLE</div><div class="stat"><span>Yön skoru</span><strong id="score">—</strong></div><div class="stat"><span>Analiz dilimi</span><strong>1m · MTF</strong></div><div class="stat"><span>Son analiz yanıtı</span><strong id="analysisAge">—</strong></div><div class="stat"><span>Analizdeki kapanmış 1m mum</span><strong id="analysisClosedAt">—</strong></div><div class="stat"><span>Son mum kapanışından geçen süre</span><strong id="analysisCandleAge">—</strong></div><div class="stat"><span>Analiz veri durumu</span><strong id="analysisSync">Bekleniyor</strong></div><ul class="reasons" id="reasons"><li>Veri bekleniyor</li></ul><p class="note">Sinyal başarı olasılığı değildir. Veri gecikirse karar BEKLE olur. LightGBM modeli henüz eğitilmedi.</p></div>
@@ -3863,6 +3942,131 @@ return {STEPS,bars,mean,atr,ema,adx,regime,smc,breakout,vwap,volumeProfile,analy
  function boot(){build();void refresh(true);state.timer=setInterval(()=>void refresh(),15000);document.addEventListener('visibilitychange',()=>{if(visible())void refresh(true);});}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
+</script>
+<script id="timi-ux-v3-js">
+/* TiMi Experience v3.0 — read-only user experience enhancement.
+ * Never generates recommendations, never fetches market data, never sends orders.
+ * Existing TiMi decisions/feeds/ML/forward performance remain the only sources. */
+(function(root){
+ 'use strict';
+ const d=root&&root.document;
+ if(!d||root.__timiUxV3Init)return;
+ root.__timiUxV3Init=true;
+ const $=id=>d.getElementById(id);
+ const t=id=>($(id)?.textContent||'').trim();
+ const items=[
+   {id:'decision',label:'◉ Karar',match:['Canlı scalping kararı']},
+   {id:'flow',label:'▥ Order Flow',match:['Canlı Order Flow']},
+   {id:'performance',label:'▣ Performans',match:['İleriye Dönük Sinyal Performansı','Sinyal Performansı']},
+   {id:'health',label:'◈ Veri Sağlığı',match:['Veri sağlığı']},
+   {id:'intel',label:'✦ Intelligence',match:['Intelligence']}
+ ];
+ function findCard(spec){
+   const overview=$('overview');if(!overview)return null;
+   if(spec.id==='performance'){
+     const el=$('timiForwardPerformance');if(el&&overview.contains(el))return el;
+   }
+   const candidates=[...overview.querySelectorAll('.card,section,article')].filter(x=>x!==overview);
+   for(const c of candidates){
+     const head=c.querySelector('h2,h3,h4');
+     if(!head)continue;
+     const txt=(head.textContent||'').toLocaleLowerCase('tr-TR');
+     if(spec.match.some(m=>txt.includes(m.toLocaleLowerCase('tr-TR')))){
+       // Pick the card, not a broad parent section, for a precise scroll destination.
+       return head.closest('.card')||c;
+     }
+   }
+   return null;
+ }
+ function setHint(value){const el=$('timiUxHint');if(el&&el.textContent!==value)el.textContent=value;}
+ function openSection(id){
+   const spec=items.find(x=>x.id===id);if(!spec)return;
+   const active=$('overview')?.classList.contains('active');
+   if(!active){
+     const nav=d.querySelector('nav.foot button[data-page="overview"]');
+     if(nav)nav.click();
+   }
+   // On a tab change the old layout may need one paint to become scrollable.
+   root.requestAnimationFrame(()=>root.requestAnimationFrame(()=>{
+     const target=findCard(spec);
+     if(!target){setHint('Bu bölüm henüz hazır değil. Sayfa yüklendiğinde tekrar deneyin.');return;}
+     const reduce=root.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+     target.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});
+     d.querySelectorAll('#timiUxShortcuts button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.uxTarget===id)));
+     setHint('Bölüm: '+spec.label.replace(/^[^\s]+\s/, '')+'. Görülen veriler mevcut TiMi motorundan alınır.');
+   }));
+ }
+ function button(spec){
+   const b=d.createElement('button');b.type='button';b.textContent=spec.label;
+   b.dataset.uxTarget=spec.id;b.setAttribute('aria-pressed','false');
+   b.setAttribute('aria-label',spec.label.replace(/^[^\s]+\s/, '')+' bölümüne git');
+   b.addEventListener('click',()=>openSection(spec.id));return b;
+ }
+ function make(tag,className,text){const el=d.createElement(tag);if(className)el.className=className;if(text)el.textContent=text;return el;}
+ function renderState(){
+   const hub=$('timiUxHub');if(!hub)return;
+   const pair=$('symbol')?.value||'—';
+   const signal=t('signal')||'BEKLE';
+   const sync=t('analysisSync');
+   const health=t('health');
+   const gatewayLive=/canl[ıi]|bağl[ıi]/i.test(health)&&!/(bağlanıyor|kapalı|kopuk|hata)/i.test(health);
+   const syncFresh=/güncel/i.test(sync)&&!/(değil|yetersiz|gecik)/i.test(sync);
+   const state=!gatewayLive?'bad':syncFresh?'ok':'wait';
+   const title=!gatewayLive?'Bağlantı bekleniyor':syncFresh?'Veri güncel':'Veri kontrol ediliyor';
+   const status=$('timiUxLive');
+   if(status){status.dataset.state=state;if(status.textContent!==title)status.textContent=title;}
+   const pairEl=$('timiUxPair');if(pairEl)pairEl.textContent=pair;
+   const decisionEl=$('timiUxDecision');if(decisionEl){
+     const valid=syncFresh&&gatewayLive;
+     const direction=valid&&/^(LONG|SHORT|BEKLE|AL|SAT)$/.test(signal)?signal:'BEKLE';
+     decisionEl.textContent=direction;
+     decisionEl.className=direction==='LONG'||direction==='AL'?'green':direction==='SHORT'||direction==='SAT'?'red':'gold';
+   }
+ }
+ function navSync(){
+   for(const b of d.querySelectorAll('nav.foot button[data-page]')){
+     const selected=b.classList.contains('active');
+     if(selected)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+     if(!b.getAttribute('aria-label'))b.setAttribute('aria-label',(b.textContent||'').trim()+' sekmesi');
+   }
+ }
+ function build(){
+   const overview=$('overview');if(!overview||$('timiUxHub'))return;
+   d.body.classList.add('timi-ux-v3');
+   const hub=make('div');hub.id='timiUxHub';hub.setAttribute('aria-label','TiMi hızlı gezinme');
+   const head=make('div','timi-ux-head');
+   const left=make('div');left.append(make('span','timi-ux-label','HIZLI PİYASA KONTROLÜ'),make('h2','timi-ux-title','TiMi Kontrol Merkezi'));
+   const live=make('span','timi-ux-live','Veri kontrol ediliyor');live.id='timiUxLive';live.dataset.state='wait';live.setAttribute('role','status');live.setAttribute('aria-live','polite');
+   head.append(left,live);
+   const ticker=make('div','timi-ux-ticker');
+   ticker.append('Parite ',make('strong','','—'),'  ·  Ana karar ',make('strong','','BEKLE'),'  ·  Gerçek emir kapalı');
+   ticker.querySelectorAll('strong')[0].id='timiUxPair';
+   ticker.querySelectorAll('strong')[1].id='timiUxDecision';
+   const row=make('div','timi-ux-shortcuts');row.id='timiUxShortcuts';row.setAttribute('role','group');row.setAttribute('aria-label','Özet ekranı bölüm kısayolları');
+   for(const spec of items)row.append(button(spec));
+   const hint=make('p','','İstediğin bölüme tek dokunuşla geç. Tüm veriler salt okunurdur.');hint.id='timiUxHint';
+   hub.append(head,ticker,row,hint);
+   const quick=$('timiUiQuickNav');
+   if(quick&&quick.parentElement===overview)quick.insertAdjacentElement('afterend',hub);
+   else overview.prepend(hub);
+   const top=make('button','','↑');top.id='timiUxTop';top.type='button';top.setAttribute('aria-label','Sayfanın başına dön');top.title='Başa dön';
+   top.addEventListener('click',()=>root.scrollTo({top:0,behavior:root.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches?'auto':'smooth'}));
+   d.body.append(top);
+   let queued=false;
+   const scrollCheck=()=>{if(queued)return;queued=true;root.requestAnimationFrame(()=>{
+     queued=false;top.classList.toggle('is-shown',root.scrollY>400);
+   });};
+   root.addEventListener('scroll',scrollCheck,{passive:true});
+   d.querySelector('nav.foot')?.addEventListener('click',()=>root.requestAnimationFrame(navSync));
+   root.addEventListener('hashchange',navSync);
+   $('symbol')?.addEventListener('change',renderState);
+   d.addEventListener('visibilitychange',()=>{if(!d.hidden)renderState()});
+   root.setInterval(()=>{if(!d.hidden)renderState()},2500);
+   renderState();navSync();scrollCheck();
+   root.timiUxV3Debug=Object.freeze({version:'3.0.0',readOnly:true,networkCalls:0,orderActions:0,hasHub:true});
+ }
+ if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',build,{once:true});else build();
+})(typeof window!=='undefined'?window:null);
 </script>
 </body></html>
 
