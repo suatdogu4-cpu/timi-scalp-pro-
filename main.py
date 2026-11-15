@@ -1,4 +1,4 @@
-"""TiMi SCALP PRO v1.8.4 — read-only Binance Spot analytics.
+"""TiMi SCALP PRO v1.8.5 — read-only Binance Spot analytics.
 Developer: Suat DOĞU. No order endpoints or model training on request path.
 """
 import asyncio
@@ -24,7 +24,7 @@ from fastapi.responses import FileResponse
 logging.basicConfig(level=logging.INFO)
 LOG = logging.getLogger('timi')
 ROOT = Path(__file__).resolve().parent
-VERSION = '1.8.4'
+VERSION = '1.8.5'
 SYMBOLS = ('BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT')
 TF = ('1m', '3m', '5m', '15m', '30m', '1h', '4h', '1d')
 MTF = ('1m', '3m', '5m', '15m')
@@ -124,6 +124,27 @@ async def broadcast(symbol, event):
         except asyncio.QueueFull:
             pass
 
+def reset_stream_state():
+    """Purge previous Binance connection data before consuming a new session."""
+    for m in markets.values():
+        m.price = m.change = m.volume = m.high = m.low = None
+        m.bid = m.ask = None
+        m.bids, m.asks = [], []
+        m.trades.clear()
+        m.tape.clear()
+        m.book_history.clear()
+        m.depth_snapshots.clear()
+        m.wall_seen = {'bid': {}, 'ask': {}}
+        m.last_trade_ms = m.last_book_ms = m.last_ticker_ms = None
+        m.last_trade_id = m.last_book_update_id = None
+        m.book_valid, m.book_error = False, 'Upstream reconnecting'
+        m.live_candle = None
+        m.last_candle_ms = m.last_closed_candle = None
+    analysis_cache.clear()
+    v2_live.reset_all()
+    v23_live.reset_all()
+
+
 async def relay():
     names = []
     for symbol in SYMBOLS:
@@ -138,10 +159,11 @@ async def relay():
                                           open_timeout=15, max_size=4_000_000) as ws:
                 status.update(connected=True, error=None)
                 delay = 1
-                # Never match snapshots retained from a previous connection.
-                for existing_market in markets.values():
-                    existing_market.depth_snapshots.clear()
-                v23_live.reset_all()  # discard all stale observations after a reconnect
+                # A fresh upstream connection must not inherit trade/depth evidence.
+                reset_stream_state()
+                for market_symbol in SYMBOLS:
+                    await broadcast(market_symbol, {'type': 'upstream_reset',
+                                                    'symbol': market_symbol, 'ts': now_ms()})
                 async for raw in ws:
                     packet = json.loads(raw)
                     stream = packet.get('stream', '')
@@ -262,6 +284,9 @@ async def relay():
                 m.last_book_update_id = None
                 m.wall_seen = {'bid': {}, 'ask': {}}
                 m.depth_snapshots.clear()
+            for market_symbol in SYMBOLS:
+                await broadcast(market_symbol, {'type': 'upstream_down',
+                                                'symbol': market_symbol, 'ts': now_ms()})
             LOG.warning('Binance stream disconnected: %s', exc)
             await asyncio.sleep(delay)
             delay = min(30, delay * 2)
@@ -317,9 +342,35 @@ async def get_candles(symbol, interval='1m', limit=250):
             LOG.warning('Candles %s %s: %s', symbol, interval, exc)
             raise HTTPException(503, 'Binance candle service unavailable') from exc
 
-def feature_frame(candles, all_indicators=False):
+def closed_candles_valid(closed, interval):
+    """Fail closed on malformed, duplicate or gapped Binance UTC candles."""
+    steps = {'1m': 60000, '3m': 180000, '5m': 300000, '15m': 900000,
+             '30m': 1800000, '1h': 3600000, '4h': 14400000, '1d': 86400000}
+    step = steps.get(interval)
+    if not step or len(closed) < 60:
+        return False
+    previous = None
+    for row in closed:
+        try:
+            stamp = int(row['t'])
+            op, hi, lo, cl, vol = (float(row[k]) for k in ('o', 'h', 'l', 'c', 'v'))
+            if row['closed'] is not True or stamp % step != 0:
+                return False
+            if not all(math.isfinite(v) for v in (op, hi, lo, cl, vol)):
+                return False
+            if lo <= 0 or vol < 0 or hi < max(op, cl, lo) or lo > min(op, cl):
+                return False
+            if previous is not None and stamp - previous != step:
+                return False
+            previous = stamp
+        except (KeyError, TypeError, ValueError, OverflowError):
+            return False
+    return True
+
+
+def feature_frame(candles, all_indicators=False, interval='1m'):
     closed = [x for x in candles if x['closed']]
-    if len(closed) < 60:
+    if not closed_candles_valid(closed, interval):
         return None
     df = pd.DataFrame(closed).rename(columns={
         'o': 'open', 'h': 'high', 'l': 'low', 'c': 'close', 'v': 'volume'})
@@ -342,8 +393,8 @@ def feature_frame(candles, all_indicators=False):
             df = df.join(bb)
     return df
 
-def indicators(candles):
-    df = feature_frame(candles)
+def indicators(candles, interval='1m'):
+    df = feature_frame(candles, interval=interval)
     if df is None:
         return None
     row = df.iloc[-1]
@@ -397,8 +448,12 @@ def decision(m, flow, ind, interval='1m'):
     if not ind or any(ind.get(k) is None for k in
                       ('ema20', 'ema50', 'rsi14', 'last_closed_price')):
         return wait('Kapanmış mum veya gösterge verisi yetersiz')
-    if interval == '1m' and (now_ms() - (ind['last_closed_t'] + 60000) > 120000):
-        return wait('Son kapanmış 1m mum güncel değil')
+    interval_ms = {'1m': 60000, '3m': 180000, '5m': 300000,
+                   '15m': 900000, '30m': 1800000, '1h': 3600000,
+                   '4h': 14400000, '1d': 86400000}.get(interval)
+    candle_age = now_ms() - (ind['last_closed_t'] + interval_ms) if interval_ms else None
+    if candle_age is None or candle_age < -5000 or candle_age > 2 * interval_ms:
+        return wait('Son kapanmış mum güncel değil')
     if flow['spread_pct'] is None or flow['spread_pct'] > 0.12:
         return wait('Spread eksik veya yüksek', 'risk_vetosu')
     if flow['trade_count_60s'] < 10:
@@ -449,7 +504,7 @@ def decision(m, flow, ind, interval='1m'):
 async def mtf_analysis(symbol):
     async def one(tf):
         try:
-            ind = await asyncio.to_thread(indicators, await get_candles(symbol, tf, 250))
+            ind = await asyncio.to_thread(indicators, await get_candles(symbol, tf, 250), tf)
             if not ind or any(ind.get(k) is None for k in
                               ('last_closed_price', 'ema20', 'ema50', 'rsi14')):
                 return {'tf': tf, 'direction': 'YETERSIZ', 'reason': 'Mum yetersiz'}
@@ -1071,11 +1126,12 @@ async def analysis(symbol: str, interval: str = '1m'):
     if symbol not in markets or interval not in TF:
         raise HTTPException(400, 'Invalid symbol or interval')
     m = markets[symbol]
-    flow = orderflow(m)
     try:
-        ind = await asyncio.to_thread(indicators, await get_candles(symbol, interval, 250))
+        ind = await asyncio.to_thread(indicators, await get_candles(symbol, interval, 250), interval)
     except HTTPException:
         ind = None
+    # Sample flow AFTER awaited I/O so decision checks the actual latest age.
+    flow = orderflow(m)
     return {'symbol': symbol, 'interval': interval, 'ts': now_ms(),
             'flow': flow, 'indicators': ind, 'signal': decision(m, flow, ind, interval),
             'market_price': m.price}
@@ -1103,7 +1159,7 @@ async def indicators_all(symbol: str, interval: str = '5m'):
     try:
         async with full_semaphore:
             df = await asyncio.wait_for(
-                asyncio.to_thread(feature_frame, candles, True), timeout=45)
+                asyncio.to_thread(feature_frame, candles, True, interval), timeout=45)
     except Exception as exc:
         LOG.warning('Full indicators %s %s: %s', symbol, interval, exc)
         raise HTTPException(503, 'Full indicator calculation unavailable') from exc

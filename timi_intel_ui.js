@@ -35,12 +35,12 @@
   attach(smc,panel('timiIntelSmc','Piyasa Rejimi · SMC Zinciri · Kırılım',`${line('tiIntRegime')}${line('tiIntSMC')}${line('tiIntBreakout')}`));
   const chart=el('chart');if(chart)attach(chart,panel('timiIntelVWAP','VWAP · Hacim Profili Referansları',`${line('tiIntVWAP')}${line('tiIntPOC')}`));
   const flow=el('proFlow')||el('proOrderFlow')||smc;
-  attach(flow,panel('timiIntelFlow','Order Flow · CVD · Absorpsiyon · Derinlik',`${line('tiIntFlow')}${line('tiIntAbsorption')}${line('tiIntDepth')}<div class="ti-int-actions"><button type="button" id="tiIntStartFeed">Canlı Spot işlemlerini izle</button><button type="button" id="tiIntStopFeed">Durdur</button></div><div class="ti-int-note">İşlemler tarayıcı belleğinde en fazla son 5 dakika tutulur. 20 kademe kısmi derinlik gerçek OFI değildir. Bağlantı kapalıyken eski veri gösterilmez.</div>`));
+  attach(flow,panel('timiIntelFlow','Order Flow · CVD · Absorpsiyon · Derinlik',`${line('tiIntFlow')}${line('tiIntAbsorption')}${line('tiIntDepth')}<div class="ti-int-actions"><button type="button" id="tiIntStartFeed">Canlı Spot işlemlerini izle</button><button type="button" id="tiIntStopFeed">Durdur</button></div><div class="ti-int-note">Mevcut TiMi Gateway WebSocket paylaşılır; Binance'e ikinci bağlantı açılmaz. İşlemler tarayıcı belleğinde en fazla son 5 dakika tutulur. 20 kademe kısmi derinlik gerçek OFI değildir. Bağlantı kapalıyken eski veri gösterilmez.</div>`));
   const deriv=el('proFutures')||el('proDerivatives')||smc;
   attach(deriv,panel('timiIntelFutures','Futures · Spot Ayrışması',`${line('tiIntFutures')}<div class="ti-int-note">Gerçek OI/funding/basis için borsa, sözleşme, birim ve zaman damgası doğrulayan Gateway adaptörü gerekir. Veri yoksa sonuç hesaplanmaz.</div>`));
   const strateji=el('proStrategy')||el('proStrategies')||el('proSignals')||smc;
   attach(strateji,panel('timiIntelMeta','ML Meta-Model · Sinyal Kalibrasyonu',`${line('tiIntML')}<div class="ti-int-note">Model yalnızca deneyseldir. Yeterli bağımsız dönem olmadan canlı karar ağırlığına katılmaz.</div>`));
-  const lab=d.createElement('section');lab.id='timiIntelLab';lab.hidden=true;lab.innerHTML=`${panel('tiIntLabCard','Test Laboratuvarı · Strateji Karşılaştırması',`<div class="ti-int-actions"><button type="button" id="tiIntRunTest">Geçmiş mumlarla test et</button><button type="button" id="tiIntLabClose">Kapat</button></div>${line('tiIntTestIntro')}<div id="tiIntTestResults" class="ti-int-line">Test başlatılmadı.</div><div class="ti-int-note">Komisyon + kayma için varsayılan 8 baz puan / yön maliyet kullanılır. Kısmi geçmişle çıkan sonuçlar yatırım başarısı veya ileri tarihli performans kanıtı değildir. Lookahead, purge ve zamanlı test doğrulanmalıdır.</div>`)}`;
+  const lab=d.createElement('section');lab.id='timiIntelLab';lab.hidden=true;lab.innerHTML=`${panel('tiIntLabCard','Test Laboratuvarı · Strateji Karşılaştırması',`<div class="ti-int-actions"><button type="button" id="tiIntRunTest">Geçmiş mumlarla test et</button><button type="button" id="tiIntLabClose">Kapat</button></div>${line('tiIntTestIntro')}<div id="tiIntTestResults" class="ti-int-line">Test başlatılmadı.</div><div class="ti-int-note">Sinyal kapandıktan sonraki mumun açılışı varsayımsal giriş fiyatıdır. Komisyon + kayma için varsayılan 8 baz puan / yön maliyet kullanılır. Kısmi geçmişle çıkan sonuçlar yatırım başarısı veya ileri tarihli performans kanıtı değildir. Lookahead, purge ve zamanlı test doğrulanmalıdır.</div>`)}`;
   pro.append(lab);
   const nav=pro.querySelector('[data-pro-tab="smc"]'),btn=d.createElement('button');btn.id='timiIntelLabNav';btn.type='button';btn.className=(nav?.className||'')+' ti-int-labbtn';btn.textContent='◫ Test Laboratuvarı';if(nav?.parentNode)nav.parentNode.append(btn);else pro.prepend(btn);
   btn.addEventListener('click',()=>{state.tabOpen=!state.tabOpen;lab.hidden=!state.tabOpen;btn.setAttribute('aria-expanded',String(state.tabOpen));if(state.tabOpen){lab.scrollIntoView({behavior:'smooth',block:'start'});void refresh(false);}});
@@ -51,33 +51,79 @@
   el('symbol')?.addEventListener('change',reset);el('saveGateway')?.addEventListener('click',()=>setTimeout(reset,300));
   return true;
  }
- function stopFeed(){if(state.tradeSocket){state.tradeSocket.onclose=null;state.tradeSocket.close();}state.tradeSocket=null;state.feedOn=false;state.lastDepth=null;state.lastDepthAt=0;state.lastTrade=0;state.trades=[];update();}
- function reset(){const sym=getSymbol(),gw=getGateway();if(sym===state.symbol&&gw===state.gateway)return;stopFeed();state.symbol=sym;state.gateway=gw;state.series={};state.at=0;state.futures=null;state.cache=null;state.run++;state.error='';update();void refresh(true);}
- function startFeed(){stopFeed();const symbol=getSymbol();state.feedOn=true;state.feedSymbol=symbol;
-  try{const stream=symbol.toLowerCase()+'@trade/'+symbol.toLowerCase()+'@depth20@1000ms';const url='wss://stream.binance.com:9443/stream?streams='+stream;const ws=new WebSocket(url);state.tradeSocket=ws;
-   ws.onmessage=e=>{if(getSymbol()!==symbol)return;let packet;try{packet=JSON.parse(e.data);}catch(_){return;}const v=packet?.data||packet;const now=Date.now();
-    if(v?.e==='trade'){const t=Number(v.T??v.E),p=Number(v.p),q=Number(v.q);if(Number.isFinite(t)&&Math.abs(now-t)<60000&&Number.isFinite(p)&&Number.isFinite(q)&&p>0&&q>0){state.trades.push({t,p,q,aggressor:v.m?'SELL':'BUY'});state.lastTrade=now;if(state.trades.length>2500)state.trades.splice(0,state.trades.length-2500);state.trades=state.trades.filter(x=>now-x.t<=300000);}}
-    if(Array.isArray(v?.bids)&&Array.isArray(v?.asks)){state.lastDepth={bids:v.bids,asks:v.asks};state.lastDepthAt=now;}
-   };
-   ws.onerror=()=>{state.error='Canlı trade WebSocket erişilemedi (bölgesel ağ veya borsa erişim kısıtı olabilir).';update();};
-   ws.onclose=()=>{if(state.tradeSocket===ws){state.tradeSocket=null;state.feedOn=false;update();}};
-  }catch(e){state.feedOn=false;state.error=String(e.message).slice(0,120);}
-  update();
+ function stopFeed(){state.feedOn=false;state.lastDepth=null;state.lastDepthAt=0;state.lastTrade=0;state.trades=[];update();}
+ function startFeed(){stopFeed();state.feedOn=true;state.error='';update();}
+ function reset(){const sym=getSymbol(),gw=getGateway();if(sym===state.symbol&&gw===state.gateway)return;stopFeed();state.symbol=sym;state.gateway=gw;state.series={};state.at=0;state.futures=null;state.cache=null;state.run++;state.error='';startFeed();void refresh(true);}
+ function onGatewayMessage(event){
+  const m=event?.detail,now=Date.now();if(!m)return;
+  const symbol=String(m.symbol||m.data?.symbol||'').toUpperCase();
+  if(symbol!==state.symbol)return;
+  // A new server session cannot reuse prior book, tape or footprint observations.
+  if(m.type==='snapshot'||m.type==='upstream_reset'||m.type==='upstream_down'||(m.type==='heartbeat'&&m.upstream_connected===false)){
+   state.trades=[];state.lastTrade=0;state.lastDepth=null;state.lastDepthAt=0;return;
+  }
+  if(!state.feedOn)return;
+  if(m.type==='trade'&&m.trade){const t=Number(m.trade.ts),p=Number(m.trade.price),q=Number(m.trade.qty);
+   const side=m.trade.side==='buy'?'BUY':m.trade.side==='sell'?'SELL':null;
+   if(side&&Number.isFinite(t)&&Math.abs(now-t)<60000&&Number.isFinite(p)&&Number.isFinite(q)&&p>0&&q>0){
+    state.trades.push({t,p,q,aggressor:side});state.lastTrade=now;
+    if(state.trades.length>2500)state.trades.splice(0,state.trades.length-2500);
+    state.trades=state.trades.filter(x=>now-x.t<=300000);
+   }
+  }
+  if(m.type==='depth'&&m.book_valid===true&&Array.isArray(m.bids)&&Array.isArray(m.asks)){
+    state.lastDepth={bids:m.bids,asks:m.asks};state.lastDepthAt=now;
+  }
+  if(m.type==='depth_invalid'){
+    state.lastDepth=null;state.lastDepthAt=0;
+  }
+ }
+ function liveSpot(){try{const p=Number(market?.price),t=Number(lastTrade);
+   return typeof ws!=='undefined'&&ws?.readyState===1&&Number.isFinite(p)&&p>0&&Number.isFinite(t)&&Date.now()-t<5000?{price:p,timestamp:t}:null;
+  }catch(_){return null;}}
+ async function requestFutures(){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+  try{const res=await fetch(state.gateway+'/api/v2/futures/'+encodeURIComponent(state.symbol),{cache:'no-store',signal:controller.signal});
+   if(!res.ok)throw Error('Futures '+res.status);
+   const data=await res.json(),b=data?.binance;
+   if(data?.symbol!==state.symbol||!b||b.available!==true)return null;
+   const price=Number(b.mark_price),timestamp=Number(b.data_time_ms);
+   if(!Number.isFinite(price)||price<=0||!Number.isFinite(timestamp)||Date.now()-timestamp>120000)return null;
+   return {symbol:state.symbol,price,timestamp,oi:b.open_interest_quantity==null?null:Number(b.open_interest_quantity),
+    funding:b.funding_rate_pct==null?null:Number(b.funding_rate_pct)/100,source:'Binance USD-M perpetual'};
+  }catch(_){return null;}finally{clearTimeout(timer);}
  }
  async function request(tf,context,seq){const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12500);try{
   const res=await fetch(state.gateway+'/api/klines/'+encodeURIComponent(state.symbol)+'?interval='+tf+'&limit=300',{cache:'no-store',signal:controller.signal});if(!res.ok)throw Error('Gateway '+res.status);
   const data=await res.json();if(data.symbol!==state.symbol||data.interval!==tf||!Array.isArray(data.candles))throw Error('Kaynak parite/zaman uyumsuzluğu');return C.bars(data.candles,tf);
  }finally{clearTimeout(timeout);}}
  async function refresh(force=false){if(state.busy||!state.gateway)return;if(!force&&Date.now()-state.at<45000&&Object.keys(state.series).length===3){update();return;}
-  const context=key(),seq=++state.run;state.busy=true;try{const result=await Promise.allSettled(['1m','5m','15m'].map(tf=>request(tf,context,seq)));if(seq!==state.run||context!==key())return;
-   state.series=Object.fromEntries(['1m','5m','15m'].map((tf,i)=>[tf,result[i].status==='fulfilled'?result[i].value:{ok:false,reason:String(result[i].reason?.message||'Bağlantı hatası'),data:[]}]));state.at=Date.now();update();
+  const context=key(),seq=++state.run;state.busy=true;try{const result=await Promise.allSettled([...['1m','5m','15m'].map(tf=>request(tf,context,seq)),requestFutures()]);if(seq!==state.run||context!==key())return;
+   state.series=Object.fromEntries(['1m','5m','15m'].map((tf,i)=>[tf,result[i].status==='fulfilled'?result[i].value:{ok:false,reason:String(result[i].reason?.message||'Bağlantı hatası'),data:[]}]));
+   state.futures=result[3].status==='fulfilled'?result[3].value:null;state.at=Date.now();update();
   }finally{state.busy=false;}
  }
+ function mainAuthority(){try{
+   const a=typeof analysis!=='undefined'?analysis:null,at=typeof analysisAt==='number'?analysisAt:0;
+   if(!a||a.symbol!==state.symbol||Date.now()-at>10000||!a.flow?.fresh||
+      typeof ws==='undefined'||ws?.readyState!==1)return 'BEKLE';
+   const direction=a.signal?.decision;
+   if(direction!=='LONG'&&direction!=='SHORT')return 'BEKLE';
+   // The original visible cockpit is an additional veto when active.
+   if(el('chart')?.classList.contains('active')){
+     const screen=(el('timiProDecision')?.textContent||'BEKLE').trim().toUpperCase();
+     if(screen!==(direction==='LONG'?'AL':'SAT'))return 'BEKLE';
+   }
+   return direction;
+  }catch(_){return 'BEKLE';}}
  function current(){const one=state.series['1m'],five=state.series['5m'],fifteen=state.series['15m'];if(!one?.ok||!five?.ok||!fifteen?.ok)return {ready:false,reason:[one,five,fifteen].filter(x=>!x?.ok).map(x=>x?.reason||'1m/5m/15m eksik').join(' · ')};
   const b=one.data,cacheKey=[state.symbol,one.data.at(-1).t,five.data.at(-1).t,fifteen.data.at(-1).t].join('|');
   if(!state.cache||state.cache.key!==cacheKey){state.cache={key:cacheKey,r:C.regime(b),s:C.smc(b),q:C.breakout(b),r5:C.regime(five.data),r15:C.regime(fifteen.data),vw:C.vwap(b,Math.max(0,b.length-90)),meta:C.trainMeta(b)};}
-  const {r,s,q,r5,r15,vw,meta}=state.cache,flow=Date.now()-state.lastTrade<18000?C.analyzeFlow(state.trades):{ready:false,reason:'Anlık trade akışı yok'},dep=Date.now()-state.lastDepthAt<10000?C.depthProxy(state.lastDepth):{ready:false,reason:'Güncel depth snapshot yok'},fu=C.futures(b.at(-1).c,state.futures),mtf=(r5.ready&&r15.ready&&r5.direction===r15.direction)?r5.direction:'WAIT';
-  const raw=C.decision(r,s,q,flow,fu);const decision=raw.direction!=='BEKLE'&&mtf!==raw.direction?{direction:'BEKLE',reason:'5m/15m rejim uyumsuzluğu',provisional:false}:raw;
+  const {r,s,q,r5,r15,vw,meta}=state.cache,flow=state.feedOn&&Date.now()-state.lastTrade<18000?C.analyzeFlow(state.trades):{ready:false,reason:'Anlık Gateway trade akışı yok'},dep=state.feedOn&&Date.now()-state.lastDepthAt<10000?C.depthProxy(state.lastDepth):{ready:false,reason:'Güncel depth snapshot yok'};
+  const spot=liveSpot(),fu=C.futures(spot?.price??NaN,spot&&state.futures?{...state.futures,spotTimestamp:spot.timestamp}:null),mtf=(r5.ready&&r15.ready&&r5.direction===r15.direction)?r5.direction:'WAIT';
+  const raw=C.decision(r,s,q,flow,fu),authority=mainAuthority();
+  const decision=authority==='BEKLE'?{direction:'BEKLE',reason:'Ana TiMi motoru BEKLE veya verisi güncel değil',provisional:false}:
+    raw.direction!==authority?{direction:'BEKLE',reason:'Intelligence ve ana motor yönleri uyumsuz / teyit eksik',provisional:false}:
+    mtf!==raw.direction?{direction:'BEKLE',reason:'5m/15m rejim uyumsuzluğu',provisional:false}:raw;
   const vp=C.volumeProfile(state.trades);
   return {ready:true,b,r,s,q,flow,dep,fu,mtf,decision,vw,vp,meta};
  }
@@ -91,7 +137,7 @@
   txt('tiIntBreakout',`Hacim teyitli 20-mum kırılımı: ${q.confirmed} · Başarısız kırılım adayı: ${q.failed} · Hacim ortalama oranı: ${fmt(q.volumeRatio,2)}x.`);
   txt('tiIntVWAP',`90 mum HLC3 yaklaşımlı Anchored VWAP: ${fmt(vw.value,5)} · Piyasa: ${b.at(-1).c>vw.value?'üstünde':'altında'} · Gerçek trade VWAP ile karıştırılmaz.`);
   txt('tiIntPOC',vp.ready?`Gözlemlenen işlem hacim profili POC: ${fmt(vp.poc,5)} · yalnız bu oturum.`:'Gerçek trade dağılımı yok; hacim profili POC doğrulanamadı.');
-  txt('tiIntFlow',flow.ready?`Son 5 dk / en fazla 2.500 gözlemlenen trade (${flow.count}) · alış ${fmt(flow.buy,4)} / satış ${fmt(flow.sell,4)} · CVD ${fmt(flow.cvd,4)} · Delta ${pct(flow.ratio)}.`:'CVD / agresif alım-satım: '+(state.error||flow.reason||'Canlı akışı başlatın'));
+  txt('tiIntFlow',flow.ready?`Son 5 dk / en fazla 2.500 gözlemlenen trade (${flow.count}) · alış ${fmt(flow.buy,4)} / satış ${fmt(flow.sell,4)} · CVD ${fmt(flow.cvd,4)} baz varlık · Delta ${pct(flow.ratio)}.`:'CVD / agresif alım-satım: '+(state.error||flow.reason||'Canlı akışı başlatın'));
   txt('tiIntAbsorption',flow.ready?`Absorpsiyon adayı: ${flow.absorption} · fiyat değişimi ${pct(flow.priceChange)}. Teyitli iceberg/spoof göstergesi değildir.`:'Absorpsiyon hesaplanamadı; zaman uyumlu trade akışı gerekli.');
   txt('tiIntDepth',dep.ready?`20-kademe kısmi miktar dengesi: ${pct(dep.ratio)} · bid ${fmt(dep.bid)} / ask ${fmt(dep.ask)} · OFI: VERİ YETERSİZ.`:'OFI: VERİ YETERSİZ · '+(dep.reason||'Artımlı senkronize L2 gerekli'));
   txt('tiIntFutures',fu.ready?`Spot/Futures basis ${fmt(fu.basisPct,3)}% · ayrışma ${fu.direction} · OI ${fmt(fu.oi)} · funding ${fmt(fu.funding,6)} · kaynak ${fu.source}`:'Futures metrikleri geçerli borsa/sözleşme/zaman eşlemesi olmadan kapalı; '+fu.reason);
@@ -106,7 +152,7 @@
  function ingestTrade(x){if(!x||getSymbol()!==x.symbol)return false;const t=Number(x.t),p=Number(x.p),q=Number(x.q);if(![t,p,q].every(Number.isFinite)||Math.abs(Date.now()-t)>60000||p<=0||q<=0||!['BUY','SELL'].includes(x.aggressor))return false;state.trades.push({t,p,q,aggressor:x.aggressor});state.lastTrade=Date.now();if(state.trades.length>2500)state.trades.splice(0,state.trades.length-2500);return true;}
  root.TiMiIntel=Object.freeze({version:'1.0.0',readOnly:true,ingestFutures,ingestTrade,inspect:()=>({symbol:state.symbol,closedBars:Object.fromEntries(Object.entries(state.series).map(([k,v])=>[k,v.data?.length||0])),tradeCount:state.trades.length,feedActive:state.feedOn})});
  function boot(){if(!install()){let tries=0;const retry=setInterval(()=>{if(install()){clearInterval(retry);start();}else if(++tries>=40){clearInterval(retry);}},500);return;}start();}
- function start(){if(root.__timiIntelStarted)return;root.__timiIntelStarted=true;state.symbol=getSymbol();state.gateway=getGateway();void refresh(true);setInterval(()=>{if(d.visibilityState==='visible'){if(state.symbol!==getSymbol()||state.gateway!==getGateway())reset();else void refresh(false);if(state.tradeSocket)update();}},5000);
-  d.addEventListener('visibilitychange',()=>{if(d.visibilityState==='hidden')stopFeed();});}
+ function start(){if(root.__timiIntelStarted)return;root.__timiIntelStarted=true;state.symbol=getSymbol();state.gateway=getGateway();d.addEventListener('timi-gateway-event',onGatewayMessage);startFeed();void refresh(true);setInterval(()=>{if(d.visibilityState==='visible'){if(state.symbol!==getSymbol()||state.gateway!==getGateway())reset();else void refresh(false);if(state.feedOn)update();}},5000);
+  d.addEventListener('visibilitychange',()=>{if(d.visibilityState==='hidden')stopFeed();else startFeed();});}
  if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })(typeof window!=='undefined'?window:null);

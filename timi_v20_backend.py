@@ -48,6 +48,11 @@ class LiveFlow:
         self.clock = clock
         self.buckets = {s: deque(maxlen=310) for s in symbols}
 
+    def reset_all(self):
+        """Drop observations from an upstream connection that has ended."""
+        for rows in self.buckets.values():
+            rows.clear()
+
     def record_trade(self, symbol, side, qty, price, received_ms):
         if symbol not in self.buckets or side not in ('buy', 'sell'):
             return

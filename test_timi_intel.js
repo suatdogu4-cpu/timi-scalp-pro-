@@ -14,8 +14,11 @@ const tr=Array.from({length:40},(_,i)=>({t:now-40000+i*1000,p:100+i*.002,q:1,agg
 A.equal(core.depthProxy({bids:[[100,'2']],asks:[[101,'1']]}).isOFI,false);
 A.equal(core.futures(100,{price:101,source:'test',timestamp:now-200000},now).ready,false);
 A.equal(core.futures(100,{price:101,source:'test',timestamp:now-1000},now).ready,true);
-for(const s of ['MTF Trend','SMC Zinciri','Breakout','Birleşik']){const r=core.backtest(one.data,s);A.equal(r.strategy,s);if(r.ready)A.ok(r.winRate>=0&&r.winRate<=1);}
+for(const s of ['MTF Trend','SMC Zinciri','Breakout','Birleşik']){const r=core.backtest(one.data,s);A.equal(r.strategy,s);if(r.ready){A.ok(r.winRate>=0&&r.winRate<=1);A.equal(r.entryConvention,'next_open_after_closed_signal');}}
 const m=core.trainMeta(one.data);A.ok(typeof m.ready==='boolean');if(m.ready)A.ok(m.brier>=0&&m.brier<=1);
 const no=core.decision({ready:false},{ready:true},{ready:true},null,null);A.equal(no.direction,'BEKLE');
+const withoutFlow=core.decision({ready:true,kind:'TREND',direction:'LONG'},{ready:true,chain:true,direction:'LONG'},{ready:true,confirmed:'LONG',failed:'WAIT'},null,null);
+A.equal(withoutFlow.direction,'BEKLE');
+A.equal(core.futures(100,{price:101,source:'test',timestamp:now-1000,spotTimestamp:now-50000},now).ready,false);
 A.ok(!JSON.stringify(core).includes('PRIVATE_KEY'));
 console.log('PASS: closed-only normalization, gaps, indicator, SMC, breakout, VWAP, real-trade flow, fake-OFI guard, Futures stale guard, historical tests, ML gate, WAIT veto');
