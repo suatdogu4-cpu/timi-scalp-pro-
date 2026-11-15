@@ -422,6 +422,18 @@
       updatePairPeriod();refreshOverlays();
     },900);
     window.addEventListener('resize',()=>{if(visible()&&!restoreLegacy)chart?.resize();});
+    // SMC visual adapter: never changes trading signals.
+    window.timiKlineSMCBridge = Object.freeze({
+      snapshot: () => ({
+        ready: Boolean(chartReady && chart && !restoreLegacy),
+        legacy: Boolean(restoreLegacy),
+        chart: chartReady && !restoreLegacy ? chart : null,
+        symbol: chartSymbol,
+        tf: chartTf,
+        gateway: chartGateway,
+        bars: chartReady && chart ? (chart.getDataList() || []) : []
+      })
+    });
     window.timiKlineDebug=()=>({ready:chartReady,symbol:chartSymbol,tf:chartTf,
       bars:latestBars.length,library:'KLineChart 10.1.0',readOnly:true});
   }
