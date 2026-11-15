@@ -132,12 +132,12 @@
   const d=root.document;
   const GROUP_STRUCTURE='timi-smc-v12-break';
   const GROUP_FVG='timi-smc-v12-fvg';
-  let settings={structure:true,fvg:true},lastKey='',lastVersion='';
+  let settings={structure:true,fvg:true,compact:true,structureLabels:false,fvgLabels:false,candleInfo:false,maInfo:false},lastKey='',lastVersion='';
   let ui=null,timer=null,drawErrors=0,chartRef=null,registered=false,lastResult=null;
   try {
     const saved=JSON.parse(root.localStorage.getItem('timi_smc_v12_settings')||'null');
     if(saved && typeof saved.structure==='boolean' && typeof saved.fvg==='boolean')
-      settings={structure:saved.structure,fvg:saved.fvg};
+      for(const k of Object.keys(settings))if(typeof saved[k]==='boolean')settings[k]=saved[k];
   } catch(_){}
 
   function bridge(){
@@ -145,7 +145,14 @@
     if(!b || typeof b.snapshot!=='function')return null;
     try{return b.snapshot();}catch(_){return null;}
   }
-  function clear(chart) {
+  function setInfoDisplay(chart){
+  if(!chart || typeof chart.setStyles!=='function')return;
+  try{chart.setStyles({
+    candle:{tooltip:{showRule:settings.candleInfo?'always':'none'}},
+    indicator:{tooltip:{showRule:settings.maInfo?'always':'none'}}
+  });}catch(_){}
+}
+function clear(chart) {
     for(const groupId of [GROUP_STRUCTURE,GROUP_FVG]) {
       try{chart?.removeOverlay({groupId});}catch(_){}
     }
@@ -163,7 +170,7 @@
                 h=Math.max(2,Math.abs(coordinates[1].y-coordinates[0].y));
           const bull=overlay.extendData?.side==='BULL';
           const c=bull?'#1ee1a7':'#ff6f91';
-          const label=String(overlay.extendData?.label||'FVG').slice(0,40);
+          const label=String(overlay.extendData?.label??'').slice(0,40);
           return [{
             type:'rect',ignoreEvent:true,
             attrs:{x,y,width:w,height:h},
@@ -202,17 +209,17 @@
   function applyOverlays(chart,result,bars,tf){
     clear(chart);drawErrors=0;
     if(settings.structure) {
-      for(const b of result.breaks.slice(-9)){
+      for(const b of result.breaks.slice(settings.compact?-4:-9)){
         const color=b.type==='CHoCH'?'#ffc569':(b.direction==='LONG'?'#28dba4':'#ff698c');
         line(chart,[{timestamp:b.pivotTime,value:b.price},
           {timestamp:b.time,value:b.price}],color,GROUP_STRUCTURE,b.type==='CHoCH');
-        annotation(chart,b);
+        if(settings.structureLabels)annotation(chart,b);
       }
     }
     if(settings.fvg) {
       const nowEnd=bars.at(-1)?.timestamp;
       const active=result.fvgs.filter(z=>z.status!=='GEÇERSİZ' && z.status!=='DOLDU' &&
-        z.endAt>=nowEnd-STEP[tf]*90).slice(-9);
+        z.endAt>=nowEnd-STEP[tf]*90).slice(settings.compact?-3:-9);
       for(const z of active) {
         const end=Math.max(z.createdAt+STEP[tf],z.endAt);
         const label=(z.side==='BULL'?'↑':'↓')+' FVG · '+
@@ -222,7 +229,7 @@
             chart.createOverlay({
               name:'timiSmcFvgBox',groupId:GROUP_FVG,lock:true,
               points:[{timestamp:z.start,value:z.upper},{timestamp:end,value:z.lower}],
-              extendData:{side:z.side,label}
+              extendData:{side:z.side,label:settings.fvgLabels?label:''}
             });
           }else{
             const color=z.side==='BULL'?'#25d9a2':'#fa7898';
@@ -244,11 +251,22 @@
       'padding:7px 0;border-top:1px solid #314760';
     div.innerHTML='<button type="button" data-smc="structure">BOS / CHoCH</button>'+
       '<button type="button" data-smc="fvg">FVG Bölgeleri</button>'+
+      '<details id="timiSmcDisplayOptions" style="width:100%;margin-top:5px">'+
+      '<summary style="font-size:12px;color:#afc9e8;cursor:pointer">⚙ Görünüm Ayarları · Sade / Detaylı</summary>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+
+      '<button type="button" data-preset="sade">Sade</button>'+
+      '<button type="button" data-preset="detay">Detaylı</button>'+
+      '<button type="button" data-smc="candleInfo">Mum Verileri</button>'+
+      '<button type="button" data-smc="maInfo">MA Değerleri</button>'+
+      '<button type="button" data-smc="structureLabels">BOS/CHoCH Yazıları</button>'+
+      '<button type="button" data-smc="fvgLabels">FVG Yazıları</button>'+
+      '<button type="button" data-smc="compact">Az Çizim</button>'+
+      '</div></details>'+
       '<span id="timiSmcInfo" style="font:11px system-ui;color:#bbcede;line-height:1.5">'+
       'SMC: kapanmış mum bekleniyor</span>';
     toolbar.append(div);ui=div;
     function updateButtons(){
-      for(const prop of ['structure','fvg']){
+      for(const prop of ['structure','fvg','candleInfo','maInfo','structureLabels','fvgLabels','compact']){
         const b=div.querySelector('[data-smc="'+prop+'"]');
         if(!b)continue;
         b.setAttribute('aria-pressed',String(settings[prop]));
@@ -257,11 +275,21 @@
       }
     }
     div.addEventListener('click',event=>{
+      const preset=event.target.closest('[data-preset]');
+      if(preset){
+        const detailed=preset.dataset.preset==='detay';
+        Object.assign(settings,{compact:!detailed,structureLabels:detailed,
+          fvgLabels:detailed,candleInfo:detailed,maInfo:detailed});
+        try{root.localStorage.setItem('timi_smc_v12_settings',JSON.stringify(settings));}catch(_){}
+        setInfoDisplay(bridge()?.chart);
+        lastVersion='';updateButtons();tick(true);return;
+      }
       const b=event.target.closest('[data-smc]');
       if(!b)return;
       const key=b.dataset.smc;
       if(!(key in settings))return;
       settings[key]=!settings[key];
+      setInfoDisplay(bridge()?.chart);
       try{root.localStorage.setItem('timi_smc_v12_settings',JSON.stringify(settings));}catch(_){}
       lastVersion='';updateButtons();tick(true);
     });
@@ -281,14 +309,14 @@
       return;
     }
     const chart=s.chart;
-    if(chart!==chartRef){clear(chartRef);chartRef=chart;lastKey='';lastVersion='';}
+    if(chart!==chartRef){clear(chartRef);chartRef=chart;lastKey='';lastVersion='';setInfoDisplay(chart);}
     const key=s.symbol+'|'+s.tf+'|'+s.gateway;
     if(key!==lastKey){clear(chart);lastKey=key;lastVersion='';}
     const bars=onlyClosed(s.bars,s.tf,Date.now());
     if(bars.length<15){clear(chart);lastVersion='';info('SMC: en az 15 kapanmış mum bekleniyor');return;}
     const tail=bars.at(-1);
     const signature=[key,bars.length,tail.timestamp,tail.close,tail.high,tail.low,
-      settings.structure,settings.fvg].join('|');
+      settings.structure,settings.fvg,settings.compact,settings.structureLabels,settings.fvgLabels,settings.candleInfo,settings.maInfo].join('|');
     if(!force && signature===lastVersion)return;
     lastVersion=signature;
     if(!registered)registerFvgOverlay();
