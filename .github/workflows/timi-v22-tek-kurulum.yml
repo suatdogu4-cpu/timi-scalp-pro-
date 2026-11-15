@@ -79,7 +79,10 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          
+          sed -i 's/[[:blank:]]*$//' TiMi_20_Gelistirme_Plani_TR.md
           git add index.html timi_22_health.js TiMi_20_Gelistirme_Plani_TR.md
+
           git diff --cached --check
           test "$(git diff --cached --name-only)" = "$(printf 'TiMi_20_Gelistirme_Plani_TR.md\nindex.html\ntimi_22_health.js')"
           git commit -m 'TiMi v2.2 add read-only market source health panel and 20-feature roadmap'
