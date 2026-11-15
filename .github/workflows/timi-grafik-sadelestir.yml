@@ -1,0 +1,157 @@
+name: TiMi Grafik - Sade Detayli Gorunum v1.3
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timi-chart-display-v13
+  cancel-in-progress: false
+
+jobs:
+  install_display_controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Yedekleri al
+        run: |
+          cp index.html index_before_display_v13.html
+          cp timi_smc_v12.js smc_before_display_v13.js
+
+      - name: Gorunumu sadeleştir ve kontrolleri ekle
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+
+          smc=Path('timi_smc_v12.js')
+          html=Path('index.html')
+          old=smc.read_text(encoding='utf-8')
+          page=html.read_text(encoding='utf-8')
+          def sha(text):
+              b=text.encode('utf-8')
+              return hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          if sha(old)!='5b60d1a467de737651a561a3268d519202deb569':
+              raise ValueError('SMC kaynak kodu degismis; guvenlik icin durduruldu')
+          if sha(page)!='52268dbfa3bff38c4bfc94f9475a18580d0de01a':
+              raise ValueError('HTML degismis; guvenlik icin durduruldu')
+          if 'timiSmcDisplayOptions' in old:
+              raise ValueError('Gorunum duzeltmesi zaten uygulanmis')
+
+          def patch(before,after):
+              global old
+              count=old.count(before)
+              if count!=1:
+                  raise ValueError('Beklenen kod konumu farkli: '+str(count)+' / '+before[:60])
+              old=old.replace(before,after,1)
+
+          patch("  let settings={structure:true,fvg:true},lastKey='',lastVersion='';",
+                "  let settings={structure:true,fvg:true,compact:true,structureLabels:false,fvgLabels:false,candleInfo:false,maInfo:false},lastKey='',lastVersion='';")
+          patch('      settings={structure:saved.structure,fvg:saved.fvg};',
+                "      for(const k of Object.keys(settings))if(typeof saved[k]==='boolean')settings[k]=saved[k];")
+          patch('  function clear(chart) {',
+                '''  function setInfoDisplay(chart){
+            if(!chart || typeof chart.setStyles!=='function')return;
+            try{chart.setStyles({
+              candle:{tooltip:{showRule:settings.candleInfo?'always':'none'}},
+              indicator:{tooltip:{showRule:settings.maInfo?'always':'none'}}
+            });}catch(_){}
+          }
+          function clear(chart) {''')
+          patch("const label=String(overlay.extendData?.label||'FVG').slice(0,40);",
+                "const label=String(overlay.extendData?.label??'').slice(0,40);")
+          patch('for(const b of result.breaks.slice(-9)){',
+                'for(const b of result.breaks.slice(settings.compact?-4:-9)){')
+          patch('        annotation(chart,b);',
+                '        if(settings.structureLabels)annotation(chart,b);')
+          patch('z.endAt>=nowEnd-STEP[tf]*90).slice(-9);',
+                'z.endAt>=nowEnd-STEP[tf]*90).slice(settings.compact?-3:-9);')
+          patch('extendData:{side:z.side,label}',
+                "extendData:{side:z.side,label:settings.fvgLabels?label:''}")
+          patch("      '<button type=\"button\" data-smc=\"fvg\">FVG Bölgeleri</button>'+",
+                '''      '<button type="button" data-smc="fvg">FVG Bölgeleri</button>'+
+                '<details id="timiSmcDisplayOptions" style="width:100%;margin-top:5px">'+
+                '<summary style="font-size:12px;color:#afc9e8;cursor:pointer">⚙ Görünüm Ayarları · Sade / Detaylı</summary>'+
+                '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">'+
+                '<button type="button" data-preset="sade">Sade</button>'+
+                '<button type="button" data-preset="detay">Detaylı</button>'+
+                '<button type="button" data-smc="candleInfo">Mum Verileri</button>'+
+                '<button type="button" data-smc="maInfo">MA Değerleri</button>'+
+                '<button type="button" data-smc="structureLabels">BOS/CHoCH Yazıları</button>'+
+                '<button type="button" data-smc="fvgLabels">FVG Yazıları</button>'+
+                '<button type="button" data-smc="compact">Az Çizim</button>'+
+                '</div></details>'+''')
+          patch("for(const prop of ['structure','fvg']){",
+                "for(const prop of ['structure','fvg','candleInfo','maInfo','structureLabels','fvgLabels','compact']){")
+          patch("    div.addEventListener('click',event=>{",
+                '''    div.addEventListener('click',event=>{
+                const preset=event.target.closest('[data-preset]');
+                if(preset){
+                  const detailed=preset.dataset.preset==='detay';
+                  Object.assign(settings,{compact:!detailed,structureLabels:detailed,
+                    fvgLabels:detailed,candleInfo:detailed,maInfo:detailed});
+                  try{root.localStorage.setItem('timi_smc_v12_settings',JSON.stringify(settings));}catch(_){}
+                  setInfoDisplay(bridge()?.chart);
+                  lastVersion='';updateButtons();tick(true);return;
+                }''')
+          patch('      settings[key]=!settings[key];',
+                '      settings[key]=!settings[key];\n      setInfoDisplay(bridge()?.chart);')
+          patch("if(chart!==chartRef){clear(chartRef);chartRef=chart;lastKey='';lastVersion='';}",
+                "if(chart!==chartRef){clear(chartRef);chartRef=chart;lastKey='';lastVersion='';setInfoDisplay(chart);}")
+          patch("settings.structure,settings.fvg].join('|');",
+                "settings.structure,settings.fvg,settings.compact,settings.structureLabels,settings.fvgLabels,settings.candleInfo,settings.maInfo].join('|');")
+
+          tag='<script id="timi-smc-1-2">'
+          if page.count(tag)!=1:
+              raise ValueError('SMC inline script etiketi eksik veya tekrarlanmis')
+          start=page.index(tag)+len(tag)
+          end=page.index('</script>',start)
+          current=page[start:end]
+          original=smc.read_text(encoding='utf-8')
+          if current.strip()!=original.strip():
+              raise ValueError('SMC inline script ile JS dosyasi farkli')
+          new_page=page[:start]+'\n'+old.rstrip()+'\n'+page[end:]
+          for mark in ('id="overview"','id="chart"','id="flow"','id="more"',
+                       'id="timi-meta-widget-inline"','id="timi-kline-10-1-0"',
+                       'id="timiProCockpit"','id="timi-smc-1-2"'):
+              if mark not in new_page:
+                  raise ValueError('Mevcut ozellik kayboldu: '+mark)
+          if new_page.count('<script')!=new_page.count('</script>'):
+              raise ValueError('Script sayisi uyusmuyor')
+          smc.write_text(old,encoding='utf-8')
+          html.write_text(new_page,encoding='utf-8')
+          print('Sade/Detayli ve 5 bagimsiz grafik ayari eklendi')
+          PY
+          node --check timi_smc_v12.js
+          git diff --check
+
+      - name: Onceki surumlerin 30 gunluk yedegi
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-before-display-${{ github.run_number }}
+          path: |
+            index_before_display_v13.html
+            smc_before_display_v13.js
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Degisiklikleri GitHub'a kaydet
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html timi_smc_v12.js
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "$(printf 'index.html\ntimi_smc_v12.js')"
+          git commit -m 'Add TiMi SMC v1.3 decluttered chart with saved visibility controls'
+          git push origin HEAD:main
