@@ -1,0 +1,152 @@
+name: TiMi - Order Flow PRO 3.0 Tek Kurulum
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timi-orderflow-v23-main
+  cancel-in-progress: false
+
+jobs:
+  install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Back up unmodified files
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp main.py main_before_orderflow_v23.py
+          cp index.html index_before_orderflow_v23.html
+
+      - name: Build protected new v3 modules and event hooks
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib,re,zlib
+          from pathlib import Path
+
+          payloads = {
+              'timi_v23_orderflow.py': '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',
+              'timi_v23_orderflow.js': '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',
+              'test_timi_v23_orderflow.py': 'eNqtWN1u2zYUvvdTcNmF7FVRJDk22gC+6JpmC7A1ReuiKAyDoCU6JiJRikg5NYq+SbFn2Dt0e68dkrL+LDvu2gBBIun88TvfOTzkycnJJZU0ixlnQrLARslyGTFOkaRCCrRMMjRlfzK0HjouyigJTxMebVCShTQ7XUbJA0ozFjPJ1lQ4JycnPRanSSYRERsesGT7mHMmlcXeMktiJDcpFaj49Bb+RvQVialISUB7RmRJhCQp2wpdwePz19c2+n06ff3yY0BTyRJeWAP/eO0PsQ5Kx1Ro3agXV/DCH9qIcbAYRUrSRu+vX13evH/b6/WCiAiBXkRJcHfRQ/AT0iXCGPCQGPcFjZYD8179qEeHg4MJ8vBT18Vu9duraQfK0Y52RmWe8dJI6XwKwNRC7W/BctSHF0TQQRWZoPJd2hlWoJYAgeml9AfNj2ITL5IIvlq/Tl+8e3s5tZrfKb9VSZ/UIevPaqpzu+alZTwm2R2VoNxKZR9WJ7HMSEhxLCavEk5tpN8tkuSueqWf1iRi4WSa5XRQIal19WrBPQtBlsRJzqWtWBfQyXgIwMPLcE04PLqdmOiEPZlspboW7mQ0APbgyl+x7E63dSj6g04wnMbSAZq6RrW+EHi8Kta3YCG+l5uJD97Enf53WC3N893vXp3Cubm42axAsHAOWZ6N/WfPRjby5nO7NLbvx+iPyoi1/tD1XKN/LE4FHfbClFGRR7LA6YHxMHmYeOA1SDingaQFb7orrcBAcJKKVSKbABhjdj2kmtk6E2mZz5BGkmDCQ3ybJXnK+G1nPRouWYt8YwEaNtJIDzpl4P8IhFzHN2J+S8zQpKTCrh0jUDLIqTICD26LRRVKW8ALfFtGoTXRTL68z0nUz2aWgcqazywDQ6AqwoIk+516z6M4EV3aBr5chFpZo3Lq+WPXdc6hviLoG2LiHwglolwZ1JWII7qmkbDmA4D4mDCaWjMX4oEENaM5xo5mbLAi/JYqO5aCnvEANkhBS2tDb/T/rKnchbRlTVfaAVxmH7coY0EDa6737o+w7aESfshZnJKMiYRbqjxnqojGwA8wPT8m+w0DGr1dLjRLpg44/CFrKBcsk9R3Mcko5omEzRKoGUVE7eji8VJyHdf71vpodEpVBN/cJk1T9LcNEjA7/6YGOfyxrXErb0jTruM2ox6joBE0LN7h3eMMrqvvFIFGrs2KkImiyeo+yrje/XGjR38nCUZ7muQBAbOyKxKJYgYo8Ky2Gf0N4IVJUuai6oVLkFxZ7RIqaFWsjki6Q63OAK6FGov6BzM62ENgGA8xzJ6HWnnL7t62fiw6h+BoZr3oIQvwEAqdeDWR02OyXWt8qq0ZS6q3FYP8RaMSD8ZrdBsrV10tgmNQHdcHJld1Q28IE1T0G+ePQYfbwsv56FALGo/aLej70Q3hCJbdUuC26qihIVxG73MG8niZw4nErPgYvP1qwoZCaYLP9J6iiNiHscYbt1D4Gd3ASQIMIYgCAZORiIGSyk2EKAkUqlBRIQxfKxZR4weWEahjp3B2EW02b7eG3L7ozxvRn45+YYO9OuXs5foHtI7bZkwS1Sy6v8q6uFYvft63rv75+8PzKbr8+uXfv75++XDzxrLb/b0r2fss7rYT2JIO2Ght4DTDJmF4AUdoU700PIZEXuOYtp9ET92uQtrp9zVrnvukkZ4fNMl6T7uHyN9gS5M0a+rmHPDgtDg0PtY3/6BCVPNrvWlrddE4a89OvbljZiY12I7ddlIgoTjNFxEL8C10fDiGQK2ri5l2WkiaAjTF7UkNluIyhIbwtXYx0gd5G32qxXJRm0g+wyer3AytC0X0z933ApSHacK4VIPLLHNSAs1UpT1TaQcnjg5ZILZEKyKIlACubSkxazDfVxdnJGVn6+FZec9z9skE+RkYUno8sG0RvgErWt1SgaS6RaXopwk6ZFxHniqFysmeUrtWWEJF9UuA7fqVCuSxx9QFEScxxRhNwDHGMWEcY8tkrbz8UW8hY/8BBjEYmg==',
+          }
+          for filename,encoded in payloads.items():
+              target = Path(filename)
+              if target.exists():
+                  raise RuntimeError('Existing file not overwritten: '+filename)
+              target.write_bytes(zlib.decompress(base64.b64decode(encoded)))
+
+          def gitblob(blob):
+              return hashlib.sha1(b'blob '+str(len(blob)).encode('ascii')+b'\0'+blob).hexdigest()
+
+          def replace_once(src, old, new, location):
+              n = src.count(old)
+              if n != 1:
+                  raise ValueError(f'Patch location mismatch for {location}: occurrences={n}')
+              return src.replace(old, new, 1)
+
+          mainp=Path('main.py')
+          indexp=Path('index.html')
+          mainbytes=mainp.read_bytes()
+          indexbytes=indexp.read_bytes()
+          if gitblob(mainbytes)!='1a87009510dd1c2d5e5ba43856fa539f85913a4e':
+              raise ValueError('main.py SHA changed, abort to prevent overwrites')
+          if gitblob(indexbytes)!='eb76fcd56a3f161dcf7213d75100f3b72d1f97e7':
+              raise ValueError('index.html SHA changed, abort to prevent overwrites')
+          main=mainbytes.decode('utf-8')
+          html=indexbytes.decode('utf-8')
+          if 'timi_v23_orderflow' in main or 'id="timi-orderflow-v23"' in html:
+              raise ValueError('TiMi Order Flow 3.0 already installed')
+          main=replace_once(main,
+              '                for existing_market in markets.values():\n                    existing_market.depth_snapshots.clear()\n',
+              '                for existing_market in markets.values():\n                    existing_market.depth_snapshots.clear()\n                v23_live.reset_all()  # discard all stale observations after a reconnect\n',
+              'WebSocket reconnect')
+          main=replace_once(main,
+              '                        v2_live.record_trade(symbol, side, qty, price, now)\n',
+              '                        v2_live.record_trade(symbol, side, qty, price, now)\n                        v23_live.record_trade(symbol, side, qty, price, now)\n',
+              'trade tap')
+          main=replace_once(main,
+              '                            m.book_valid, m.book_error = True, None\n',
+              '                            m.book_valid, m.book_error = True, None\n                            v23_live.record_book(symbol, bids, asks, now, m.last_book_update_id)\n',
+              'depth tap')
+          main=replace_once(main,
+              '                            m.bids, m.asks, m.bid, m.ask = [], [], None, None\n',
+              '                            m.bids, m.asks, m.bid, m.ask = [], [], None, None\n                            v23_live.invalidate_book(symbol)\n',
+              'invalid depth')
+          main=replace_once(main,
+              'v2_live = install_v20(app, markets, status, now_ms, lambda: http_client)',
+              'v2_live = install_v20(app, markets, status, now_ms, lambda: http_client)\n'
+              'from timi_v23_orderflow import install_v23\n'
+              'v23_live = install_v23(app, markets, status, now_ms)',
+              'v3 route install')
+          if main.count('v23_live.record_trade(')!=1 or main.count('v23_live.record_book(')!=1:
+              raise ValueError('Event taps duplicated or missing')
+          required = ['id="overview"','id="chart"','id="more"','id="timi-meta-widget-inline"',
+                      'id="timi-kline-10-1-0"','id="timi-smc-1-2"','id="timi-pro-suite-v14"',
+                      'id="timi-pro-v15"','id="timi-v20-ui"','id="timi-ui-v21-js"',
+                      'id="timi-health22-js"']
+          for item in required:
+              if item not in html:
+                  raise ValueError('Protected module missing: '+item)
+          js=Path('timi_v23_orderflow.js').read_text(encoding='utf-8')
+          if '</script' in js.lower():
+              raise ValueError('Unsafe embedded JS script closing tag')
+          close=re.search(r'</body>\s*</html>\s*$',html,re.I)
+          if not close:
+              raise ValueError('HTML closing tags not found')
+          added='<!-- TiMi Order Flow PRO 3.0: read-only -->\n<script id="timi-orderflow-v23">\n'+js.rstrip()+'\n</script>\n'
+          html=html[:close.start()]+added+html[close.start():]
+          if html.count('<script')!=html.count('</script>') or html.count('<style')!=html.count('</style>'):
+              raise ValueError('HTML script/style tags became unbalanced')
+          if html.count('id="timi-orderflow-v23"')!=1:
+              raise ValueError('New UI inline marker not unique')
+          for item in required:
+              if item not in html:
+                  raise ValueError('Protected module lost: '+item)
+          mainp.write_text(main,encoding='utf-8')
+          indexp.write_text(html,encoding='utf-8')
+          print('TiMi v3.0: recorded bounded trade/bin observations + book deltas in RAM only')
+          print('One new read-only GET endpoint: /api/v3/orderflow/{symbol}. No other routes.')
+          PY
+          python3 -m py_compile main.py timi_v23_orderflow.py
+          node --check timi_v23_orderflow.js
+          git diff --check
+
+      - name: Install minimal test dependency
+        run: python3 -m pip install -q 'fastapi>=0.100,<1'
+
+      - name: Test deterministic Order Flow calculations
+        run: python3 -m unittest -v test_timi_v23_orderflow
+
+      - name: Back up original code for 30 days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-before-orderflow-v23-${{ github.run_number }}
+          path: |
+            main_before_orderflow_v23.py
+            index_before_orderflow_v23.html
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Commit only audited v3 files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add main.py index.html timi_v23_orderflow.py timi_v23_orderflow.js test_timi_v23_orderflow.py
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "$(printf 'index.html\nmain.py\ntest_timi_v23_orderflow.py\ntimi_v23_orderflow.js\ntimi_v23_orderflow.py')"
+          git commit -m 'TiMi Order Flow PRO 3.0 - ephemeral price bins and partial-depth changes'
+          git push origin HEAD:main
