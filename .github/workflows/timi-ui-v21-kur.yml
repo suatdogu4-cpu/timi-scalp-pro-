@@ -1,0 +1,299 @@
+name: TiMi UI UX v2.1 - Mobil Urun Tasarimi Tek Kurulum
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timi-ui-v21-main
+  cancel-in-progress: false
+
+jobs:
+  install_ui_v21:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Clone latest TiMi main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Backup original interface (before editing)
+        shell: bash
+        run: |
+          cp index.html index_before_ui_v21.html
+
+      - name: Create mobile design system and interaction layer
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > timi_ui_v21.css <<'TIMI_CSS_V21'
+          /* TiMi Design System v2.1 — additive, mobile-first, dark, readable.
+             Interface styling ONLY: charts, market calculations, controls stay intact. */
+          :root{--ui-ink:#eaf3ff;--ui-muted:#9cb5cf;--ui-line:#2e4863;--ui-panel:#13263d;--ui-surface:#192f49;--ui-accent:#37d4a7;--ui-gold:#f7c76c;--ui-danger:#fb728c;--ui-radius:15px}
+          html{scroll-padding-top:74px;-webkit-text-size-adjust:100%}
+          body.timi-ui-v21{background:radial-gradient(ellipse 540px 340px at 50% -130px,rgba(30,85,130,.19),transparent 70%),#081320;color:var(--ui-ink);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums}
+          body.timi-ui-v21 header{padding:9px max(12px,env(safe-area-inset-left));min-height:67px;gap:9px;background:rgba(9,23,39,.97);border-bottom:1px solid #26405c;box-shadow:0 4px 15px #01081740;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:12}
+          body.timi-ui-v21 header .logo{font-weight:900;font-size:clamp(18px,5.4vw,23px);line-height:1.16;letter-spacing:-.5px}
+          body.timi-ui-v21 header>div:first-child{min-width:0}
+          body.timi-ui-v21 header>div:first-child>small{display:block;line-height:1.4;font-size:10px;color:#9bb7d1;margin-top:4px}
+          body.timi-ui-v21 header .badge{flex-shrink:0;background:#122d33;border-color:#287861;color:#79ebc6;font-size:11px;font-weight:750}
+          body.timi-ui-v21 .timi-ui-header-actions{display:flex;align-items:center;gap:7px;flex-shrink:0}
+          body.timi-ui-v21 #timiUiSettingsButton{width:39px;height:39px;display:grid;place-items:center;font-size:19px;background:#20334d;border:1px solid #3c5871;border-radius:12px;color:#e1eeff;cursor:pointer}
+          body.timi-ui-v21 #timiUiSettingsButton[aria-expanded="true"]{color:#70e8c7;border-color:#40c6a0;background:#173b37}
+          body.timi-ui-v21 main{max-width:1130px;padding:11px 11px calc(96px + env(safe-area-inset-bottom))}
+          body.timi-ui-v21 main>.row:first-child{background:#12243a;border:1px solid #2e4966;border-radius:13px;padding:8px 11px;margin-bottom:10px!important;min-height:55px}
+          body.timi-ui-v21 main>.row:first-child select#symbol{background:#203951;border-color:#3e5c76;border-radius:10px;color:#f1f8ff;font-weight:700;min-height:39px;max-width:180px;min-width:132px;padding:8px 12px}
+          body.timi-ui-v21 main>.row:first-child #stamp{font-size:10px;line-height:1.4;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#a9c1d7}
+          body.timi-ui-v21 .card{border:1px solid #304c68;border-radius:var(--ui-radius);background:linear-gradient(150deg,#152b44,#0f2135);padding:13px;margin-bottom:10px;box-shadow:0 7px 25px #0000001c}
+          body.timi-ui-v21 main>.card{border-color:#375875;background:linear-gradient(145deg,#1b3550,#12253a 76%);overflow:hidden}
+          body.timi-ui-v21 main>.card>.row:first-child{gap:6px}
+          body.timi-ui-v21 main>.card>.row:first-child small{font-size:11px;color:#b0c8df}
+          body.timi-ui-v21 .price{font-size:clamp(28px,7.5vw,42px);line-height:1.16;letter-spacing:-1.1px;font-weight:900;margin:10px 0 9px;word-break:normal;overflow-wrap:anywhere}
+          body.timi-ui-v21 .metrics{gap:7px;margin-top:10px}
+          body.timi-ui-v21 .metric{border-radius:10px;background:#203950;border:1px solid #2b455c;padding:8px;min-height:64px}
+          body.timi-ui-v21 .metric small{font-size:10px;color:#a9bed2}
+          body.timi-ui-v21 .metric strong{font-size:clamp(12px,3.15vw,17px);line-height:1.3;letter-spacing:-.2px}
+          body.timi-ui-v21 .stat{padding:9px 0;border-bottom-color:#31495f;font-size:12px;line-height:1.5}
+          body.timi-ui-v21 .stat span{color:#b7c8d9}
+          body.timi-ui-v21 .stat strong{color:#f3f8ff}
+          body.timi-ui-v21 h3{font-size:15px;letter-spacing:-.1px}
+          body.timi-ui-v21 .note{color:#a7bed5;font-size:11px;line-height:1.58}
+          body.timi-ui-v21 .btn,body.timi-ui-v21 button:not(.foot button){touch-action:manipulation}
+          body.timi-ui-v21 :is(button,select,input,summary,a):focus-visible{outline:2px solid #6de9c8;outline-offset:3px}
+          body.timi-ui-v21 .tabs{scrollbar-width:thin;scroll-snap-type:x proximity}
+          body.timi-ui-v21 .tabs button{scroll-snap-align:start;min-height:40px}
+          body.timi-ui-v21 .foot{background:rgba(9,24,41,.98);border-top:1px solid #304860;padding:5px max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom));box-shadow:0 -6px 20px #02081033;z-index:15}
+          body.timi-ui-v21 .foot button{min-height:53px;border-radius:11px;font-size:11px;color:#a6bdd5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px 3px;transition:background .15s ease,color .15s ease}
+          body.timi-ui-v21 .foot button div{font-size:11px;line-height:1.12}
+          body.timi-ui-v21 .foot button.active{color:#80eecb;background:#153f39;font-weight:800}
+          body.timi-ui-v21 .foot button[aria-current="page"]{border:1px solid #24886d}
+          body.timi-ui-v21 .foot button:not(.active):active{background:#1c3b52}
+          /* Keep the shared live price visible, but avoid repeating the full overview
+             on Chart, PRO and Menu. Nothing is removed from the data engine. */
+          body.timi-ui-v21.timi-ui-subpage main>.card{display:grid;grid-template-columns:1fr auto;column-gap:9px;row-gap:4px;align-items:center;padding:10px 12px;min-height:77px}
+          body.timi-ui-v21.timi-ui-subpage main>.card>.row:first-child{grid-column:1/-1}
+          body.timi-ui-v21.timi-ui-subpage main>.card .price{grid-column:1;grid-row:2;margin:0;font-size:clamp(21px,6vw,30px);letter-spacing:-.5px}
+          body.timi-ui-v21.timi-ui-subpage main>.card>.row:nth-child(3){grid-column:2;grid-row:2;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px}
+          body.timi-ui-v21.timi-ui-subpage main>.card>.row:nth-child(3)>*{font-size:11px}
+          body.timi-ui-v21.timi-ui-subpage main>.card .metrics{display:none}
+          body.timi-ui-v21.timi-ui-subpage main>.row:first-child{min-height:45px;padding:5px 10px}
+          /* Controls and navigation shortcuts in overview */
+          body.timi-ui-v21 #timiUiQuickNav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:10px}
+          body.timi-ui-v21 #timiUiQuickNav button{display:flex;align-items:center;justify-content:center;gap:5px;padding:11px 5px;border-radius:11px;border:1px solid #355776;background:#1a3048;color:#dcecff;min-width:0;font-weight:750;font-size:11px;cursor:pointer}
+          body.timi-ui-v21 #timiUiQuickNav button:first-child{background:#153d35;border-color:#299f7b;color:#76ebc3}
+          body.timi-ui-v21 #timiUiQuickNav button:active{transform:translateY(1px)}
+          body.timi-ui-v21 .timi-ui-control-panel{position:fixed;top:76px;right:12px;z-index:40;width:min(320px,calc(100vw - 24px));border:1px solid #426782;border-radius:15px;background:#14283f;box-shadow:0 18px 46px #010610b0;padding:14px;color:#e8f4ff}
+          body.timi-ui-v21 .timi-ui-control-panel[hidden]{display:none!important}
+          body.timi-ui-v21 .timi-ui-control-panel h3{margin:0 0 6px;color:#ebf6ff}
+          body.timi-ui-v21 .timi-ui-control-panel p{font-size:11px;color:#a5c0d8;line-height:1.5;margin:0 0 12px}
+          body.timi-ui-v21 .timi-ui-switches{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+          body.timi-ui-v21 .timi-ui-switches button{min-height:42px;background:#1f3953;color:#daeaff;border:1px solid #3d5973;border-radius:10px;font-size:12px;cursor:pointer}
+          body.timi-ui-v21 .timi-ui-switches button[aria-pressed="true"]{border-color:#31be93;color:#94f8d3;background:#173e35;font-weight:800}
+          body.timi-ui-v21 .timi-ui-control-panel .timi-ui-close{margin-top:10px;width:100%;padding:9px;border:1px solid #48617b;background:transparent;color:#d7e8f7;border-radius:9px}
+          /* Existing PRO LAB keeps its native 3 sub-tabs and data logic. */
+          body.timi-ui-v21 #proLab .pro-heading{padding:12px;border-radius:13px;background:linear-gradient(135deg,#163149,#102438)}
+          body.timi-ui-v21 #proLab .pro-pills{top:67px;padding:7px 0;background:#081320;gap:6px;z-index:10}
+          body.timi-ui-v21 #proLab .pro-pills button{min-height:44px;border-radius:10px;white-space:normal;line-height:1.23}
+          body.timi-ui-v21 #proLab .pro-pills button.selected{color:#9af2d2;background:#194d3f}
+          body.timi-ui-v21 #proLab .pro-stat{padding:9px 4px;background:#1a344b}
+          body.timi-ui-v21 #proLab .pro-stat small{color:#b4c7db}
+          body.timi-ui-v21 #proLab .pro-stat strong{font-variant-numeric:tabular-nums}
+          body.timi-ui-v21 #proLab .pro-panel{padding:12px;border-radius:13px}
+          body.timi-ui-v21 #proLab .pro-v15-card,body.timi-ui-v21 #proLab .v2-card{border-radius:12px}
+          body.timi-ui-v21 .v2-card{background:#142b42;border-color:#3a5971}
+          body.timi-ui-v21 .v2-line{line-height:1.5}
+          body.timi-ui-v21 #chart .card{padding:12px}
+          body.timi-ui-v21 #chart #timeframes{padding-bottom:7px}
+          body.timi-ui-v21 #timiKlineTools button{min-height:36px}
+          body.timi-ui-v21 #timiSmcToolbar button{min-height:36px}
+          /* Comfortable density keeps a little more whitespace; compact is default. */
+          body.timi-ui-v21.timi-ui-relaxed .card{padding:17px;margin-bottom:15px}
+          body.timi-ui-v21.timi-ui-relaxed .stat{padding:12px 0}
+          body.timi-ui-v21.timi-ui-relaxed .metric{padding:11px}
+          body.timi-ui-v21.timi-ui-relaxed .pro-panel{padding:16px!important}
+          body.timi-ui-v21.timi-ui-relaxed .pro-stat{padding:13px 8px!important}
+          body.timi-ui-v21.timi-ui-contrast{--ui-muted:#c7dbed;--ui-line:#6d92b0}
+          body.timi-ui-v21.timi-ui-contrast .card,body.timi-ui-v21.timi-ui-contrast #proLab .pro-panel{border-color:#7194b1}
+          body.timi-ui-v21.timi-ui-contrast :is(.note,.muted,small){color:#c6daed}
+          body.timi-ui-v21.timi-ui-contrast .foot button:not(.active){color:#d5e6f7}
+          @media(max-width:420px){body.timi-ui-v21 main{padding:9px 9px calc(91px + env(safe-area-inset-bottom))}body.timi-ui-v21 .card{padding:11px}body.timi-ui-v21 header{padding:8px 10px}body.timi-ui-v21 #timiUiQuickNav button{font-size:10px}body.timi-ui-v21 main>.card>.row:nth-child(3){font-size:11px}body.timi-ui-v21.timi-ui-subpage main>.card>.row:nth-child(3)>small{display:none}}
+          @media(min-width:700px){body.timi-ui-v21 #timiUiQuickNav{grid-template-columns:repeat(3,170px)}body.timi-ui-v21 .foot{left:50%;transform:translateX(-50%);max-width:650px;border-left:1px solid #345773;border-right:1px solid #345773;border-radius:15px 15px 0 0}body.timi-ui-v21 main{padding:16px 19px 108px}}
+          @media(prefers-reduced-motion:reduce){body.timi-ui-v21 *,body.timi-ui-v21 *::before,body.timi-ui-v21 *::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+          TIMI_CSS_V21
+          cat > timi_ui_v21.js <<'TIMI_JS_V21'
+          /* TiMi Product Experience v2.1 — presentation/navigation only.
+           * No market API requests, historical logging, trading or chart calculations.
+           * UI preferences are local on this phone and contain NO market/signal data.
+           */
+          (function(root){
+          'use strict';
+          if(!root || !root.document || root.__timiUiV21Installed)return;
+          const d=root.document;
+          root.__timiUiV21Installed=true;
+          const prefKey='timi_ui_v21_preferences';
+          let prefs={density:'compact',contrast:false};
+          try{const p=JSON.parse(root.localStorage.getItem(prefKey)||'null');
+            if(p && (p.density==='relaxed'||p.density==='compact') && typeof p.contrast==='boolean')prefs=p;
+          }catch(_){}
+          const get=id=>d.getElementById(id);
+          const cssClass=(name,on)=>d.body.classList.toggle(name,Boolean(on));
+          function persist(){try{root.localStorage.setItem(prefKey,JSON.stringify(prefs));}catch(_){}}
+          function syncPrefs(){cssClass('timi-ui-relaxed',prefs.density==='relaxed');
+            cssClass('timi-ui-contrast',prefs.contrast);
+            for(const btn of d.querySelectorAll('[data-timi-ui-density]'))btn.setAttribute('aria-pressed',String(btn.dataset.timiUiDensity===prefs.density));
+            const c=get('timiUiContrast');if(c)c.setAttribute('aria-pressed',String(prefs.contrast));
+          }
+          function selectedPage(){return [...d.querySelectorAll('main>.section')].find(s=>s.classList.contains('active'))?.id||'overview';}
+          function syncPage(){const id=selectedPage();cssClass('timi-ui-subpage',id!=='overview');
+            for(const btn of d.querySelectorAll('nav.foot button[data-page]')){
+              if(btn.dataset.page===id)btn.setAttribute('aria-current','page');
+              else btn.removeAttribute('aria-current');
+            }
+          }
+          function navigate(page){
+            const btn=d.querySelector('nav.foot button[data-page="'+page+'"]');
+            if(btn){btn.click();return true;}
+            return false;
+          }
+          function createControls(){
+            const header=d.querySelector('header'),health=get('health');
+            if(!header||!health||get('timiUiSettingsButton'))return;
+            const actions=d.createElement('div');actions.className='timi-ui-header-actions';
+            const button=d.createElement('button');button.type='button';button.id='timiUiSettingsButton';
+            button.setAttribute('aria-label','Görünüm ayarları');button.setAttribute('title','Görünüm ayarları');
+            button.setAttribute('aria-controls','timiUiPanel');button.setAttribute('aria-expanded','false');
+            button.textContent='⚙';
+            health.parentNode.insertBefore(actions,health);actions.append(health,button);
+            const panel=d.createElement('div');panel.id='timiUiPanel';panel.className='timi-ui-control-panel';
+            panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Görünüm ayarları');
+            panel.innerHTML='<h3>Görünüm ayarları</h3><p>Yalnızca tasarım seçiminiz bu cihazda saklanır. Sinyal veya işlem kaydı yapılmaz.</p>'+
+              '<div class="timi-ui-switches">'+
+              '<button type="button" data-timi-ui-density="compact">Kompakt</button>'+
+              '<button type="button" data-timi-ui-density="relaxed">Rahat</button>'+
+              '<button type="button" id="timiUiContrast" aria-pressed="false">Yüksek kontrast</button>'+
+              '</div><button type="button" class="timi-ui-close" id="timiUiClose">Kapat</button>';
+            d.body.append(panel);
+            function toggle(open){panel.hidden=!open;button.setAttribute('aria-expanded',String(open));
+              if(open)get('timiUiClose')?.focus();else button.focus();}
+            button.addEventListener('click',()=>toggle(panel.hidden));
+            get('timiUiClose').addEventListener('click',()=>toggle(false));
+            panel.addEventListener('click',e=>{
+              const target=e.target.closest('button[data-timi-ui-density]');
+              if(target){prefs.density=target.dataset.timiUiDensity;persist();syncPrefs();}
+              if(e.target.id==='timiUiContrast'){prefs.contrast=!prefs.contrast;persist();syncPrefs();}
+            });
+            d.addEventListener('keydown',e=>{if(e.key==='Escape'&&!panel.hidden)toggle(false);});
+            d.addEventListener('pointerdown',e=>{if(!panel.hidden&&!panel.contains(e.target)&&!actions.contains(e.target)){
+              panel.hidden=true;button.setAttribute('aria-expanded','false');
+            }});
+            syncPrefs();
+          }
+          function createQuickNav(){
+            const overview=get('overview');if(!overview||get('timiUiQuickNav'))return;
+            const nav=d.createElement('div');nav.id='timiUiQuickNav';
+            const links=[['📈','Grafik','chart'],['◈','PRO analiz','proLab'],['☰','Ayarlar','more']];
+            for(const [icon,label,page] of links){const b=d.createElement('button');b.type='button';
+              b.textContent=icon+' '+label;b.setAttribute('aria-label',label+' sekmesini aç');
+              b.addEventListener('click',()=>navigate(page));nav.append(b);}
+            overview.prepend(nav);
+          }
+          function boot(){
+            const header=d.querySelector('header'),main=d.querySelector('main');
+            if(!header||!main||!get('overview')||!get('chart')||!get('more')){
+              root.__timiUiV21Installed=false;return;
+            }
+            d.body.classList.add('timi-ui-v21');
+            const subtitle=header.querySelector('div:first-child>small');
+            if(subtitle)subtitle.textContent='Suat DOĞU · Profesyonel piyasa analizi · Emir yok';
+            const symbol=get('symbol');if(symbol)symbol.setAttribute('aria-label','Kripto para paritesi seçimi');
+            createControls();createQuickNav();syncPage();
+            const observer=new MutationObserver(()=>syncPage());
+            for(const page of main.querySelectorAll('.section'))observer.observe(page,{attributes:true,attributeFilter:['class']});
+            for(const btn of d.querySelectorAll('nav.foot button[data-page]')){
+              btn.addEventListener('click',()=>{
+                root.requestAnimationFrame(syncPage);
+                root.scrollTo({top:0,behavior:'auto'});
+              });
+            }
+            root.timiUiV21Debug=()=>({version:'2.1.0',readOnly:true,page:selectedPage(),density:prefs.density,
+              contrast:prefs.contrast,hasQuickNav:!!get('timiUiQuickNav'),tradeApiCalls:0,storesSignals:false});
+          }
+          if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+          })(typeof window!=='undefined'?window:null);
+          TIMI_JS_V21
+          node --check timi_ui_v21.js
+
+      - name: Embed into currently served index.html without touching gateway
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          html_path=Path('index.html')
+          original=html_path.read_text(encoding='utf-8')
+          stylesheet=Path('timi_ui_v21.css').read_text(encoding='utf-8')
+          script=Path('timi_ui_v21.js').read_text(encoding='utf-8')
+          def git_sha(text):
+              data=text.encode('utf-8')
+              return hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+          expected='2f4bd5b43e219a0f2c3d2e8e9e71329cc7073258'
+          if git_sha(original)!=expected:
+              raise ValueError('index.html SHA degismis; mevcut TiMi korunmasi icin kurulum durduruldu.')
+          if 'id="timi-ui-v21-style"' in original or 'id="timi-ui-v21-js"' in original:
+              raise ValueError('Arayuz v2.1 zaten kurulmus veya yarim kurulum var.')
+          for field in ('<header>','<main>','id="overview"','id="chart"','id="more"',
+                        'id="timi-pro-suite-v14"','id="timi-pro-v15"',
+                        'id="timi-v20-ui"','id="timi-meta-widget-inline"',
+                        'id="timi-smc-1-2"','id="timi-kline-10-1-0"',
+                        '<nav class="foot">'):
+              if field not in original:raise ValueError('Mevcut ozellik bulunamadi: '+field)
+          if original.count('</head>')!=1 or original.count('</body>')!=1:
+              raise ValueError('Benzersiz HTML ekleme noktasi bulunamadi.')
+          if '</script' in script.lower() or '</style' in stylesheet.lower():
+              raise ValueError('Dosyalarda guvenli olmayan HTML kapatisi var.')
+          updated=original.replace('</head>','<style id="timi-ui-v21-style">\n'+stylesheet.rstrip()+'\n</style>\n</head>',1)
+          updated=updated.replace('</body>','<script id="timi-ui-v21-js">\n'+script.rstrip()+'\n</script>\n</body>',1)
+          if updated.count('<script')!=updated.count('</script>'):
+              raise ValueError('Script etiketi sayisi farkli, kurulum iptal.')
+          if updated.count('<style')!=updated.count('</style>'):
+              raise ValueError('CSS etiketleri sayisi farkli, kurulum iptal.')
+          if updated.count('id="timi-ui-v21-js"')!=1 or updated.count('id="timi-ui-v21-style"')!=1:
+              raise ValueError('Tasarim birden cok eklendi.')
+          # Existing nav stays untouched; CSS/JS only affect presentation.
+          for field in ('id="overview"','id="chart"','id="more"',
+                        'id="timi-meta-widget-inline"','id="timi-smc-1-2"',
+                        'id="timi-kline-10-1-0"','id="timi-pro-v15"',
+                        'id="timi-v20-ui"'):
+              if field not in updated:raise ValueError('Korunan modul kayboldu: '+field)
+          html_path.write_text(updated,encoding='utf-8')
+          print('Tasarim sistemi kuruldu. 4 ana sekme / 3 PRO sekmesi korundu.')
+          print('No edits to main.py, backend, orders, signals, or ML.')
+          PY
+          node --check timi_ui_v21.js
+          git diff --check
+
+      - name: Retain a 30-day original HTML backup
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-html-before-ui-v21-${{ github.run_number }}
+          path: index_before_ui_v21.html
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Commit only HTML and visual assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html timi_ui_v21.css timi_ui_v21.js
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "$(printf 'index.html\ntimi_ui_v21.css\ntimi_ui_v21.js')"
+          git commit -m 'Polish TiMi mobile product design v2.1 without changing trading logic'
+          git push origin HEAD:main
