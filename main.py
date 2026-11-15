@@ -141,6 +141,7 @@ async def relay():
                 # Never match snapshots retained from a previous connection.
                 for existing_market in markets.values():
                     existing_market.depth_snapshots.clear()
+                v23_live.reset_all()  # discard all stale observations after a reconnect
                 async for raw in ws:
                     packet = json.loads(raw)
                     stream = packet.get('stream', '')
@@ -166,6 +167,7 @@ async def relay():
                         m.trades.appendleft(trade)
                         m.tape.append((now, side, qty, price))
                         v2_live.record_trade(symbol, side, qty, price, now)
+                        v23_live.record_trade(symbol, side, qty, price, now)
                         _audit_on_trade(symbol, price, now)
                         while m.tape and m.tape[0][0] < now - 60000:
                             m.tape.popleft()
@@ -188,6 +190,7 @@ async def relay():
                             m.last_book_ms = now
                             m.last_book_update_id = int(v['lastUpdateId']) if v.get('lastUpdateId') is not None else None
                             m.book_valid, m.book_error = True, None
+                            v23_live.record_book(symbol, bids, asks, now, m.last_book_update_id)
                             # Capture original decimal strings before serialization
                             # and before any subsequent async work modifies the book.
                             if m.last_book_update_id is not None:
@@ -209,6 +212,7 @@ async def relay():
                         except (ValueError, TypeError, OverflowError) as exc:
                             m.book_valid, m.book_error = False, str(exc)
                             m.bids, m.asks, m.bid, m.ask = [], [], None, None
+                            v23_live.invalidate_book(symbol)
                             m.last_book_update_id = None
                             m.wall_seen = {'bid': {}, 'ask': {}}
                             m.depth_snapshots.clear()
@@ -1142,5 +1146,7 @@ async def live(ws: WebSocket, symbol: str):
 # TiMi PRO v2.0 - bounded in-memory public market analytics only.
 from timi_v20_backend import install_v20
 v2_live = install_v20(app, markets, status, now_ms, lambda: http_client)
+from timi_v23_orderflow import install_v23
+v23_live = install_v23(app, markets, status, now_ms)
 
 # Read-only analytics. No paper orders, real orders, credentials or training endpoints.
