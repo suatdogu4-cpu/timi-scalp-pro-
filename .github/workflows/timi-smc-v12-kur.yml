@@ -1,0 +1,162 @@
+
+name: TiMi - SMC v1.2 BOS CHoCH FVG Grafik Entegrasyonu
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timi-smc-v12-main
+  cancel-in-progress: false
+
+jobs:
+  integrate_smc_v12:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Back up unmodified index and chart adapter
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp index.html index_before_smc_v12.html
+          cp timi_kline_chart.js timi_kline_before_smc_v12.js
+
+      - name: Verify SMC JavaScript syntax and algorithm
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check timi_smc_v12.js
+          node --check timi_kline_chart.js
+          node <<'JS'
+          const assert=require('node:assert/strict');
+          const {analyzeClosedBars,onlyClosed}=require('./timi_smc_v12.js');
+          const T=1700000000000, S=60000;
+          const seq=[100,102,104,105,107,106,104,103,102,104,105,110,112,114,111,109,108,105,101,96,94,90];
+          const data=seq.map((c,i)=>({timestamp:T+i*S,open:c,high:c+.7,low:c-.7,close:c,volume:1}));
+          const r=analyzeClosedBars(data,'1m');
+          assert(r.breaks.some(x=>x.type==='BOS'&&x.direction==='LONG'));
+          assert(r.breaks.some(x=>x.type==='CHoCH'&&x.direction==='SHORT'));
+          const bars=[{timestamp:T,open:100,high:102,low:99,close:101,volume:2},
+            {timestamp:T+S,open:103,high:112,low:102,close:111,volume:3},
+            {timestamp:T+2*S,open:107,high:115,low:107,close:114,volume:3}];
+          assert.equal(analyzeClosedBars(bars,'1m').fvgs[0].side,'BULL');
+          assert.equal(onlyClosed(bars,'1m',T+3*S).length,2);
+          assert.equal(onlyClosed(bars,'1m',T+3*S+2600).length,3);
+          console.log('SMC v1.2: BOS/CHoCH/FVG and closed-bar tests PASS');
+          JS
+
+      - name: Add safe KLine bridge and read-only SMC drawings
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, re
+
+          def sha_blob(data):
+              return hashlib.sha1(
+                  b'blob ' + str(len(data)).encode('ascii') + b'\0' + data
+              ).hexdigest()
+
+          js_file=Path('timi_kline_chart.js')
+          html_file=Path('index.html')
+          smc_file=Path('timi_smc_v12.js')
+          old_js=js_file.read_text(encoding='utf-8')
+          old_html=html_file.read_text(encoding='utf-8')
+          new_smc=smc_file.read_text(encoding='utf-8')
+
+          # Fail closed if the sources have changed since review.
+          expected_js='b7d2b8e02f5e08b40e6f2d08d6448d1875f5f0cc'
+          expected_html='e3590f7270d23e7f7f1022aa73ccadf1b2103780'
+          if sha_blob(old_js.encode('utf-8')) != expected_js:
+              raise ValueError('KLineChart v1.1 kaynak kodu degismis; islem durduruldu.')
+          if sha_blob(old_html.encode('utf-8')) != expected_html:
+              raise ValueError('index.html degismis; mevcut duzen korunsun diye islem durduruldu.')
+          if 'timiKlineSMCBridge' in old_js or 'id="timi-smc-1-2"' in old_html:
+              raise ValueError('SMC v1.2 zaten var veya yarim kurulum bulunuyor.')
+          if re.search(r'</script\s*>', new_smc, re.I):
+              raise ValueError('SMC JS icinde HTML script kapanisi olmamali.')
+
+          anchor='    window.timiKlineDebug=()=>'
+          if old_js.count(anchor) != 1:
+              raise ValueError('KLineChart kopru ekleme noktasi bulunamadi.')
+          bridge=(
+              '    // SMC visual adapter: never changes trading signals.\n'
+              '    window.timiKlineSMCBridge = Object.freeze({\n'
+              '      snapshot: () => ({\n'
+              '        ready: Boolean(chartReady && chart && !restoreLegacy),\n'
+              '        legacy: Boolean(restoreLegacy),\n'
+              '        chart: chartReady && !restoreLegacy ? chart : null,\n'
+              '        symbol: chartSymbol,\n'
+              '        tf: chartTf,\n'
+              '        gateway: chartGateway,\n'
+              '        bars: chartReady && chart ? (chart.getDataList() || []) : []\n'
+              '      })\n'
+              '    });\n'
+          )
+          new_js=old_js.replace(anchor,bridge+anchor,1)
+          tag='<script id="timi-kline-10-1-0">'
+          if old_html.count(tag)!=1:
+              raise ValueError('KLineChart HTML entegrasyonu tekil degil.')
+          pos=old_html.index(tag)+len(tag)
+          end=old_html.find('</script>',pos)
+          if end<pos:
+              raise ValueError('KLineChart inline script sonu yok.')
+          if old_html[pos:end].strip()!=old_js.strip():
+              raise ValueError('Inline KLineChart ile GitHub JS farkli; degisiklik durduruldu.')
+          updated=old_html[:pos]+'\n'+new_js.rstrip()+'\n'+old_html[end:]
+          marker=re.search(r'</body>\s*</html>\s*$',updated,re.I)
+          if not marker:
+              raise ValueError('HTML body kapatma etiketi eksik.')
+          inline=('<!-- TiMi SMC v1.2: salt okunur BOS, CHoCH, FVG -->\n'
+                  '<script id="timi-smc-1-2">\n' + new_smc.rstrip() + '\n</script>\n')
+          updated=updated[:marker.start()]+inline+updated[marker.start():]
+          protected=('id="overview"','id="chart"','id="flow"','id="more"',
+                     'id="timiProCockpit"','id="timiIndBuy"',
+                     'id="timi-meta-widget-inline"','id="timi-kline-10-1-0"',
+                     'id="timiTpChart"')
+          for field in protected:
+              if field not in updated: raise ValueError('Korunan alan kayip: '+field)
+          if updated.count('<script')!=updated.count('</script>'):
+              raise ValueError('Script etiketleri dengesiz.')
+          if updated.count('<style')!=updated.count('</style>'):
+              raise ValueError('Style etiketleri dengesiz.')
+          if updated.count('id="timi-smc-1-2"')!=1:
+              raise ValueError('SMC entegrasyonu tekrarlandi.')
+          js_file.write_text(new_js,encoding='utf-8')
+          html_file.write_text(updated,encoding='utf-8')
+          print('SMC v1.2: KLine bridge and chart overlay installed')
+          print('main.py, signals, WebSocket, 26 indicators and database unchanged')
+          PY
+          node --check timi_kline_chart.js
+          git diff --check
+
+      - name: Retain pre-install backup for 30 days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-before-smc-v12-${{ github.run_number }}
+          path: |
+            index_before_smc_v12.html
+            timi_kline_before_smc_v12.js
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Commit only chart adapter and index
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html timi_kline_chart.js
+          git diff --cached --check
+          [ "$(git diff --cached --name-only)" = "$(printf 'index.html\ntimi_kline_chart.js')" ]
+          git commit -m 'Add TiMi SMC v1.2 auto BOS CHoCH FVG drawings; preserve signals'
+          git push origin HEAD:main
