@@ -1,0 +1,224 @@
+name: TiMi PRO LAB v1.5 - Canli Strateji Uyum ve Akis Sekmesi Kaldirma
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timi-pro-v15-single-install
+  cancel-in-progress: false
+
+jobs:
+  install_v15:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Back up original interface
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp index.html timi_index_before_v15.html
+          cp timi_pro_suite.js timi_pro_suite_before_v15.js
+      - name: Install 16-rule live analysis without changing main.py
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import gzip,base64,hashlib,re
+
+          def gitsha(data):
+              return hashlib.sha1(b'blob '+str(len(data)).encode('ascii')+b'\0'+data).hexdigest()
+          html=Path('index.html')
+          pro=Path('timi_pro_suite.js')
+          original=html.read_bytes()
+          pro_bytes=pro.read_bytes()
+          expected_html='af2eab9adb74231eeb1ab7f07477fc54dd57ff1d'
+          expected_pro='3bc5f236c2a7c6380db496d138fc3c4b09e8767a'
+          if gitsha(original)!=expected_html:
+              raise ValueError('index.html degismis: guvenlik icin v1.5 durduruldu. Yeni surumu kontrol edin.')
+          if gitsha(pro_bytes)!=expected_pro:
+              raise ValueError('PRO LAB v1.4 degismis: guvenlik icin v1.5 durduruldu.')
+          text=original.decode('utf-8')
+          if 'id="timi-pro-v15"' in text or Path('timi_pro_v15.js').exists():
+              raise ValueError('v1.5 zaten kurulu veya kismi kurulum var. Yeniden yuklenmedi.')
+          nav='<button data-page="flow">≋<div>Akış</div></button>'
+          if text.count(nav)!=1:
+              raise ValueError('Eski Akis alt sekme dugmesi tam 1 tane bulunamadi.')
+          required=('id="overview"','id="chart"','id="flow"','id="more"',
+                    'id="timiProCockpit"','id="timi-meta-widget-inline"',
+                    'id="timi-kline-10-1-0"','id="timi-smc-1-2"',
+                    'id="timi-pro-suite-v14"','id="timiTpChart"')
+          for s in required:
+              if s not in text: raise ValueError('Korunan alan eksik: '+s)
+          payload=''
+          payload += 'H4sIAAAAAAAC/6V8QXPbxpLw3b8C3uQJhAVCJGXaFimIJVl24s+ynbJkv02pVNEQGJIIQYAPAClRFKvead95a7e26qvaio+5xpd8l5xW8'
+          payload += 'h/JL9nunhlgQFKO871ULAIzPT09PT093T092HpgnASvAuO7t2+Mo/0DY1p3msbvf/9P4yiYcmM0CbOgmmYJy3h/ZrAw6EcjHmUGi3zDiy'
+          payload += 'Oo8AMvC+LI8AbcG6bOPeOBccinPIzHPGkZxxOWGYdvbn965xhvOfOrcRTOjISnnCXewDai2EAc3BiHzOOEOk6MFLphoYEgQAXhfHYZpFk'
+          payload += 'Q9QW1EoBH/SDitvHyCH6eDliS2TiAh/lokMxvgPYLNjMmkTdgUZ/7hO+7JPB42sJB9IJkxH3jIIhY5HHjeBxnhgctQ562jV4YX7QMXur9'
+          payload += 'r8fGFhsHWwxomKVBWh0nMSLdulfpQS/IjkoSx5k1v2dOUm4A/4BJZvsedJZmhu9iZcfxY2+CI1blJ8/duVkfma1HNfjPNpvwuF0Tz3V82'
+          payload += 'aGXhYI//v7VsXtqHpw8fXd8eGLa5rOTb+XT8Zsj+XTw+kA+/evb7+TT4ZtvnsnH/cN99fR+/1/p8Uzhj9xLd+/Sdd1oEobX1/g0iXzeA1'
+          payload += '774tU0O6/Z69bryajLk8qlpVrGQ1eUOUH6PIiCjKuar93Ad/f8jtPn2bOQJvxg9sKvBH7e2A9SEIaZO3X34mFlanWmThYfxR4L+TEwMup'
+          payload += 'XzCypnrw17fmIXQajyeh5wojph0E/yNLW9sJqmSDCOcN7wSX33crU9gnAbVhfgBrIXkUtENjr+xWVy52HrMtDd3705vU3LfP7dy/3374w'
+          payload += '7eNv37w9aZn7n37av/0J3v+6/wJeD569PHpm5vMbsRFP3fk9g4/YTst89mrf2Nlq1I3/+X/Gt7cfr8Lbj7B2eOSbNgA0agKiUdtq1hDkR'
+          payload += 'FSlWAV1x1DXrG3BM1buR0y1vWckafCWT1vm2+MX9YdU++nD7ccE0Hdvfg373LQB4lU80iDgDWZuMjKBFZ7fMl/tPz006o2txqOtHUTZjc'
+          payload += 'OQcB7AA/CVJ9jqTZKxkI3YjBn+za/RzW+fPpg2gh4knA2XgE/Ypw8jhsimF2zcMt//df87LD8GXQMjHGHnfgxrOmBRyzyUTwjRoFpjSGM'
+          payload += 'ALo1okLEH9L95WqfxPw9moJdGchQT02ZZAtNx8lYM75ub325+Dm9+E73cwwU88bJJwpGPTxHi4M3x1tNv46ffmnZv2s+Ln7//xpgx6DmC'
+          payload += 'fm+Bi9g6Y2NouA+lnz4Qe/ug/4IeaFOgbStlGZHYjeOhDnX7SzjEoaR8Gsx4IRU9NgrCAAWDJrBlyolWg4HJyCcnAUUMcxcjgwqGI7PjS'
+          payload += 'dYyX2ocSkcejQLGgxrPfJP4MA/P4bno+vn+qxdHL54du3MhkWXpy8oCJ1+VcOWkFNI0yum8ZwgxKkpyAdLaaZKixmDaQjhkZ4U8FABy6g'
+          payload += 'vUNNVFvTa3wAM5nfQk5g3ZoWanJ9mhtLwxhR3Rh/3lqdguQOtfpHbWA8b3OJDkcfcQap0ovqhYsBsYgo9pxsfuyfPTrHfWDnqV+/huJRy'
+          payload += 'IiIxTUL8SzAs5i9yIXxiv2LgC+tHoxUlF1HWNuGfsJwmbgYqlX+rb6uDf1ukZdibRZG5U6XacrNPBvwHolIyNxpYdi/KYymG3jix7IIoG'
+          payload += 'VDQI+gPLDkVRSEUwfMv2RIlHJV4Yp9yyp6JsSmXTOIR9rdOpIckGDvA0s2N7YIe2Z0/PHJzRWSUeWtfX2W6d1+vX1/GuW7u+DunvYPcVy'
+          payload += 'wYO6NhKDA1CAAv3RFEQUdEAiqa7AKoI8O+7LkwjB4SbyMy9nP9VkMWahZZKEE040kNcdVKeVTJ7rtG1QGoXIC1yHhzHEaAwxxOYWuvMSe'
+          payload += 'Mkq1SY3YX9gzlZtetk0GhRiAOshApLEntszQXvmSvmBgqdEKyVbGA5vSAMK7BtWjj3RcVuLgKsHfLMmLpYl4ZgplRqgNFJuD+B50pqX0L'
+          payload += '/6ealXbO2xm12Oq7Wz9xpG4UDGwbuuB3sFojbweamNSd0p8HZg0pjqzLerFvW5vRBpV5Vb4AnQCyLnAhtXGkxLlWdo99zx52C0uqdhLZg'
+          payload += 'yDpOWNQCp1t/aM2XWAEUyY6wFY6q79ZAFmvaKOswShwqjk5aDjzMmBxnlX6AM+3+ppsLVM0mGKsdlgqrsnTR3wKMIf7RuLlZX8NP0ePVa'
+          payload += 'm9upf+gAlNibWodXFk4VaFbCVfrqqJSMT4Eu6rWqfTpp1lr1UF+8U8V/m1V6pv9rdDS+QjqrNJlSVowEt8+w8l0MirxUQOvouRo7/pQuw'
+          payload += 'QIY7XHoJPlC44Y8GnM7DoDWBehTQWsm1IBtnA8Sy8MVaGVjxwQIR807RpnHPWdfzCZ2fh7zMMwF0FZsbFxX1V1TLSyzJZ6l1UA1DHJ4jJ'
+          payload += 'bJlpaZol/aMRf8RPuDaIALEFiH6pPVFxlDUs1oHU0/jYaNcXfuVS9oPyZP2v1WJhyfE5x+30GHV0ZAG0M2ZhFI9rl0UoBa4cPwwB3FaX2'
+          payload += 'xYyMQOej/Y18my4VTUELTxJQcJmoYFkFhMoOWZq5nnzL8fEdF/WSZ+9YCpA36rKsUdcKa6qwVhQ2VWEzL8wxp1CZqko7BVUrX+HJshMXl'
+          payload += 'zhQD3v7c6RM4Kk3qOQY9hLV3aMCJdS4Ep6GW7m0A2GtX1obG/Ajm4IcWp3LavHWIo2qoXmPWzPiQoWbgXsCGw51TK4jda2gNM5A0WsgDJ'
+          payload += 'stDbbbfQX41Pgsu9t9z5IAPUZguVR+yLhl7Ve5rFJT68GDBirCRk1DCZ5ywFAM3cYDWhzp32CLKVBjN+/G4Em7hGNTawE1R/GFqqlqNTl'
+          payload += '+XGEwqSQiisK6jcPM4nGxZGGnE5DE8a67B0vWgp7jLItHbr7zrgELrYI/sOvvT/vEoCkxCBQTslLpJ4v0RhBPUiWiQAeYZqATYbK3VCVQ'
+          payload += '9wA0XYEW7LsDaF4aBYobVrwnS8NVMBrvu8T7rjO1a1YJl1u026t17myJaguah/DPs7a2HwhMW0Vj2s4UYuaDewlyRKYCbDEZC0JAU5lDG'
+          payload += 'XpxLXLlTgP/zCbzfdZSpjSV6c0WBbmoT9xTMFkAfcVEkxvMXVSJyLA9vrOxwXf2YCnTut8V77vwbtnn4AnuGF/PyfGt8B1rgR4FFIL3mJ'
+          payload += 'cC4OLcsjX8jVqpg0YNMDZqe6ADZBeyZJfjBGAnoM8KfLW8m6ZWDKB6N8I9kP2AAtlDtbGxQT3Cqw3/doui3ZR6Oi6hxDLq6RgJ0MpR7eh'
+          payload += '9Cd9D9pXsbtfsZO8x4hN+rGqX2HWBb8gS9Hyr5E0ACja7/VhGB36LQrfXbEqyYeR2svtQviKX1nehoUJ3RyISGmcv10wbG7KkJpXR7krV'
+          payload += 'LnZALrfCL8rth2IcaRDNWKhXivZYrxEhfSxtznelTqHp3pOqB/raD7McmwQRPd38d6rXCPjlPshn0yVLAm5syE3Mme4J7fGg7jRsnZD1I'
+          payload += 'JZtHrAI7D3cRW8/ii2VdtRNY8C8YGQWBOCK1fvGd8ABXsET0RMVODs7O4D2XAQWDIo1qGEhQGlMysvU0YJClYST1gRUN/8F+nsYyGhEq+'
+          payload += 'CSAFgYv//9P/JCaF6W3NhTchZ7e06jiZpytwoPgLkuiOxRDMPntx+CTx+CUVAIWww7lLX4i4YPlLDEp/jp7amnuGCyV80L94T6fuA8bq5'
+          payload += 'OAuKF//Jmu2twxdWiq8/hQvGiuIsiXwAL+aLZNIYYaI7Dm9/OrXsG+se5xUWWFnp+NnneYwzqtnAeyMsXmGxyEfezluo5y62yesPI+DAK'
+          payload += 'hoYIcf8YGGyGga+bX6Nh/OnDJAxZEjIjgKkEg88nM23VdjxWIQRhiIP/34ukBZnNxhw89V4EHqqp2pllG3J72YSEbaNl5nEJU9tCnLxUb'
+          payload += 'SQiVEE7iDRu5UYiYlIDdnX7MRFSEpoLnDjC3pv2S3jh/QswYnhrCeNZYbgmbi9SHJDG6LJ1SqrATToOxV/SzrKRlXAPjdoc1NjYMPAFnO'
+          payload += '28jGIYuzJ+8mC7MBUEb1yBo1PA+wEUZRQFE9Z/vm0XxklblgDclLsVoBA4kl5fn55Zyn68cvdOzf2XJ7e/PDdt8+WL41e3v5hnDshGOPF'
+          payload += '5WrmCyWHZJLWAaGCzJPvK8YCIjPv7WU7z4xqOixQHLA73CuMqPKk2HjCxhcCCgsIJ6shNKCQjC301IMmVQ0B/mWhVYYW5ijZnHPgu6yR3'
+          payload += 'sZ2ocNLA5xi4P3h3dGQqf0k6R+2FtrL+KUEUlShsUnLknJx/PdemEZbGwtBL8olCCom0jvn7v/07EPj7v/2HKbdo3Xs6b5nf3PyGi9OYs'
+          payload += 'THuBHlEE6PXk3ACxDLYJv685GOxJL7E6I75PcV3DTbMgh4FfEWUPA2AThFXFhFg+N9nGtgsHsJyQToEN0Qoc1laW3jYYkecJc9BAMt9r1'
+          payload += 'U+GKKt+CxjeJh2sTbeiGFLF0FAquHRHsmXEUuGPMuXQy/h6cC9f78iai/Sp3EUwYRwH8UVW0J7ghHRNiwdwVKO4+EPFAgtymGQ4KsJPDi'
+          payload += '0EzzjAwcOCKtiaVG459bWFe82YYdeg+gAOlvGg2WraLB0HRZ1aLef6XiK0jKmony3TqHEtggMEB9ytU1vyuMvVg4GkEuyhgW5sInA8lo9'
+          payload += '+5Th+YEB+3rIRwYbSjunL2V9RZvjFJQ6woIv6ejZKEBV3gP9Fqyg11R7dzJzowoicuDxhyhGCWThD49q4NelPAxVLT4vVQejrqqFRxaSX'
+          payload += '5tjptPfVAHQ2w9ePIky0TiLM3DWoc9NxCyZfwrv1CvitgWGUlgZ6jE8jCD4KyB26/iI+Hbd2mem7p7xz03e9zzDE4srNX03vyYRcpTm65'
+          payload += '+brhw11+et6ECbMfCn0xTUs1sBZlSRE9YWDV4zn8TYyXxS4HY+RS3kreLIn2UJmZoK555Tb+QdgBGLESA5ovNDDLwaW9LQUyagAsZIAHp'
+          payload += 'Ofzn//5F1IgJGAf03cVzYdbPounzAlvcNgHm3uOPQUhwaU65Mbd4NwiA5J2Zr6hjZzqN0klYy7g3wPM0WyhaMoXnZpXcch4A6Dr6TkWFj'
+          payload += 'GbRZLhJaNy8rDodoLlN5rlyTB8o1cZBcW7SLk6IET4robGgu2pwm4kjjbHMTd3wB1U/iyfg9MAxQ6q2pHDG86f4IW4Ez5LO0oo4gLe2Ui'
+          payload += 'QDf4vCwL2UzUbRSzA1sDgRj2czNgUtwRFW+9Vty07O7fwQurBcFj2c8xWhO6fHMZXtdZe1099hyOJgOfqQB5cqRymOfApWl975KZvrlDV'
+          payload += 'cIluf9nPvuKWaAUO6HSPo4a6vNmbIBEEbFgUGyOs7p5ZkW9sx6IuwpoKVKxG5BhtBXkjv0xsZlaScvMLAwfDd2FZ6NjRVEa4y03HgOw8P'
+          payload += 'oy9tKLmhdB/0IOEAkqMkinKvTRecYIpArVaRw6WBxnclNQi4wHLUlK53xJB1UhBYNg+VIPNpn+fZeGDtLjYtz8aX9smWwhH36kIEFOmLG'
+          payload += 'ZDYZTYwuH2KOi89zxIo7S1hfnTxfIgccz7yDKZ8xYyaplruzRFhwW7HPlRxZ6qE+Ai3bxD8gVSL3w5hRToCRsRHS++nDaDKLE4VZ4x9MZ'
+          payload += 'cGPvKf7eU+FFmD9hHNXI0VY8WErtePxGNzw1bq0FcpjYmq8525vbAjYXbeOJmaxkMh6hW6NygqWXEKERFpSOCQcdsBhhzfKPDnOnf4gBP'
+          payload += '8etlKYwlTY7cgbyRV2pZI55BExTqTCJN2vlem0VWQBNg5hwBl5RAFMOTYD/4A6kcKhO17C6kntYuS4ixzmbqwclV04tmK4ahHgXgk2GJg'
+          payload += 'P37MQ+rkqiaaYdf/mt6RtdKGY6IlDHLgcpxA4SnXbP9o63j/ByCiBCeGDfh0RCZEnTJfjOAE3wZ0v5UNgaggmhGDKB0Zk7OXDNns5gmJr'
+          payload += 'Xo2db6nQVxFLGcX+JCTFH5PCNTc2RJEj6Eit8quryCMk931p+tEbJuI5P/yQBaPguyR+X2++gPGAzuE51N0QpDnb91AVecwb8CJTww5j5'
+          payload += 'gdR3xVmZQqSBbIogugv+cw1TXp8C2uQJ4Aofxc6uaYlmMiY1fFs1I3DCmzhyWxesCKlYmRFSulrwApMCixiEgLAUtaueG0vPJZ5g8oP1l'
+          payload += 'wdvZZbfV0xBaRpdcR2ZnW0MkfapirxUD9NlfTKnEtJsDRE2IUr6e6Lao3wjixqYefyOe/9+ppmIYw9Ot9y4iToB5HadsbE+HdvjyrQg12'
+          payload += 'GHCS8R3kWY2ecxFnsCW4Nsmyctszr6zXlLWDi2BnEaYbmJZYithALzJyRY0nDGlauI1Xn0IClx2LVVvKjbBgzkHHEujhkD2QhPQowDBRH'
+          payload += 'YKpGacUUYQDTkvu1ji9j3QKR7/xtArvtMWgzLwMjzjxFLxbzU6sAd4buGTn02A/WpDzrIAdOWPf6WhjPJVo5C7OBnEWloUC5aKGBlpzSi'
+          payload += 'xT3gzw/FJh4kcrt4ziD+QTK66iXRMxBtRJv5ZYdCUKBEGhB+WgSXrnjSy1UsYhv5C0L5325/X6GExtRjmrRHOBes9e2DN5RHEI1zAv0dg'
+          payload += 'WU1gzjDnorfF9uRDCyjc+9gFL0vnSIQtfD/MmGMHEicVQlkMIepcmlmjYo0zN6WA+08GWGp5aZCh7y0P2aMnFhwfDQ4qGTAQhMdYZB2Qw'
+          payload += 'kg6WzyDNyLD0OnTxHMw81DQa+03iSeNyO4ovC6QGfwYXqTfPa3Mx69CPBKJOElCfmA1cAEDz+LJRxUtelROjONgZeWo8wliNME2wmYjSU'
+          payload += 'Q0JUcH8XWhZh0DRzqVKLQLcVK+RJti383yJiVhUh2WxT9G/lAdvGZr1Jmde5m+CJIwkwGkj77Hdhh3mal8EWgEHqxIX1dQIP8SSrVCx3r'
+          payload += '2jlMGwBcPW6jCrhEsvtKCDMZRcsyASLK4JfmyalnQ9DEIl0C7iITO0EMD3JFC1h4u5GCFtV5m43a6Y9J962zCiupqAOwHkXwtPSCBEliz'
+          payload += 'xXD7p24qGVDcASMZ4lCWqRb09OvjPMzYTivhTjbuekohqRtGL9jykqNpQgip+JPQNkGR6ur6lI0Ys5e73r66UcGwKR2fdWmYpjjri2xrC'
+          payload += 'dzmKMsoJpAzbNsu2qQlaYNLCcn6ljR3HVoqXtpcwpzOwpdb8meUe5DIYmdfqRh9jPv1zAClTkO7lzwb6WXFx0tqKdeRF6W4q/JscLwkPL'
+          payload += 'KhXLyiZ8+QqgN7RlQbmALQM7dMhZoiSVRBdzzDR9QS1yC7TSo0Sz+z2p4WEWe04pJCo9NZXR1HNWcpq+ON3IHhc5TRK7CC+VMxTG5fSEU'
+          payload += 'vriRQAsIj0GGk/piKG7ZFyRZlo2YFAsUH9L202ZhcqUG7aFdbe52RYMJ05CsyUDr2Qj0YGQvP1QyVjfBiU8ZtitjRQWyaO+swJLBIGOhn'
+          payload += 'Xku4HfJk/tErfQfLOAupLehue2QO+w8RhoqrCck6U0zxEb8u9YxEPoKAGFjHSBCeCjvrGx77mazzJZph9MTQQWzcAwE0bMa5RhtGyq03q'
+          payload += 'z6rHEVxKBWNcioa3bs9oIsA4JlgOSckuwIeOoLxsjRE61tQI6xnP7ApA4qhIKdV7grZVKsYeNwA5zczPthKMxSPE9WUiJ8hZG/WTB8cgz'
+          payload += 'aa7uY1NcIAABPwCh1gh5BzIuIBqBe3FEdp7mUmM+nJoWRGXrgLZZf0QWQ3BlDCcJ3ijAmKU8P8j923czUFYv1Sk6XvZ5ffTipbH/dv/TT'
+          payload += 'ycv3r7aF1oM0ePOSDLiKfv6b2snSlJxTNuBaXu2+XIlfgGu7ziYsZTBUwK2ioiHRIHQ1H9bN79iezELRZhORmAPzj5LgwAhIgCvbLEWu4'
+          payload += 'TU0EN/6R8NMM1R48tdZOtUixjzKmJRXIi5LFiHUlStyroaLKGQ7UkM5PxHIqX05meKaER4rPNrCjuu3KjuHikGWNVRg77BezFmld7d7il'
+          payload += '6RiQA8ShIZ7B2tmCfnI0YrPKUjUPcpsWMI6a1mgExrKFurBhlmwcTOma9+W1EcYnf//5/oyASQ0YPSMh7OVgRqXjFpw8Z3vC7cvIFAZwx'
+          payload += 'ukEC/wegNCOwFTDsMUoxVBLgXOJtvyE4S4ALjQwwl2e3H8MRAxzf8JufR4BTZVnBUH28iTXJJgQA/vFavRWOzSJ6lC93oTfuWO50fqAD2'
+          payload += 'tr9oHxx3/yDh0DPMCit8Ke4xP9wzhGrtoQldpkHF+YxI2CMzPvQZnN1MKTz7hgLnodoYLa6MXW3jrr5x5uXR++Mk+d/OApAqA0CEYPmUY'
+          payload += 'k9NEs44UujomiXNpKtLeMd7OVGPMYDb7CD8NRD3jNN2RQvf+JtUoZnbtVswKs9cMrx+NIbQp1jfBv40OmAEyZQotX8ziib+IE4kAPKRYa'
+          payload += 'ugZt1Es6wGjoF9QhyZwS0YdPRaYj3VbN4gpadk0fIEZHcX/bxuQi949vBJMviSK9/yzESpSK6BKT2cNz9MERFhY7KvpXsPQ66eBGvc0e5'
+          payload += 'dBUkio4Dm+hrGSv59iF4/rJCt0KK4JIp1w2opSvAikoKhEY1SfgonnKwnwRd+StMkDbGTlGRJ/+sGEtgFsxCDK6maCrl6hzKQFOnJRPp/'
+          payload += 'J7xldjZDUc3V+bgpME8terjSyONwZUwvtruNp88brRFRRWvP0/SVr0xvmx3QRIwYhv5ra/qjcaTbQ5Wl4+jEvWgtvtB1KoZNaPehHd5z7'
+          payload += 'XVT8CM67Nxq15DqCCqXgR+NmjVFmuoQj7NVcteyC/bP05AynqzqifG0gILx+PVLs8uOI/aCFK9SAA7/mlT5LgaZHyUtjDvhCfU85Px5V2'
+          payload += 'dGcK4mvcAfTUNrnirvg1kenEYJ62v+JPedo/f3RYsAr1lrWj5uOk/6Xbbaxj85PGTRzvLDH4ELRU3HwLwo/UUC/PBXp1M2GHsNTSGY508'
+          payload += 'oKKNViNUBP1B1qo7zaailz30av6jtX2KHVlHBPxs0+uFQPSkWVtC/FDh7fW8ncdPPoPXmYznEvZRzfe6tcWdkH58Ec1zvE9qO95dPErnZ'
+          payload += 'emDP1UQijFmiQGzwskoSltoCILftW2DTIqrSvVeAo4ySszju/mf7oFunqvJ2oHJai6vDm+7+ZAvTTEAtnFNVklGlXT+wXKg/oxuPppuGH'
+          payload += 'vDtjYTKCd3tEpHoGbvkE6v4Tf49roehX0kFUM1i8cl2W02a4+YElRRW1vPKYFnb43wNAoyWM/n3GuDT5rC6zim0Mk6bMkk5DnLQfqMmuK'
+          payload += 'uSDfWiWzsPKw3d1bVz7YS2nwx3NUTTfCfUEKIfedudJ+dCVbv7vi1O5t29eXR49vdx4u7AJdWR31H11tfLdtD9lJNbmMoFN6O78HcLE1c'
+          payload += 'eZWjvjhv+w55s9L3JtMaTISnMSw3nnH6HAZuZmg8GP5kHAYerEJDTJwRgenRZ+J2KdhGM8d4yfmYYAeBD8YrIQt5n3kz4/DNK/CxPIYfn'
+          payload += 'aDju2ndeeI8BB0ehKFxkYDiT42vWDpMt77qBj78FalRW1+NAjQzVo4PoHenF8eZIc8RWJ+7/4Jm6b+c4RGCtguD1UHHB6UDDFmfH18U55'
+          payload += 'zi7Ey/DkqxkgoYSZMwE+Gq/BaefmSSn97lNqZo0nHyj5OQ1+0tAwpPr7BVyWNT9lM0GeG1JHHuKsvQ9oOy/JAVMOVR8yXv9/zr+VIsiZJ'
+          payload += 'Vv55jbBjjchUr/9AERtnKH5tQwGLQlABy1qGAWUcGI6+vawuKPaKXUx9R7BGalM/0/fj2A4g6I3P9XLOMpAddDF26kF/iKhvmZoUYUZy0'
+          payload += 'T8ZmSxWJU/eOiWvLbJk0wwqpbmApeIoKdsQ5BX0KQTuXxpPoTJyOY/ZEOrkq+pFdi89nGN/f/Nfro5v/1uIXxrvv3716Z+Zf1LgbBAkkL'
+          payload += 'x52N/zkzNNBEPowcyDERdbT6cWAZfaQz87QCTg9Nb+fDJEw8DiIkjP7FHr6wMQXHiQXsPD1za9400KM80y/hd+NL1ctVHRiLPBxR8/C1c'
+          payload += 'oucJOqSpxEST1FykDBXyqdQmBKlvkaSxgVLKDjJVQ4SB0LVwEO+Q5Vlp4aRclruRRRuMBqU7bX53iJxiZy0XNEEtoXcISIWiOTqMhVBBE'
+          payload += 'V7V3NZYZckIXreIERQKtNtSV2IKEOnvnK9niksnZSoEKjjpqVU9fEGilXLK8U9KEQ0QoFeQt9rZgt+ozMaQFxRluNmioaDaY9WvqEigho'
+          payload += 'EetCKbhbOOh3lR5hqOhoCVDO/B2igvb2c87dqCLk5QDfimwCG+uPw2CsAeBrAdHWMbnxsCIxikvAqjm8yXLK2lbF+QtU7LpOs6jBt07jg'
+          payload += 'cK2mSOS1zmXFbyIbZ3TXkoJMiK4hLe51Nn46jnsYkmzteiSA04fqrOzMtz3bIgRCUwx7Qd+8OlDVX0axwA2BzOeBdheDtrqiCRV8mca1q'
+          payload += 'b5F5AlzEeNRhRVlTuJ56h8pB/BZqyYbQM2GUfbE3py16Tz8jXj1uNC8mSnc66+W0MfSygutPWclXTd1e/XGF2wOm4/Agv1hnmycamljEJ'
+          payload += 'hUlYa5LzznKVEsDMaLGbOFSB6mtTZwiFWrOaPiaUFUlGCL1WsNioDd8z9ly8+/QRbLxJw849nR7e/fPrp5e0vx7e/mPlnfIYwgEhe1JPJ'
+          payload += 'dnoG1XkO2AcZGlJUscj1A6PSUZF83BCNOMIoJMXSQwxnit122SQpYmHn9VEhemXjIjdqQBjFXkXMbK5p0Pxcg/q6FvXPNsHw3OemNh15A'
+          payload += 'vBEBPBEquJaUKo6y2W+jOSu6aRGd1WKdqvwHYoqbhknb5+9Plyd7sPc9DLg383PMGU+LH2cYvpAzFLaRCISvSrr7Nvra5k8VtivS8eXcn'
+          payload += 'tKJpG7uSlOH+10Nlo+zZSpGO7KgaZKThMm+J02LSUXrF65wnMdeR/T4D5oHhVCLeUvnDK7a3tnMi/guwRPBmCzCsNjnsFO5VdW0pzpbDj'
+          payload += 'ruXt35pRoZ/WWylYAJmBuATHh+hrgcfbKfIBial/U5KwoWFxcP0xdSbv0Qdz5Qp2JiNxi7SNMpwGQJ0zEleGgsxbgZ4PI4slvSGIPpwF9'
+          payload += '9imRuRQu3QwN8bNAmJg1zzW02ArbcllhQgxmrvS0tM+VU/kF+T7qLF6dLlFSKuaGyC+OSF1jUlhVZMbO9V70D5jo92OWL1Iu2is9tMBhk'
+          payload += 'N5NIjehjgOIU/AcQQ/AROFdZZE4kX/cqNm0BCmL4qNV3Bu4ZZ2lUpG1QrkzrXzCpQRD9ztbpUHJL7UsdNvI+7PdFbd+V7qzSRwoExATR0'
+          payload += 'En47cv30ThTN4/u+JP6btVB5K2FXroaFm/4afMDbX8YTMq39TIemsF0QLA0qzm8yxGqCa4KBZZJUtCJqryQo3S3O12P3cDpp3nNYHV4c7'
+          payload += 'LADkKtdIW7bXhALnoldDJ1Os/VGAvye7IUDRVU2EWGddgFxHWUrbG/zl+89oRealBb1bRk3BYpqXZaDzKR6CxSOWALCcBoZ0ssvO4Nb+L'
+          payload += 'ePM9pqPPbn6jCwTGAHM10XbKVxcvVhUvVtJODVeSyuoppSGX83nCYEpy9W7sU3jiCyItA1fJoN0riyZe6enll5TUFQqphOafsy3LFxDJ9'
+          payload += 'unz5OZnzBP49IEMInGLDg/wyvct0PyRFC4+b8Cer/vgYmG2sNPamXQ7hC1xSOToAPVlALy09gf27wEZvJ81dtE+1XqHHUrramOjXKXsFQ'
+          payload += '3kfuElaiZJS6RZzDjO8hB8iozjeajGV6gpuNpjyTDM7yI4YM2A4UUXA24/RkydqUvbs2S9lr99B5sZJjRSXphInikEqJRQznz/2RSWCkY'
+          payload += 'IeQSL3BTf5TVtTJGcL1s7eNBYlkppPLUXMu6Ysin/pkgZX4MfVsdQoF9KyPwzvdnNWo20xZdFSUX4WMRJv5Qk2Ztdf7K2p/0wXM7ohl0U'
+          payload += 'toBnDLQJfZHpT/eEY5J81P30P5ik8nUFmIhlL/7PtocVzLMXMjNUTM1d+mhZdeGcaSmWGuq9bfx8cmkOG02RbZvvzeJSxyHvTvpuhb7Zl'
+          payload += 'H8yte40nRrdLKOtW+Rcim9S4zGLMCVE5B3pOWHd1v37fy6EXroHsqAFhRtcOW/elHrctPw1fD1880rGa44AjOMXWHEl2vMYL/EizYCXLj'
+          payload += '/JFQqdWOoCyUUQ+cIl1lLNRSFl0QPw/wKe8nmbIVwAAA=='
+          addon=gzip.decompress(base64.b64decode(payload)).decode('utf-8')
+          expected_js='909a8af1dd86f33279eea783d72fd0048829a398'
+          if gitsha(addon.encode('utf-8'))!=expected_js:
+              raise ValueError('Gomulu v1.5 JS butunluk kontrolu basarisiz')
+          if re.search(r'</script\s*>',addon,re.IGNORECASE):
+              raise ValueError('JS icinde HTML script kapatma etiketi mevcut')
+          # Remove only legacy navigation button; preserve hidden DOM dependencies.
+          updated=text.replace(nav,'',1)
+          marker=re.search(r'</body>\s*</html>\s*$',updated,re.IGNORECASE)
+          if not marker:raise ValueError('HTML body sonu bulunamadi')
+          inline='<!-- TiMi PRO LAB v1.5: live alignment, no signal archive -->\n<script id="timi-pro-v15">\n'+addon.rstrip()+'\n</script>\n'
+          updated=updated[:marker.start()]+inline+updated[marker.start():]
+          for s in required:
+              if s not in updated:raise ValueError('Kurulum bir eski paneli sildi: '+s)
+          if updated.count('id="timi-pro-v15"')!=1:
+              raise ValueError('v1.5 birden fazla eklendi')
+          if updated.count('<script')!=updated.count('</script>'):
+              raise ValueError('Script acma/kapama sayisi farkli')
+          if nav in updated:
+              raise ValueError('Eski Akis navigasyonu hala gorunuyor')
+          if 'data-page="proLab"' not in updated or 'id="flow"' not in updated:
+              raise ValueError('PRO butonu veya arka plandaki data DOM eksik')
+          Path('timi_pro_v15.js').write_text(addon,encoding='utf-8')
+          html.write_text(updated,encoding='utf-8')
+          print('TiMi v1.5: 16 live rules, live contradictions, 4 bottom tabs. No backend changes.')
+          PY
+          node --check timi_pro_v15.js
+          git diff --check
+      - name: Back up previous UI for 30 days
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-before-v15-${{ github.run_number }}
+          path: |
+            timi_index_before_v15.html
+            timi_pro_suite_before_v15.js
+          retention-days: 30
+          if-no-files-found: error
+      - name: Commit only read-only UI files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html timi_pro_v15.js
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "$(printf 'index.html\ntimi_pro_v15.js')"
+          git commit -m 'TiMi PRO LAB v1.5 live 16-rule alignment; remove duplicate Flow tab'
+          git push origin HEAD:main
