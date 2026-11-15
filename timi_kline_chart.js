@@ -1,4 +1,4 @@
-/* TiMi SCALP PRO - KLineChart 10.1.0 v1.0 integration.
+/* TiMi SCALP PRO - KLineChart 10.1.0 v1.1 period-switch fix.
  * Developer: Suat DOGU. Read only, no orders.
  * Drop-in script appended AFTER all of TiMi's existing scripts.
  * Uses the ORIGINAL TiMi Gateway & WebSocket state; it does not open a second
@@ -35,6 +35,7 @@
   let restoreLegacy = false, timer = null, pendingLoad = false, fetching = false;
   let lastPlanKey = '', lastSignalKey = '', signalMarkers = new Map(), subscriptions = new Map();
   let lastLiveSignature = '', lastStatus = '';
+  let loadSerial = 0; // A stale async response must never reset a newer time frame.
   const requestCache = new Map();
 
   function status(message, state='normal') {
@@ -84,10 +85,11 @@
   async function loadBars(s, p, type, timestamp) {
     if (!SYMS.includes(s) || !PERIODS[p] || !gatewayIsSafe()) throw Error('Geçersiz veri kaynağı');
     if (type && type !== 'init') return []; // TiMi API does not support historic cursor paging.
-    const same = currentSymbol()===s && currentTf()===p;
-    const memory = same && typeof candles !== 'undefined' && Array.isArray(candles)
-      ? sortedBars(candles) : [];
-    if (memory.length >= 70) return memory;
+    // NEVER take an unlabelled shared `candles` array as initial data.
+    // When `tf` changes, the original TiMi UI changes `tf` synchronously but
+    // replaces `candles` only after its REST call completes. That previous
+    // timeframe (or previous symbol) could otherwise be rendered as the new one.
+    // The gateway REST response explicitly identifies symbol and interval.
     const key=currentGateway()+'|'+s+'|'+p;
     const cached=requestCache.get(key);
     if(cached && now()-cached.time<10000) return cached.data;
@@ -117,7 +119,18 @@
     // Multi-minute bars come from the original TiMi REST refresh; no synthetic
     // intrabar bars are invented from trades.
     const cached=typeof candles!=='undefined'&&Array.isArray(candles) ? candles : [];
-    return sortedBars(cached).at(-1) || null;
+    const bars=sortedBars(cached), step=STEPS[p];
+    if (bars.length<3) return null;
+    const tail=bars.slice(-3);
+    // Reject historical bars from the previous timeframe while TiMi is loading.
+    if (tail[1].timestamp-tail[0].timestamp!==step ||
+        tail[2].timestamp-tail[1].timestamp!==step ||
+        tail[2].timestamp%step!==0 ||
+        now()-tail[2].timestamp>step*3) return null;
+    const last=latestBars.at(-1);
+    // Do not deliver an older bar into a series for a newer completed period.
+    if (last && tail[2].timestamp<last.timestamp) return null;
+    return tail[2];
   }
   function trySubscribe(params) {
     const s=validSymbolInfo(params.symbol),p=periodKey(params.period);
@@ -146,24 +159,30 @@
   const loader={
     async getBars({type,timestamp,symbol:s,period:p,callback}) {
       const name=validSymbolInfo(s),timeframe=periodKey(p);
+      // Each init has an identity; callbacks from a prior timeframe must NOT
+      // clear the new chart. In KLineChart v10 an old init callback would
+      // otherwise replace the entire internal bar array.
+      if (type!=='init') {
+        callback([], {forward:false,backward:false});return;
+      }
+      const ticket=++loadSerial;
       if (!name || !timeframe) {callback([], {forward:false,backward:false});return;}
+      const same=()=>ticket===loadSerial && name===chartSymbol &&
+        timeframe===chartTf && currentGateway()===chartGateway;
       try {
         const data=await loadBars(name,timeframe,type,timestamp);
-        if (name!==chartSymbol || timeframe!==chartTf) {
-          callback([], {forward:false,backward:false});return;
-        }
-        if (name===chartSymbol && timeframe===chartTf) {
-          latestBars=data;
-          if (data.length>=20) {
-            chartReady=true;
-            if (!restoreLegacy) activateChart();
-            status('KLineChart · '+name+' · '+timeframe+' · '+data.length+' mum yüklendi','good');
-          } else {status('KLineChart: Yeterli mum bulunamadı; eski grafik korunuyor','warn');activateLegacy();}
-        }
+        if (!same()) return; // Obsolete request: don't invoke old chart callback.
+        if (data.length<20) throw Error('20 mumdan az veri: '+data.length);
         callback(data,{forward:false,backward:false});
+        latestBars=data;
+        chartReady=true;
+        if (!restoreLegacy) activateChart();
+        status('KLineChart · '+name+' · '+timeframe+' · '+data.length+' mum yüklendi','good');
       } catch(e) {
-        activateLegacy('KLineChart veri hatası: '+String(e.message||e)+' · Eski grafik açık');
+        if (!same()) return;
+        chartReady=false;
         callback([], {forward:false,backward:false});
+        activateLegacy('KLineChart veri hatası: '+String(e.message||e)+' · Eski grafik açık');
       }
     },
     subscribeBar:trySubscribe,
@@ -186,8 +205,13 @@
   }
   function toggleLegacy() {
     restoreLegacy=!restoreLegacy;
-    if (restoreLegacy || !chartReady) activateLegacy();
-    else {activateChart();status('KLineChart aktif','good');}
+    if (restoreLegacy || !chartReady) {
+      activateLegacy();
+      if(!restoreLegacy && chart && !chartReady){
+        status('KLineChart verileri yeniden yükleniyor','normal');
+        chart.resetData();
+      }
+    } else {activateChart();status('KLineChart aktif','good');}
   }
 
   function overlay(options) {
@@ -272,17 +296,26 @@
     if(!chart)return;
     const s=currentSymbol(),p=currentTf(),g=currentGateway();
     if(chartSymbol===s && chartTf===p && chartGateway===g)return;
+    const oldS=chartSymbol,oldP=chartTf,oldG=chartGateway;
     chartSymbol=s;chartTf=p;chartGateway=g;chartReady=false;
     latestBars=[];lastPlanKey='';lastSignalKey='';
+    // Show the working legacy Canvas until the new period has >=20 real bars.
+    // Keep the new chart element sized but invisible during the REST request.
+    if(stage && oldCanvas){stage.hidden=false;stage.style.visibility='hidden';
+      oldCanvas.style.display=lastOldDisplay;}
     for(const stop of subscriptions.values())stop();subscriptions.clear();
     overlayGroupRemove('timi-atr-plan');overlayGroupRemove('timi-signals');
     status('KLineChart: '+s+' / '+p+' verileri yükleniyor','normal');
     try {
-      chart.setSymbol(symbolInfo(s));
-      chart.setPeriod(PERIODS[p]);
-    } catch(e) {restoreLegacy=true;activateLegacy('Grafik geçiş hatası: '+String(e.message||e));}
+      // setSymbol / setPeriod each triggers a v10 init. Avoid resetting a
+      // timeframe twice simply by reassigning an unchanged symbol.
+      if(s!==oldS) chart.setSymbol(symbolInfo(s));
+      if(p!==oldP) chart.setPeriod(PERIODS[p]);
+      if(s===oldS && p===oldP && g!==oldG) chart.resetData();
+    } catch(e) {chartReady=false;activateLegacy('Grafik geçiş hatası: '+String(e.message||e));}
     setTimeout(restoreSignalOverlays,1200);
   }
+
   function onTool(name) {
     if(!chartReady||restoreLegacy){status('Önce yeni grafiğin yüklenmesini bekle','warn');return;}
     if(name==='clear'){
@@ -367,12 +400,18 @@
         stage.hidden=false;stage.style.visibility='hidden';
         chart=lib.init(stage, {styles:'dark',timezone:'Europe/Istanbul',locale:'en-US'});
         if(!chart)throw Error('Grafik oluşturulamadı');
-        chart.setDataLoader(loader);
+        // KLineChart v10 initialization order is significant: configure the
+        // symbol/period FIRST; attach the loader LAST for a single initial
+        // request. Otherwise the same chart can be cleared by overlapping init.
+        chartSymbol=currentSymbol();chartTf=currentTf();chartGateway=currentGateway();
+        chartReady=false;
+        chart.setSymbol(symbolInfo(chartSymbol));
+        chart.setPeriod(PERIODS[chartTf]);
         try {chart.setStyles({grid:{horizontal:{color:'#243a50'},vertical:{color:'#243a50'}},
           candle:{bar:{upColor:'#22d3a0',downColor:'#ff6682',upWickColor:'#22d3a0',
           downWickColor:'#ff6682',upBorderColor:'#22d3a0',downBorderColor:'#ff6682'}}});}catch(_){}
         try {chart.createIndicator({name:'MA',calcParams:[20,50,200],paneId:'candle_pane'},true);}catch(_){}
-        updatePairPeriod();
+        chart.setDataLoader(loader);
       }catch(e){chart=null;restoreLegacy=true;activateLegacy('Yeni grafik açılamadı: '+String(e.message||e));}
     }
     ensureChart();
