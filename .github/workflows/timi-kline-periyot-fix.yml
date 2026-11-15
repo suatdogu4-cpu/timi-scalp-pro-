@@ -1,0 +1,223 @@
+name: TiMi - KLineChart Periyot Degisimi Hata Duzeltmesi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timi-klinechart-period-fix-main
+  cancel-in-progress: false
+
+jobs:
+  fix_period_switch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Back up both original files
+        run: |
+          cp index.html index_before_kline_period_fix.html
+          cp timi_kline_chart.js timi_kline_chart_before_period_fix.js
+
+      - name: Apply audited KLineChart period switch correction
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, gzip, hashlib
+
+          root=Path('.')
+          js_path=root/'timi_kline_chart.js'
+          html_path=root/'index.html'
+          original_js=js_path.read_bytes()
+          original_html=html_path.read_text(encoding='utf-8')
+          expected_git_blob='dce0e12f09d86030cc9d845840d97dfb1f3aa440'
+          current_blob=hashlib.sha1(
+              ('blob '+str(len(original_js))+'\0').encode('ascii')+original_js
+          ).hexdigest()
+          if current_blob != expected_git_blob:
+              raise ValueError('Mevcut JS dosyasi beklenenden farkli; degisiklik yapilmadi. Kod kontrol edilmeli.')
+
+          tag='<script id="timi-kline-10-1-0">'
+          assert original_html.count(tag)==1, 'Grafik eklentisi beklenen yerde yok.'
+          start=original_html.index(tag)+len(tag)
+          end=original_html.index('</script>',start)
+          existing_inline=original_html[start:end]
+          assert existing_inline.strip()==original_js.decode('utf-8').strip(), (
+              'HTML icindeki KLineChart ile GitHub JS dosyasi farkli; degisiklik yapilmadi.')
+
+          compressed=(
+          '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'
+          )
+          new_js=gzip.decompress(base64.b64decode(compressed))
+          expected_sha256='236816644541a391f9d55ef2b9d30e61c8e941788320be0f95869ad75679f6c5'
+          assert hashlib.sha256(new_js).hexdigest()==expected_sha256
+          updated=new_js.decode('utf-8')
+          assert 'v1.1 period-switch fix' in updated
+          assert 'loadSerial' in updated and 'chart.setDataLoader(loader)' in updated
+
+          changed_html=original_html[:start]+'\n'+updated.rstrip()+'\n'+original_html[end:]
+          assert 'id="performance"' not in changed_html, 'Kaldirilan Test sekmesi geri gelmemeli.'
+          required=['id="overview"','id="chart"','id="flow"','id="more"',
+                    'id="timiProCockpit"','id="timiIndBuy"','timi-meta-widget-inline',
+                    'timiTpGetPlan','id="timi-kline-10-1-0"']
+          for token in required:
+              assert token in changed_html, 'Korunacak ozellik kayip: '+token
+          for tag_open,tag_close in (('<script','</script>'),('<style','</style>')):
+              assert changed_html.count(tag_open)==changed_html.count(tag_close)
+          assert changed_html[:start]==original_html[:start]
+          assert changed_html[changed_html.index('</script>',start):]==original_html[end:]
+          js_path.write_bytes(new_js)
+          html_path.write_text(changed_html,encoding='utf-8')
+          print('TiMi periyot gecisi duzeltildi. Eski grafige donus korundu.')
+          print('JS bytes:', len(new_js), 'HTML chars:',len(changed_html))
+          PY
+
+      - name: Validate JavaScript syntax and patch markers
+        run: |
+          node --check timi_kline_chart.js
+          python3 - <<'PY'
+          from pathlib import Path
+          html=Path('index.html').read_text(encoding='utf-8')
+          js=Path('timi_kline_chart.js').read_text(encoding='utf-8')
+          s=html.index('<script id="timi-kline-10-1-0">')
+          inline=html[s:].split('>',1)[1].split('</script>',1)[0]
+          assert inline.strip()==js.strip()
+          assert 'loadSerial' in js
+          assert 'chart.setPeriod(PERIODS[p])' in js
+          print('HTML/JS senkron, eski TiMi kokpiti korunuyor')
+          PY
+          git diff --check
+
+      - name: Save original files as downloadable backup
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timi-kline-before-period-fix-${{ github.run_number }}
+          path: |
+            index_before_kline_period_fix.html
+            timi_kline_chart_before_period_fix.js
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Commit the two frontend files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html timi_kline_chart.js
+          git diff --cached --check
+          git diff --cached --name-only
+          git commit -m 'Fix KLineChart v10 timeframe transitions and stale candle resets'
+          git push origin HEAD:main
