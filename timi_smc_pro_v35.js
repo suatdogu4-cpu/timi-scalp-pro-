@@ -153,7 +153,7 @@ const groups=['timi-smc35-ob','timi-smc35-fvg','timi-smc35-sweep'];
 function currentSymbol(){return String(el('symbol')?.value||'BTCUSDT').toUpperCase().trim();}
 function gateway(){let value=String(el('gateway')?.value||root.location.origin).trim().replace(/\/$/,'');
   try{let url=/^https?:\/\//i.test(value)?new URL(value):new URL(value,root.location.origin);return url.protocol==='https:'||url.hostname==='localhost'?url.origin:'';}catch(_){return '';}}
-function active(){return el('proLab')?.classList.contains('active')&&el('proSmc')?.hidden===false;}
+function active(){return (el('proLab')?.classList.contains('active')&&el('proSmc')?.hidden===false)||(state.showChart&&el('chart')?.classList.contains('active'));}
 function configKey(){return gateway()+'|'+currentSymbol();}
 function emptyChart(chart){if(!chart)return;for(const g of groups)try{chart.removeOverlay({groupId:g});}catch(_){}}
 function resetKey(){const key=configKey();if(key===state.gateway+'|'+state.symbol)return;
@@ -169,7 +169,7 @@ function css(){const style=d.createElement('style');style.id='timiSmc35Style';st
 #smc35Status{font-size:10px;color:#80dcbf;max-width:43%;text-align:right;line-height:1.3}
 #timiSmc35 .sm35body{padding:0 11px 12px}#timiSmc35 .sm35callout{padding:9px;border:1px solid #2b5164;border-radius:8px;color:#c2d9eb;font-size:11px;line-height:1.5;margin:10px 0}
 #timiSmc35 .sm35toolbar{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}#timiSmc35 button{padding:8px 9px;border:1px solid #3b6076;border-radius:8px;background:#17334b;color:#dceefa;min-height:36px;font-size:11px;font-weight:650;cursor:pointer}
-#timiSmc35 button.active{border-color:#2dbc91;background:#155444;color:#d1ffe9}#timiSmc35 button:focus-visible,#timiSmc35 summary:focus-visible{outline:2px solid #62e8c6;outline-offset:2px}
+#proLab #timiSmc35 button.active{border-color:#2dbc91;background:#155444;color:#d1ffe9}#timiSmc35 button:focus-visible,#timiSmc35 summary:focus-visible{outline:2px solid #62e8c6;outline-offset:2px}
 #timiSmc35 .sm35tf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:8px 0}
 #timiSmc35 .sm35tf button{display:grid;gap:3px;text-align:center;min-width:0;overflow-wrap:anywhere}
 #timiSmc35 .sm35tf button strong{font-size:12px}#timiSmc35 .sm35tf button span{font-size:10px}#timiSmc35 .sm35tf button small{font-size:9px;color:#91a9c1}
@@ -192,6 +192,7 @@ function install(){if(el('timiSmc35'))return true;
    <button type="button" data-sm35="chart">Grafikte göster</button><button type="button" data-sm35="labels">Grafik etiketleri</button>
    <button type="button" data-sm35="refresh">Yenile</button>
   </div>
+  <div id="smc35DrawInfo" style="font-size:10px;color:#9fbdd2;padding:4px 1px" aria-live="polite">Grafik: KAPALI · Etiketler: KAPALI</div>
   <div class="sm35callout" id="smc35Detail">Hesaplama bekleniyor.</div>
   <div id="smc35Rows"></div>
   <details class="sm35help"><summary>Kalite puanı ve göstergeler nasıl okunur?</summary><p>Kalite 0–100 arası kural tabanlı sınıflamadır, başarı olasılığı değildir. OB kalite: bölge genişliği/ATR, kırılım mumunun gövdesi, hacim, bölge yaşı ve test/iptal durumu. FVG kalite: boşluk/ATR, yakın yapı kırılımı, yaş ve doluluk. Sweep: fitil/ATR, hacim ve seviyenin yeniden içeride kapanması. Yalnızca kapanmış mumlar kullanılır. Kayıt, emir veya sinyal yoktur.</p><p>Grafikte göster varsayılan olarak kapalıdır ve sadece 1m/5m/15m grafiklerde, en fazla ikişer aday için işaret koyar. Bu analiz doğrulanmış kurumsal emir, likidite havuzu veya kâr olasılığı anlamına gelmez.</p></details>
@@ -240,6 +241,7 @@ function render(){const host=el('timiSmc35');if(!host)return;
  const summary=mtf(state.rows),value=summary.aligned?(summary.direction==='LONG'?'3/3 YUKARI':'3/3 AŞAĞI'):`${summary.valid}/3 geçerli`;
  if(el('smc35Status'))el('smc35Status').textContent=state.busy?'Hesaplanıyor':value;
  if(el('smc35Mtf'))el('smc35Mtf').textContent=summary.description+' · Bu sonuç AL/SAT olasılığı değildir.';
+ if(el('smc35DrawInfo'))el('smc35DrawInfo').textContent='Grafik: '+(state.showChart?'AÇIK':'KAPALI')+' · Etiketler: '+(state.showLabels?'AÇIK':'KAPALI')+' · Zaman dilimi: '+state.tf;
  const cards=el('smc35TfCards');if(cards){cards.replaceChildren();for(const tf of TF_LIST){
   const a=state.rows[tf],b=d.createElement('button');b.type='button';b.className=state.tf===tf?'active':'';
   const name=d.createElement('strong');name.textContent=tf;
