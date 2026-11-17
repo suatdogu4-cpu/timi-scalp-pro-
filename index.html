@@ -398,8 +398,15 @@ body.timi-ux-v3 .timi-ux-sr {position:absolute!important;width:1px;height:1px;pa
 
 </section>
 <section id="flow" class="section"><div class="twocol"><div class="card"><h3>Order Book · 20 seviye</h3><div class="bookhead"><span>Fiyat</span><span>Miktar</span><span>Kümülatif</span></div><div id="asks"></div><div class="stat"><strong id="mid">—</strong><small>En iyi alış / satış</small></div><div id="bids"></div></div><div class="card"><h3>Time &amp; Sales</h3><div class="bookhead"><span>Saat</span><span>Fiyat</span><span>Miktar</span></div><div id="trades"></div></div></div></section>
+<section id="osint" class="section" aria-label="Blockchain OSINT">
+<div class="card" style="padding:12px;margin-bottom:12px">
+ <div class="row" style="align-items:center"><h3>◇ Blockchain OSINT</h3><span class="badge">SALT OKUNUR</span></div>
+ <p class="note">Bitcoin, Ethereum ve Base cüzdan/işlem araştırması. Canlı fiyat motorundan bağımsız sorgular; aynı TiMi adresi üzerinden çalışır.</p>
+</div>
+<iframe id="timiOsintFrame" title="TiMi Blockchain OSINT" src="/osint/panel" loading="lazy" style="display:block;width:100%;min-height:800px;height:900px;border:0;border-radius:12px;background:#07121e" referrerpolicy="no-referrer"></iframe>
+</section>
 <section id="more" class="section"><div class="card"><h3>TiMi SCALP PRO v1.8.6</h3><p class="note">Canlı Binance Spot fiyat, işlem akışı, 20 seviyeli kısmi emir defteri, 60 saniyelik CVD, EMA, RSI, MACD, Bollinger, ATR, VWAP, çoklu zaman analizi ve LONG/SHORT/BEKLE karar motoru. MTF kapanmış mum denetimi, doğrulanan likidite duvarları, eşzamanlı emir defteri kontrolü ve ileriye dönük sinyal gözlemleri.</p><div class="stat"><span>Gerçek emir</span><strong class="gold">KAPALI</strong></div><div class="stat"><span>Sanal işlem</span><strong class="gold">KALDIRILDI</strong></div><div class="stat"><span>Sunucu sürümü</span><strong id="serverVersion">Kontrol ediliyor</strong></div><div class="stat"><span>Canlı LightGBM</span><strong id="modelStatus" class="gold">Yüklenmedi</strong></div><p class="note" id="modelNote">train_model-1.py ayrı bir araştırma betiğidir. Canlı sinyaller kural tabanlıdır; model eğitimi otomatik başlamaz.</p><div class="stat"><span>Sinyal gözlemi</span><strong id="auditEnabled">Kontrol ediliyor</strong></div><div class="stat"><span>Toplu göstergeler</span><strong id="indicatorCount">Test edilmedi</strong></div><button class="btn" id="testIndicators">5m gösterge sayısını kontrol et</button></div><div class="card"><h3>Gateway adresi</h3><p class="note">Render'da aynı alan adında kullanıyorsan değiştirme. GitHub Pages üzerinden açıyorsan HTTPS Render adresini gir.</p><input id="gateway" placeholder="https://timi-scalp-pro.onrender.com"><button class="btn" id="saveGateway">Kaydet ve bağlan</button></div></section></main>
-<nav class="foot"><button class="active" data-page="overview">▦<div>Özet</div></button><button data-page="chart">▥<div>Grafik</div></button><button data-page="more">☰<div>Menü</div></button></nav><div id="toast"></div>
+<nav class="foot"><button class="active" data-page="overview">▦<div>Özet</div></button><button data-page="chart">▥<div>Grafik</div></button><button data-page="osint">◇<div>OSINT</div></button><button data-page="more">☰<div>Menü</div></button></nav><div id="toast"></div>
 <script>
 'use strict';const $=id=>document.getElementById(id),fmt=(v,d=2)=>v!==null&&v!==undefined&&Number.isFinite(Number(v))?Number(v).toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
 let symbol='BTCUSDT',tf='1m',gateway=localStorage.getItem('timi_scalp_gateway')||location.origin,ws=null,retry=null,epoch=0,market={},lastTrade=0,lastBook=0,analysis=null,analysisAt=0,candles=[],chartReq=0,analysisReq=0,renderPending=false,analysisBusy=false,lastKline=0,klineStream=false,lastKlineClosed=null,chartDrawPending=false,lastLiveCandle=null;const DEFAULT_GATEWAY='https://timi-scalp-pro.onrender.com';if(!/^https?:/.test(gateway))gateway=DEFAULT_GATEWAY;$('gateway').value=gateway;
@@ -4069,5 +4076,15 @@ return {STEPS,bars,mean,atr,ema,adx,regime,smc,breakout,vwap,volumeProfile,analy
 })(typeof window!=='undefined'?window:null);
 </script>
 <script src="timi_quant_lab.js" defer></script>
+
+<!-- TIMI_OSINT_FRAME_BRIDGE_V02 -->
+<script>(function(){'use strict';
+window.addEventListener('message',function(e){
+ if(e.origin!==window.location.origin)return;
+ var frame=document.getElementById('timiOsintFrame');
+ if(!frame||e.source!==frame.contentWindow||!e.data||e.data.source!=='timi-osint-panel')return;
+ var h=Number(e.data.height);if(Number.isFinite(h)&&h>=560&&h<=14000)frame.style.height=h+'px';
+});
+})();</script>
 </body></html>
 

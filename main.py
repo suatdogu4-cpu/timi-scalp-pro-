@@ -1245,3 +1245,7 @@ from timi_v23_orderflow import install_v23
 v23_live = install_v23(app, markets, status, now_ms)
 
 # Read-only analytics. No paper orders, real orders, credentials or training endpoints.
+
+# TiMi Blockchain OSINT — salt okunur; mevcut canlı veri yolları korunur.
+from timi_osint import install_timi_osint
+install_timi_osint(app)
