@@ -1,0 +1,127 @@
+name: TiMi QUANT LAB - Tam main.py ve index.html
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: timi-quant-lab-install
+  cancel-in-progress: false
+
+jobs:
+  update-and-export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Depodaki en guncel main kodunu al
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Kaynaklari yedekle
+        run: |
+          mkdir -p original_files
+          cp main.py original_files/main.py
+          cp index.html original_files/index.html
+
+      - name: Kodlari eksiltmeden QUANT LAB ekle
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import ast
+
+          root = Path.cwd()
+          main_file = root/'main.py'
+          index_file = root/'index.html'
+          for required in ('main.py','index.html','timi_quant_lab.py','timi_quant_lab.js'):
+              if not (root/required).is_file():
+                  raise SystemExit('Eksik dosya: '+required)
+
+          oldmain = main_file.read_text(encoding='utf-8')
+          oldindex = index_file.read_text(encoding='utf-8')
+          anchor = "origins = [x.strip() for x in os.getenv('TIMI_ORIGINS'"
+          indexanchor = '</body></html>'
+          if len(oldmain) < 25000 or len(oldindex) < 50000:
+              raise SystemExit('Beklenen TiMi kaynak uzunluklariyla uyusmuyor; degisiklik iptal edildi')
+          if 'app = FastAPI(' not in oldmain or 'from fastapi.responses import FileResponse' not in oldmain:
+              raise SystemExit('main.py beklenen surum degil')
+          if '<!doctype html>' not in oldindex.lower() or 'class="foot"' not in oldindex:
+              raise SystemExit('index.html beklenen surum degil')
+          if anchor not in oldmain and 'install_quant_lab(' not in oldmain:
+              raise SystemExit('main.py icinde ekleme noktasi yok')
+          if oldindex.count(indexanchor) != 1:
+              raise SystemExit('index.html kapatma yeri belirsiz')
+
+          addition = '''# TiMi QUANT LAB v1.0 - mevcut modulleri degistirmeyen API.
+          from timi_quant_lab import install_quant_lab
+          install_quant_lab(
+              app, markets=markets, get_candles=get_candles,
+              orderflow=orderflow, now_ms=now_ms,
+          )
+
+          @app.get('/timi_quant_lab.js')
+          async def timi_quant_lab_javascript():
+              return FileResponse(ROOT / 'timi_quant_lab.js', media_type='application/javascript')
+
+          '''
+          if 'install_quant_lab(' not in oldmain:
+              if oldmain.count(anchor) != 1:
+                  raise SystemExit('main.py ekleme noktasi birden fazla')
+              main = oldmain.replace(anchor,addition+anchor,1)
+          else:
+              if 'from timi_quant_lab import install_quant_lab' not in oldmain or "@app.get('/timi_quant_lab.js')" not in oldmain:
+                  raise SystemExit('main.py QUANT eklentisi yarim kalmis, otomatik uzerine yazilmadi')
+              main = oldmain
+          script = '<script src="timi_quant_lab.js" defer></script>\n'
+          if script.strip() not in oldindex and '<script src="./timi_quant_lab.js"' not in oldindex:
+              index = oldindex.replace(indexanchor,script+indexanchor,1)
+          else:
+              index = oldindex
+
+          ast.parse(main)
+          ast.parse((root/'timi_quant_lab.py').read_text(encoding='utf-8'))
+          assert 'install_quant_lab(' in main
+          assert 'timi_quant_lab.js' in index
+          assert len(main) >= len(oldmain) and len(index) >= len(oldindex)
+          main_file.write_text(main,encoding='utf-8')
+          index_file.write_text(index,encoding='utf-8')
+          print('Hazir: main.py',len(main),'karakter; index.html',len(index),'karakter')
+          PY
+
+      - name: JavaScript ve Python soz dizimini kontrol et
+        run: |
+          python3 -m py_compile main.py timi_quant_lab.py
+          node --check timi_quant_lab.js
+
+      - name: Gunccellenmis iki tam dosyayi ZIP artifact olarak hazirla
+        uses: actions/upload-artifact@v4
+        with:
+          name: TiMi_QUANT_TAM_MAIN_INDEX
+          path: |
+            main.py
+            index.html
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Eski dosyalarin yedegini artifact olarak sakla
+        uses: actions/upload-artifact@v4
+        with:
+          name: TiMi_QUANT_ONCEKI_MAIN_INDEX_YEDEK
+          path: original_files/
+          retention-days: 14
+
+      - name: Testleri gecen tam dosyalari ana dala kaydet
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add main.py index.html
+          if git diff --cached --quiet; then
+            echo 'QUANT LAB zaten kurulu'
+          else
+            git commit -m 'feat: add read-only TiMi QUANT LAB to main and index'
+            git push origin HEAD:main
+          fi
