@@ -327,7 +327,29 @@ def merge_live_candles(symbol, interval, candles, limit):
             c['closed'] = bool(c['closed'])
     return output
 
+# TiMi CANDLE RESCUE v1.0 — same-exchange Binance Spot REST failover
+# Existing WebSocket, native decisions, ML, and other modules are unchanged.
+# Never mix candles from another exchange into Binance Spot signals.
+_CANDLE_RESCUE_HOSTS = tuple(dict.fromkeys((
+    REST,
+    'https://api-gcp.binance.com/api/v3',
+    'https://api1.binance.com/api/v3',
+    'https://api2.binance.com/api/v3',
+)))
+_candle_rescue_cooldown = {}
+_candle_rescue_health = {}
+_candle_rescue_source = {}
+_candle_rescue_global_pause = 0.0
+_candle_rescue_semaphore = asyncio.Semaphore(3)
+
 async def get_candles(symbol, interval='1m', limit=250):
+    """Validate Binance Spot OHLCV. Retry another official Binance endpoint on 5xx/transport failure.
+
+    429/418: stop all attempts and respect cooldown (never evade an IP rate limit).
+    451/403: stop; do not attempt to bypass access restrictions.
+    Missing/old candles: fail closed; do not fabricate a historical market series.
+    """
+    global _candle_rescue_global_pause
     key = (symbol, interval, limit)
     ttl = {'1m': 10, '3m': 20, '5m': 30}.get(interval, 30)
     entry = candle_cache.get(key)
@@ -338,21 +360,85 @@ async def get_candles(symbol, interval='1m', limit=250):
         entry = candle_cache.get(key)
         if entry and time.monotonic() - entry[0] < ttl:
             return merge_live_candles(symbol, interval, entry[1], limit)
-        try:
-            r = await http_client.get(f'{REST}/klines',
-                                      params={'symbol': symbol, 'interval': interval, 'limit': limit})
-            r.raise_for_status()
-            current = now_ms()
-            candles = [{'t': int(x[0]), 'o': float(x[1]), 'h': float(x[2]),
-                        'l': float(x[3]), 'c': float(x[4]), 'v': float(x[5]),
-                        'closed': int(x[6]) < current} for x in r.json()]
-            candle_cache[key] = (time.monotonic(), candles)
-            return merge_live_candles(symbol, interval, candles, limit)
-        except (httpx.HTTPError, ValueError, KeyError, IndexError) as exc:
-            if entry and time.monotonic() - entry[0] < 30:
-                return merge_live_candles(symbol, interval, entry[1], limit)
-            LOG.warning('Candles %s %s: %s', symbol, interval, exc)
-            raise HTTPException(503, 'Binance candle service unavailable') from exc
+        if time.monotonic() >= _candle_rescue_global_pause:
+            step = {'1m': 60000, '3m': 180000, '5m': 300000,
+                    '15m': 900000, '30m': 1800000, '1h': 3600000,
+                    '4h': 14400000, '1d': 86400000}.get(interval)
+            if step is None:
+                raise HTTPException(400, 'Invalid candle interval')
+            for host in _CANDLE_RESCUE_HOSTS:
+                if time.monotonic() < _candle_rescue_cooldown.get(host, 0):
+                    continue
+                response = None
+                try:
+                    async with _candle_rescue_semaphore:
+                        response = await http_client.get(
+                            host + '/klines',
+                            params={'symbol': symbol, 'interval': interval, 'limit': limit},
+                            timeout=httpx.Timeout(5.0, connect=3.0),
+                        )
+                    code = response.status_code
+                    if code in (418, 429):
+                        retry_value = response.headers.get('Retry-After', '')
+                        try:
+                            retry_sec = max(30, min(300, float(retry_value)))
+                        except (ValueError, TypeError):
+                            retry_sec = 60
+                        _candle_rescue_global_pause = time.monotonic() + retry_sec
+                        _candle_rescue_health[host] = {'status': code, 'reason': 'rate_limit', 'at_ms': now_ms()}
+                        LOG.warning('Binance candles rate limited: HTTP %s; all REST hosts paused', code)
+                        break
+                    if code in (403, 451):
+                        _candle_rescue_global_pause = time.monotonic() + 300
+                        _candle_rescue_health[host] = {'status': code, 'reason': 'access_restricted', 'at_ms': now_ms()}
+                        LOG.warning('Binance candles access restricted: HTTP %s', code)
+                        break
+                    if 400 <= code < 500:
+                        _candle_rescue_health[host] = {'status': code, 'reason': 'invalid_request', 'at_ms': now_ms()}
+                        break
+                    response.raise_for_status()
+                    raw = response.json()
+                    if not isinstance(raw, list) or len(raw) < 20:
+                        raise ValueError('Candle payload missing or too short')
+                    current_ms = now_ms()
+                    candles = []
+                    previous_t = None
+                    for row in raw:
+                        if not isinstance(row, list) or len(row) < 7:
+                            raise ValueError('Malformed Binance OHLCV row')
+                        t = int(row[0])
+                        o, h, l, c, v = [float(row[i]) for i in (1, 2, 3, 4, 5)]
+                        close_ms = int(row[6])
+                        if (not all(math.isfinite(z) for z in (o, h, l, c, v)) or
+                            l <= 0 or v < 0 or h < max(o, c, l) or l > min(o, c) or
+                            t % step != 0 or (previous_t is not None and t - previous_t != step) or
+                            close_ms < t or close_ms > t + step + 1000):
+                            raise ValueError('Invalid or gapped Binance candles')
+                        previous_t = t
+                        candles.append({'t': t, 'o': o, 'h': h, 'l': l,
+                                        'c': c, 'v': v, 'closed': close_ms < current_ms})
+                    if candles[-1]['t'] + 2 * step < current_ms:
+                        raise ValueError('Binance returned stale candles')
+                    candle_cache[key] = (time.monotonic(), candles)
+                    _candle_rescue_source[(symbol, interval)] = host
+                    _candle_rescue_health[host] = {'status': 200, 'reason': 'healthy', 'at_ms': now_ms()}
+                    _candle_rescue_cooldown.pop(host, None)
+                    return merge_live_candles(symbol, interval, candles, limit)
+                except (httpx.HTTPError, ValueError, KeyError, IndexError,
+                        TypeError, OverflowError) as exc:
+                    status_code = response.status_code if response is not None else None
+                    _candle_rescue_health[host] = {
+                        'status': status_code, 'reason': type(exc).__name__, 'at_ms': now_ms(),
+                    }
+                    _candle_rescue_cooldown[host] = time.monotonic() + (25 if status_code and status_code >= 500 else 12)
+                    LOG.warning('Binance candle host %s unavailable for %s %s (%s)',
+                                host, symbol, interval, type(exc).__name__)
+                    continue
+        # A recent cache may support display, but existing MTF staleness vetoes stay active.
+        if entry and time.monotonic() - entry[0] < 30:
+            return merge_live_candles(symbol, interval, entry[1], limit)
+        LOG.warning('All Binance Spot candle sources unavailable: %s %s', symbol, interval)
+        raise HTTPException(503, 'Binance candle service unavailable (all official Spot REST sources)')
 
 def closed_candles_valid(closed, interval):
     """Fail closed on malformed, duplicate or gapped Binance UTC candles."""
@@ -1249,3 +1335,23 @@ v23_live = install_v23(app, markets, status, now_ms)
 # TiMi Blockchain OSINT — salt okunur; mevcut canlı veri yolları korunur.
 from timi_osint import install_timi_osint
 install_timi_osint(app)
+
+
+# TiMi CANDLE RESCUE v1.0 — endpoint health. Public status only, no keys.
+@app.get('/api/candle-source-health')
+async def timi_candle_source_health():
+    remaining = max(0, round(_candle_rescue_global_pause - time.monotonic()))
+    sources = []
+    for host in _CANDLE_RESCUE_HOSTS:
+        item = _candle_rescue_health.get(host, {})
+        sources.append({'host': host, 'last_http': item.get('status'),
+                        'state': item.get('reason', 'not_tested'),
+                        'last_checked_ms': item.get('at_ms'),
+                        'cooldown_seconds': max(0, round(_candle_rescue_cooldown.get(host, 0) - time.monotonic()))})
+    return {'module': 'TiMi Candle Rescue v1.0',
+            'exchange': 'Binance Spot only', 'other_exchange_ohlcv_used': False,
+            'retry_after_seconds': remaining, 'sources': sources,
+            'last_good_by_symbol_interval': [
+                {'symbol': k[0], 'interval': k[1], 'host': v}
+                for k, v in sorted(_candle_rescue_source.items())],
+            'note': 'REST mumları. Canlı fiyat WebSocket bağımsızdır. Veri yoksa sinyal BEKLE.'}
