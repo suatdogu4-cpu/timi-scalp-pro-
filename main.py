@@ -901,6 +901,17 @@ timi_ml_metafilter = install_metafilter(
 )
 
 
+# TiMi QUANT LAB v1.0 - mevcut modulleri degistirmeyen API.
+from timi_quant_lab import install_quant_lab
+install_quant_lab(
+    app, markets=markets, get_candles=get_candles,
+    orderflow=orderflow, now_ms=now_ms,
+)
+
+@app.get('/timi_quant_lab.js')
+async def timi_quant_lab_javascript():
+    return FileResponse(ROOT / 'timi_quant_lab.js', media_type='application/javascript')
+
 origins = [x.strip() for x in os.getenv('TIMI_ORIGINS', '').split(',') if x.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins,
                    allow_methods=['GET'], allow_headers=['*'])
