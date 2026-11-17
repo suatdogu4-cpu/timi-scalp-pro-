@@ -4043,48 +4043,244 @@ return {STEPS,bars,mean,atr,ema,adx,regime,smc,breakout,vwap,volumeProfile,analy
    const hub=make('div');hub.id='timiUxHub';hub.setAttribute('aria-label','TiMi hızlı gezinme');
    const head=make('div','timi-ux-head');
    const left=make('div');left.append(make('span','timi-ux-label','HIZLI PİYASA KONTROLÜ'),make('h2','timi-ux-title','TiMi Kontrol Merkezi'));
-   const live=make('span','timi-ux-live','Veri kontrol ediliyor');live.id='timiUxLive';live.dataset.state='wait';live.setAttribute('role','status');live.setAttribute('aria-live','polite');
-   head.append(left,live);
-   const ticker=make('div','timi-ux-ticker');
-   ticker.append('Parite ',make('strong','','—'),'  ·  Ana karar ',make('strong','','BEKLE'),'  ·  Gerçek emir kapalı');
-   ticker.querySelectorAll('strong')[0].id='timiUxPair';
-   ticker.querySelectorAll('strong')[1].id='timiUxDecision';
-   const row=make('div','timi-ux-shortcuts');row.id='timiUxShortcuts';row.setAttribute('role','group');row.setAttribute('aria-label','Özet ekranı bölüm kısayolları');
-   for(const spec of items)row.append(button(spec));
-   const hint=make('p','','İstediğin bölüme tek dokunuşla geç. Tüm veriler salt okunurdur.');hint.id='timiUxHint';
-   hub.append(head,ticker,row,hint);
-   const quick=$('timiUiQuickNav');
-   if(quick&&quick.parentElement===overview)quick.insertAdjacentElement('afterend',hub);
-   else overview.prepend(hub);
-   const top=make('button','','↑');top.id='timiUxTop';top.type='button';top.setAttribute('aria-label','Sayfanın başına dön');top.title='Başa dön';
-   top.addEventListener('click',()=>root.scrollTo({top:0,behavior:root.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches?'auto':'smooth'}));
-   d.body.append(top);
-   let queued=false;
-   const scrollCheck=()=>{if(queued)return;queued=true;root.requestAnimationFrame(()=>{
-     queued=false;top.classList.toggle('is-shown',root.scrollY>400);
-   });};
-   root.addEventListener('scroll',scrollCheck,{passive:true});
-   d.querySelector('nav.foot')?.addEventListener('click',()=>root.requestAnimationFrame(navSync));
-   root.addEventListener('hashchange',navSync);
-   $('symbol')?.addEventListener('change',renderState);
-   d.addEventListener('visibilitychange',()=>{if(!d.hidden)renderState()});
-   root.setInterval(()=>{if(!d.hidden)renderState()},2500);
-   renderState();navSync();scrollCheck();
-   root.timiUxV3Debug=Object.freeze({version:'3.0.0',readOnly:true,networkCalls:0,orderActions:0,hasHub:true});
- }
- if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',build,{once:true});else build();
-})(typeof window!=='undefined'?window:null);
-</script>
-<script src="timi_quant_lab.js" defer></script>
+<!-- TIMI_UI_V4_BEGIN -->
+<style id="timiUiV4Style">
+/* TiMi SCALP PRO — Workspace UI v4.0, visual-only layer.
+   Keeps original analytics, DOM ids, API calls and event handlers intact. */
+:root {
+  --bg:#0b1422;--panel:#142338;--line:#2b435a;
+  --text:#eff5ff;--muted:#aabed3;--green:#22c99a;
+  --red:#f36f86;--gold:#ecc56c;--timi-blue:#4da7ff;
+}
+body.timi-ui-v4 { background:#0b1422; color:#eff5ff; font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+body.timi-ui-v4 main {max-width:1120px; padding:12px 12px 108px;}
+body.timi-ui-v4 header {background:#0d1b2d; border-color:#2b435a; box-shadow:0 5px 22px #030a1580;}
+body.timi-ui-v4 .logo {font-size:clamp(17px,5vw,22px);letter-spacing:-.45px}
+body.timi-ui-v4 header small {font-size:10.5px;line-height:1.35}
+body.timi-ui-v4 .card {background:#142338; border:1px solid #2b435a; border-radius:14px; box-shadow:0 4px 12px #020b171e; padding:13px;margin-bottom:11px;}
+body.timi-ui-v4 .metric, body.timi-ui-v4 .timi-ind-sum,
+body.timi-ui-v4 .timi-ind-box,body.timi-ui-v4 .timi-pro-unit,
+body.timi-ui-v4 .pro-stat,body.timi-ui-v4 .q-stat,
+body.timi-ui-v4 .ti-int-kpi>div {background:#192d43;border-color:#314b63;border-radius:10px}
+body.timi-ui-v4 .stat {border-color:#2a4055;padding:9px 0}
+body.timi-ui-v4 .stat strong,body.timi-ui-v4 .metric strong,
+body.timi-ui-v4 .bookrow,body.timi-ui-v4 .trade {font-variant-numeric:tabular-nums}
+body.timi-ui-v4 h3 {font-size:15.5px;font-weight:800;line-height:1.35}
+body.timi-ui-v4 h4 {font-size:13.5px}
+body.timi-ui-v4 .muted,body.timi-ui-v4 .note,body.timi-ui-v4 .section-sub {color:#aabed3}
+body.timi-ui-v4 button,body.timi-ui-v4 .btn,body.timi-ui-v4 select {touch-action:manipulation}
+body.timi-ui-v4 main button,body.timi-ui-v4 select {min-height:37px}
+body.timi-ui-v4 button:focus-visible,body.timi-ui-v4 select:focus-visible,
+body.timi-ui-v4 summary:focus-visible {outline:2px solid #74bdff;outline-offset:2px}
+body.timi-ui-v4 .btn.active,body.timi-ui-v4 button.active {border-color:#5289b6}
+body.timi-ui-v4 .price {font-variant-numeric:tabular-nums;font-size:clamp(28px,8vw,42px)}
+body.timi-ui-v4 .big {font-size:clamp(27px,7vw,34px)}
+body.timi-ui-v4 .foot {background:#0f1e31; border-color:#2d455c; padding:6px 4px max(7px,env(safe-area-inset-bottom));box-shadow:0 -8px 24px #050d1aa6;}
+body.timi-ui-v4 .foot button {font-size:18px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;line-height:1.1;min-height:53px;border-radius:10px;white-space:nowrap;padding:5px 2px;}
+body.timi-ui-v4 .foot button div {font-size:11px;letter-spacing:.1px;font-weight:650}
+body.timi-ui-v4 .foot button.active {color:#b4dcff;background:#203b54;box-shadow:inset 0 0 0 1px #375a78}
+body.timi-ui-v4 .foot [data-page="osint"],body.timi-ui-v4 .foot [data-page="quantLab"]{display:none!important}
+body.timi-ui-v4 .tabs {scrollbar-width:thin;gap:6px}
+body.timi-ui-v4 .tabs button {border-radius:9px;white-space:nowrap}
+body.timi-ui-v4 #timiUiQuickNav,body.timi-ui-v4 #timiUxHub {display:none!important}
+body.timi-ui-v4 #overview>.timi-v4-out {display:none!important}
+body.timi-ui-v4 .timi-v4-shell {background:linear-gradient(145deg,#142d45,#102137);border:1px solid #3a5b76;border-radius:16px;padding:14px;margin-bottom:14px;box-shadow:0 9px 24px #050e1b40}
+body.timi-ui-v4 .timi-v4-eyebrow {font-size:10px;letter-spacing:1.1px;color:#94b7d5;font-weight:850}
+body.timi-ui-v4 .timi-v4-headline {display:flex;justify-content:space-between;gap:10px;align-items:start;flex-wrap:wrap;margin:6px 0 12px}
+body.timi-ui-v4 .timi-v4-headline h2 {margin:0;font-size:20px;font-weight:900;line-height:1.2}
+body.timi-ui-v4 .timi-v4-health {font-size:11px;font-weight:750;color:#d1dfed;background:#253f56;border:1px solid #526b82;border-radius:24px;padding:5px 10px}
+body.timi-ui-v4 .timi-v4-health[data-state="ok"] {color:#65e3ba;background:#123e37;border-color:#278868}
+body.timi-ui-v4 .timi-v4-health[data-state="bad"] {color:#ffa5b5;background:#482634;border-color:#994d63}
+body.timi-ui-v4 .timi-v4-core {display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:7px;margin-bottom:11px}
+body.timi-ui-v4 .timi-v4-kpi {background:#0d1e30;border:1px solid #2d4861;padding:10px 8px;border-radius:11px;min-width:0}
+body.timi-ui-v4 .timi-v4-kpi small {display:block;color:#a9bdd1;font-size:10px;line-height:1.3}
+body.timi-ui-v4 .timi-v4-kpi strong {display:block;font-size:clamp(12px,3.8vw,19px);letter-spacing:-.3px;font-weight:850;line-height:1.4;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+body.timi-ui-v4 .timi-v4-kpi:first-child strong {font-size:clamp(20px,6vw,27px)}
+body.timi-ui-v4 .timi-v4-kpi strong.buy{color:#22c99a}body.timi-ui-v4 .timi-v4-kpi strong.sell{color:#f36f86}body.timi-ui-v4 .timi-v4-kpi strong.wait{color:#ecc56c}
+body.timi-ui-v4 .timi-v4-filters {display:flex;gap:7px;overflow-x:auto;scrollbar-width:thin;padding-bottom:4px;margin-top:4px}
+body.timi-ui-v4 .timi-v4-filters button {white-space:nowrap;flex:0 0 auto;background:#183048;border:1px solid #355571;border-radius:22px;padding:9px 12px;color:#d8e8f5;font-weight:750;font-size:12px;min-height:41px}
+body.timi-ui-v4 .timi-v4-filters button[aria-pressed="true"]{background:#25547a;border-color:#5ca9ee;color:#fff}
+body.timi-ui-v4 .timi-v4-hint {font-size:11px;color:#a5bdd4;margin:8px 0 0;line-height:1.4}
+body.timi-ui-v4 .timi-v4-menu h3{margin:0 0 4px}
+body.timi-ui-v4 .timi-v4-menu p {margin:0 0 12px;font-size:11px;color:#adbed0}
+body.timi-ui-v4 .timi-v4-menu-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+body.timi-ui-v4 .timi-v4-link {display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;gap:4px;padding:11px;border:1px solid #35536e;background:#1a3048;border-radius:12px;color:#e8f2ff;min-height:69px;font-weight:750;font-size:12px;line-height:1.3}
+body.timi-ui-v4 .timi-v4-link small {font-size:10px;font-weight:450;color:#aabed0}
+body.timi-ui-v4 .timi-v4-link:active {background:#264a68}
+body.timi-ui-v4 .timi-v4-localnav {display:flex;gap:6px;overflow-x:auto;padding:0 1px 10px;scrollbar-width:thin}
+body.timi-ui-v4 .timi-v4-localnav button {background:#183047;border:1px solid #345874;border-radius:11px;color:#d3e6f7;white-space:nowrap;font-size:11px;font-weight:700;padding:9px 11px;min-height:39px}
+body.timi-ui-v4 .timi-v4-back {margin:0 0 11px;padding:9px 12px;border-radius:10px;background:#1a324b;border:1px solid #3b5d7a;color:#dcecff;font-size:12px;font-weight:700;}
+body.timi-ui-v4 .ti-int-card,body.timi-ui-v4 .v2-card,body.timi-ui-v4 #quantLab .q-card {background:#14283b;border-color:#344e65;border-radius:13px}
+body.timi-ui-v4 .timi-ind,body.timi-ui-v4 .timi-pro {background:#142338;border-color:#36536c}
+body.timi-ui-v4 details>summary{line-height:1.45}
+body.timi-ui-v4 canvas {max-width:100%}
+@media(max-width:395px){body.timi-ui-v4 main{padding:9px 9px 104px}body.timi-ui-v4 .card{padding:11px}body.timi-ui-v4 .timi-v4-shell{padding:11px}body.timi-ui-v4 .timi-v4-kpi{padding:8px 6px}}
+@media(min-width:760px){body.timi-ui-v4 .timi-v4-menu-grid{grid-template-columns:repeat(3,minmax(0,1fr))}body.timi-ui-v4 .timi-v4-core{grid-template-columns:repeat(3,1fr)}}
+@media(prefers-reduced-motion:reduce){body.timi-ui-v4 *{scroll-behavior:auto!important;transition-duration:0.01ms!important}}
 
-<!-- TIMI_OSINT_FRAME_BRIDGE_V02 -->
-<script>(function(){'use strict';
-window.addEventListener('message',function(e){
- if(e.origin!==window.location.origin)return;
- var frame=document.getElementById('timiOsintFrame');
- if(!frame||e.source!==frame.contentWindow||!e.data||e.data.source!=='timi-osint-panel')return;
- var h=Number(e.data.height);if(Number.isFinite(h)&&h>=560&&h<=14000)frame.style.height=h+'px';
-});
-})();</script>
+</style>
+<script id="timiUiV4Script">
+/* TiMi UI v4.0 — additive navigation & layout. No network, no orders, no strategy changes. */
+(()=>{'use strict';
+ if(window.__timiUiWorkspaceV4)return;window.__timiUiWorkspaceV4=true;
+ const $=id=>document.getElementById(id);
+ const D=document;
+ const VIEW=[['decision','◈ Karar'],['flow','≋ Akış'],['technical','▥ Teknik / MTF'],['risk','⬡ Risk'],['performance','▣ Performans'],['health','● Veri'],['intel','✦ Intelligence'],['all','☰ Tümü']];
+ let focus='decision',refreshQueued=false;
+ const txt=id=>($ (id)?.textContent||'').trim();
+ function runPage(id){
+   const button=D.querySelector('nav.foot button[data-page="'+id+'"]');
+   if(button){button.click();window.scrollTo({top:0,behavior:'auto'});return true;}
+   if(typeof window.setPage==='function') {window.setPage(id);window.scrollTo({top:0,behavior:'auto'});return true;}
+   return false;
+ }
+ function goPro(tab){if(!runPage('proLab'))return;window.setTimeout(()=>{
+   D.querySelector('[data-pro-tab="'+tab+'"]')?.click();
+   window.scrollTo({top:0,behavior:'auto'});
+ },40)}
+ function groupOf(el){
+   const id=el.id||'';
+   if(id==='timiForwardPerformance'||el.querySelector('#timiFpMeasured'))return 'performance';
+   if(id==='timiIntelOverview'||el.querySelector('#tiIntDecision'))return 'intel';
+   if(el.querySelector('#v2RiskStatus')||id==='v2Risk')return 'risk';
+   if(el.querySelector('#tradeAge')||el.querySelector('#timiHealth22'))return 'health';
+   if(el.querySelector('#ratio')||el.querySelector('#pressureDelta'))return 'flow';
+   if(el.querySelector('#mtfGrid')||el.querySelector('#timiIndBuy'))return 'technical';
+   if(el.querySelector('#signal')||el.querySelector('#timiProDecision'))return 'decision';
+   const h=(id+' '+(el.querySelector('h2,h3,.timi-pro-title,.timi-ind-title,summary')?.textContent||'')).toLocaleLowerCase('tr-TR');
+   if(/risk|shield|veto|koruma/.test(h))return 'risk';
+   if(/performans|geçmiş kural tanısı|backtest/.test(h))return 'performance';
+   if(/veri sağlığı|veri güven|kaynak sağlığı/.test(h))return 'health';
+   if(/intelligen|istihbarat|sinyal analizi/.test(h))return 'intel';
+   if(/order flow|emir akışı|likidite|baskı|delta|derinlik/.test(h))return 'flow';
+   if(/indikatör|metafilter|gösterge|zaman dilimi|mtf/.test(h))return 'technical';
+   return 'decision';
+ }
+ function filterElements(){
+   const section=$('overview');if(!section)return;
+   for(const child of [...section.children]){
+     if(child.id==='timiV4Workbench'||child.id==='timiUiQuickNav'||child.id==='timiUxHub')continue;
+     if(!child.matches('.card,section,details')&&!child.querySelector('h2,h3,summary'))continue;
+     // Tag only direct, original panel nodes. Never move or delete live modules.
+     if(!child.dataset.timiV4Group)child.dataset.timiV4Group=groupOf(child);
+     child.classList.toggle('timi-v4-out',focus!=='all'&&child.dataset.timiV4Group!==focus);
+   }
+   const active=$('timiV4Workbench')?.querySelectorAll('[data-timi-focus]')||[];
+   for(const b of active)b.setAttribute('aria-pressed',String(b.dataset.timiFocus===focus));
+ }
+ function setFocus(next){
+   if(!VIEW.some(v=>v[0]===next))return;
+   focus=next;filterElements();
+   const names={decision:'Ana karar ve canlı onaylar',flow:'İşlem akışı ve likidite',technical:'Teknik analiz / MTF',risk:'Risk Shield 2.0',performance:'Canlı ölçülen performans',health:'Kaynak ve veri sağlığı',intel:'Bağımsız Intelligence',all:'Tüm analiz kartları'};
+   const desc=$('timiV4Hint');if(desc)desc.textContent=(names[next]||'')+' · Mevcut hesaplamalar değiştirilmedi.';
+   window.dispatchEvent(new Event('resize'));
+ }
+ function escapeText(id,value){const e=$(id);if(e&&e.textContent!==value)e.textContent=value;}
+ function paint(){
+   if(!$('timiV4Workbench'))return;
+   const symbol=$('symbol')?.value||'BTCUSDT';
+   const raw=txt('signal').toUpperCase();
+   const ws=txt('wsState'),sync=txt('analysisSync'),feed=txt('feed'),health=txt('health');
+   const bad=/kopuk|kapalı|gecik|offline|error|hata|eski|yetersiz|bağlanıyor/i.test(ws+' '+sync+' '+feed+' '+health);
+   const fresh=/canlı|bağlı|güncel/i.test(feed+' '+sync+' '+health)&&!bad;
+   const dir=fresh&&['LONG','SHORT','BEKLE'].includes(raw)?raw:'BEKLE';
+   escapeText('timiV4Symbol',symbol);
+   escapeText('timiV4Decision',dir);
+   escapeText('timiV4Score',txt('score')||'—');
+   escapeText('timiV4State',bad?'VERİ GECİKMESİ / KOPUK':fresh?'CANLI / DOĞRULANIYOR':'VERİ BEKLENİYOR');
+   const dec=$('timiV4Decision');if(dec)dec.className=dir==='LONG'?'buy':dir==='SHORT'?'sell':'wait';
+   const state=$('timiV4State');if(state)state.dataset.state=bad?'bad':fresh?'ok':'wait';
+ }
+ function button(text,sub,action){
+   const b=D.createElement('button');b.type='button';b.className='timi-v4-link';
+   b.append(D.createTextNode(text));const small=D.createElement('small');small.textContent=sub;b.append(small);
+   b.addEventListener('click',action);return b;
+ }
+ function makeDash(){
+   const section=$('overview');if(!section||$('timiV4Workbench'))return;
+   const dash=D.createElement('div');dash.className='timi-v4-shell';dash.id='timiV4Workbench';
+   dash.innerHTML='<div class="timi-v4-eyebrow">TiMi SCALP PRO · CANLI KONTROL</div>'+
+     '<div class="timi-v4-headline"><h2>Karar Merkezi</h2><span class="timi-v4-health" id="timiV4State" role="status">VERİ BEKLENİYOR</span></div>'+
+     '<div class="timi-v4-core"><div class="timi-v4-kpi"><small>Ana motor</small><strong class="wait" id="timiV4Decision">BEKLE</strong></div>'+
+     '<div class="timi-v4-kpi"><small>Yön skoru</small><strong id="timiV4Score">—</strong></div>'+
+     '<div class="timi-v4-kpi"><small>Parite</small><strong id="timiV4Symbol">—</strong></div></div>'+
+     '<div class="timi-v4-eyebrow">ANALİZ BÖLÜMLERİ</div><div class="timi-v4-filters" role="group" aria-label="Özet alt bölümleri"></div>'+
+     '<p class="timi-v4-hint" id="timiV4Hint">Sinyaller başarı olasılığı değildir. Gerçek emir kapalıdır.</p>';
+   const bar=dash.querySelector('.timi-v4-filters');
+   for(const [id,title] of VIEW){const b=D.createElement('button');b.type='button';b.dataset.timiFocus=id;b.textContent=title;b.setAttribute('aria-pressed',String(id===focus));b.addEventListener('click',()=>setFocus(id));bar.append(b);}
+   section.prepend(dash);
+   filterElements();paint();
+   const observer=new MutationObserver(()=>{if(refreshQueued)return;refreshQueued=true;window.requestAnimationFrame(()=>{refreshQueued=false;filterElements();});});
+   observer.observe(section,{childList:true});
+   window.setInterval(()=>{if(D.visibilityState==='visible')paint();},1900);
+ }
+ function openView(which){
+   if(!runPage('overview'))return;
+   setFocus(which);window.scrollTo({top:0,behavior:'auto'});
+ }
+ function buildMenu(){
+   const more=$('more');if(!more||$('timiV4Menu'))return;
+   const c=D.createElement('div');c.id='timiV4Menu';c.className='card timi-v4-menu';
+   c.innerHTML='<h3>Uygulama bölümleri</h3><p>Gerekli araca tek dokunuşla git. QUANT, OSINT ve PRO analizler ayrı hesaplama modülleridir.</p>';
+   const g=D.createElement('div');g.className='timi-v4-menu-grid';
+   const links=[
+     ['◈ QUANT LAB','İstatistik · maliyetli geçmiş tanı',()=>runPage('quantLab')],
+     ['◇ Blockchain OSINT','Cüzdan ve açık zincir incelemesi',()=>runPage('osint')],
+     ['≋ Order Flow PRO','Akış 2.0 / 3.0 · CVD',()=>goPro('flow')],
+     ['▱ SMC PRO','BOS · CHoCH · FVG bölgeleri',()=>goPro('smc')],
+     ['♜ Strateji LAB','16 kural · Adaptive Engine',()=>goPro('lab')],
+     ['▥ 26 İndikatör','Teknik karar ve MetaFilter',()=>openChartPart('timiIndicatorPanel')],
+     ['⬡ Risk Shield 2.0','Veto · risk ve maliyet',()=>openView('risk')],
+     ['▣ Performans','İleriye dönük canlı gözlemler',()=>openView('performance')],
+     ['● Veri Sağlığı','Kaynak gecikmesi ve bağlantı',()=>openView('health')],
+     ['✦ Intelligence','Bağımsız çoklu kaynak analizi',()=>openView('intel')],
+   ];
+   for(const [t,s,fn] of links)g.append(button(t,s,fn));
+   c.append(g);more.prepend(c);
+ }
+ function openChartPart(id){if(!runPage('chart'))return;window.setTimeout(()=>$(id)?.scrollIntoView({block:'start',behavior:'auto'}),80)}
+ function addLocalBars(){
+   const chart=$('chart');if(chart&&!$('timiV4ChartNav')){
+     const nav=D.createElement('div');nav.id='timiV4ChartNav';nav.className='timi-v4-localnav';
+     for(const [t,id] of [['Grafik','timeframes'],['Karar Kokpiti','timiProCockpit'],['26 İndikatör','timiIndicatorPanel'],['MetaFilter','timiMetaBadge']]){
+       const b=D.createElement('button');b.type='button';b.textContent=t;b.addEventListener('click',()=>openChartPart(id));nav.append(b);
+     }chart.prepend(nav);
+   }
+   const pro=$('proLab');if(pro&&!$('timiV4ProNav')){
+     const nav=D.createElement('div');nav.id='timiV4ProNav';nav.className='timi-v4-localnav';
+     for(const [t,id] of [['≋ Order Flow','flow'],['▱ SMC / FVG','smc'],['♜ Strateji / QUANT','lab']]){
+       const b=D.createElement('button');b.type='button';b.textContent=t;b.addEventListener('click',()=>goPro(id));nav.append(b);
+     }pro.prepend(nav);
+   }
+ }
+ function backButton(id){const page=$(id);if(!page||page.querySelector('.timi-v4-back'))return;
+   const b=D.createElement('button');b.type='button';b.className='timi-v4-back';b.textContent='‹  Menüye dön';
+   b.addEventListener('click',()=>runPage('more'));page.prepend(b);
+ }
+ function navigation(){
+   const nav=D.querySelector('nav.foot');if(!nav)return;
+   const pro=nav.querySelector('[data-page="proLab"]'),more=nav.querySelector('[data-page="more"]');
+   if(pro&&more&&pro.nextElementSibling!==more)nav.insertBefore(pro,more);
+   if(more&&more.nextElementSibling)nav.append(more);
+   for(const b of nav.querySelectorAll('button[data-page]')){
+     const id=b.dataset.page;
+     if(id==='osint'||id==='quantLab')b.title=(id==='osint'?'OSINT':'QUANT')+' · Menüden erişilebilir';
+     if(!b.getAttribute('aria-label'))b.setAttribute('aria-label',b.textContent.trim()+' sekmesi');
+   }
+ }
+ function boot(){
+   if(!$('overview')||!$('chart')||!$('more'))return;
+   D.body.classList.add('timi-ui-v4');
+   makeDash();buildMenu();addLocalBars();navigation();backButton('osint');backButton('quantLab');
+   window.setTimeout(()=>{navigation();backButton('quantLab');filterElements();paint();},400);
+   window.setTimeout(()=>{navigation();backButton('quantLab');filterElements();},1700);
+   window.timiUiV4Info=Object.freeze({version:'4.0.0',visualOnly:true,newNetworkCalls:0,tradingActions:0,originalModulesPreserved:true});
+ }
+ if(D.readyState==='loading')D.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+
+</script>
+<!-- TIMI_UI_V4_END -->
+
 </body></html>
 
