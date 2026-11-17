@@ -1,0 +1,34 @@
+name: TiMi OSINT Entegrasyon
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: OSINT sekmesini mevcut TiMi uygulamasina ekle
+        run: python integrate_osint.py
+      - name: Kodu dogrula
+        run: |
+          python -m py_compile main.py timi_osint.py
+          python - <<'PYTEST'
+          from pathlib import Path
+          h = Path('index.html').read_text()
+          assert h.count('data-page="osint"') == 1
+          assert h.count('id="osint" class="section"') == 1
+          print('OSINT menu and panel OK')
+          PYTEST
+      - name: GitHub deposuna kaydet
+        run: |
+          if [ -n "$(git status --porcelain main.py index.html)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add main.py index.html
+            git commit -m "Integrate Blockchain OSINT as TiMi tab"
+            git push
+          fi
